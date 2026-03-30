@@ -5,7 +5,7 @@ local fetch = function(f) return game:HttpGet(repo .. f) end
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local CoreGui = (cloneref and clonref(game:GetService("CoreGui"))) or game:GetService("CoreGui")
+local CoreGui = (cloneref and cloneref(game:GetService("CoreGui"))) or game:GetService("CoreGui")
 
 local existing = CoreGui:FindFirstChild("AnimLoggerUI")
 if existing then existing:Destroy() end
