@@ -5,7 +5,7 @@ local fetch = function(f) return game:HttpGet(repo .. f) end
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
+local CoreGui = (cloneref and clonref(game:GetService("CoreGui"))) or game:GetService("CoreGui")
 
 local existing = CoreGui:FindFirstChild("AnimLoggerUI")
 if existing then existing:Destroy() end
@@ -73,6 +73,20 @@ local function playPreview(animationId)
 	anim:Destroy()
 end
 
+--[[local selectedTab;
+getgenv().tabTable = nil
+local function returnSelectedTab()
+	table.clear(tabTable)
+	
+	for _, instance in selectedTab do
+		if instance:IsA("TextLabel") then
+			table.insert(tabTable, instance)
+		end
+	end
+
+	return tabTable
+end]]
+
 local scrollingFrame = AnimLoggerUI.Background.contain.left.contain.ScrollingFrame
 local tabTemplate = scrollingFrame.logUn
 local contentTemplate = AnimLoggerUI.Background.contain.center.contain
@@ -94,6 +108,8 @@ local function selectTab(target)
 		end
 
 		entry.content.Visible = selected
+		--[[selectedTab = entry.content
+		returnSelectedTab()]]
 	end
 end
 
