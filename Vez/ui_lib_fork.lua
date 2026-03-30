@@ -397,6 +397,7 @@ function lib:createBottomButton(name, callback)
 	local toggle = parent.clear:Clone()
 	toggle.Visible = true
 	toggle.Parent = parent
+	toggle.Parent.Name = name
 
 	local label = toggle.TextLabel
 	label.Name = name
