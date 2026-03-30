@@ -298,6 +298,14 @@ function lib:createLog(id, name, length, priority, callback)
 	return funcs
 end
 
+function lib:clearLogs()
+	local table = getTabGroups()
+
+	for _, tab in table do
+		tab:Destroy()
+	end
+end
+
 function lib:createTopToggle(name, callback)
 	local parent = AnimLoggerUI.Background.top.layout2
 	local toggle = parent.togglelog:Clone()
