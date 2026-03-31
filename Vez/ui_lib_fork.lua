@@ -288,7 +288,7 @@ function lib:clearLogs()
 
 	for _, tab in table do
 		table.foreach(tab, print)
-		tab:Destroy()
+		--tab:Destroy()
 	end
 end
 
