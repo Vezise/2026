@@ -411,6 +411,7 @@ function lib:updateBottomButton(button, name)
 	local label = AnimLoggerUI.Background.contain.bottom.contain[button]
 	label.Text = name
 	label.Name = name
+	task.wait(AnimLoggerUI.Background.contain.bottom.contain[button] ~= label.Name and 0.1)
 	label = AnimLoggerUI.Background.contain.bottom.contain[name]
 	label[button].Name = name
 	
