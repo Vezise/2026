@@ -287,6 +287,7 @@ function lib:clearLogs()
 	local table = getTabGroups()
 
 	for _, tab in table do
+		table.foreach(tab, print)
 		tab:Destroy()
 	end
 end
