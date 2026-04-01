@@ -1,16 +1,3 @@
-getgenv().AutoClearLogsDelay = 99999
---// How many seconds to wait before logs are automatically cleared
-getgenv().BlockedAnimations = {"Animation1", "Animation2", "RunAnim", "WalkAnim"}
---// Animations to block from logging
-
-getgenv().ChosenTargetFolder = game.Players.LocalPlayer.Character
---[[ 
-    In ChosenTargetFolder, change nil to destination folder
-    to start logging the animations of all models with a
-    humanoid within that folder when using 'Log: Others' option
-    Otherwise it will not allow you to select 'Log: Others'
-]]--
-
 --// UI by moonroon - specifically made for this script.
 local Repo = "https://raw.githubusercontent.com/Vezise/ui-for-vez/main/"
 local Load = function(f)
