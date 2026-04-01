@@ -151,7 +151,7 @@ function Logger:LoopAndCreateTab()
             `{string.format("%.3f", Animation.Length)}`,
             `{Animation.Priority.Name}`,
             function()
-                print("callback")
+                print("created an anim log :fire:")
             end
         )
 
