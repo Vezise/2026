@@ -92,7 +92,7 @@ function Logger:PlayAnimation()
     print(`rbxassetid://{self.Selected.AnimationId}`)
     Anim.AnimationId = `rbxassetid://{self.Selected.AnimationId}`
 
-    local AnimTrack = self.LocalPlayer.Character.Humanoid:LoadAnimation(Anim)
+    local AnimTrack = self.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Animator:LoadAnimation(Anim)
 
     AnimTrack.Priority = Enum.AnimationPriority[self.Selected.Priority]
     AnimTrack.Looped = self.Selected.Looped
@@ -151,7 +151,7 @@ function Logger:LoopAndCreateTab()
             `{string.format("%.3f", Animation.Length)}`,
             `{Animation.Priority.Name}`,
             function()
-                print("created an anim log :fire:")
+                print("callback")
             end
         )
 
@@ -189,7 +189,7 @@ function Logger:LogTargetCreate(Target: string)
         end
     elseif Target == "Others" then
         for _, Instance in ChosenTargetFolder:GetDescendants() do -- i know this is not practical.
-            if Instance:IsA("Humanoid") then
+            if Instance:IsA("Humanoid") or Instance:IsA("AnimationController") then
                 self.Character = Instance.Parent
                 self.Humanoid = Instance
         
