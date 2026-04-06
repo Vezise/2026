@@ -24,6 +24,7 @@ local Logger = {
     Logs = Services.CoreGui.AnimLoggerUI.Background.contain.left.contain.ScrollingFrame;
     LogProperties = Services.CoreGui.AnimLoggerUI.Background.contain.center;
     Logging = false;
+    Stacking = false;
     OldValue = nil;
     NewValue = nil;
     LogDelay = 0;
@@ -229,6 +230,13 @@ end
 task.spawn(function()
     while task.wait() do
         task.wait((AutoClearLogsDelay and AutoClearLogsDelay) or math.huge)
+
+        if Logger.Stacking then
+            Library:unstackTabs()
+
+            task.delay(0.1, Library.stackTabs)
+        end
+
         Library:clearLogs()
     end
 end)
@@ -244,7 +252,9 @@ Library:createTopToggle("Logging", function(State)
 end)
 
 Library:createTopToggle("Stacking", function(State)
-	if State then
+    Logger.Stacking = State
+
+	if Logger.Stacking == true then
 		Library:stackTabs()
 	else
 		Library:unstackTabs()
@@ -297,6 +307,12 @@ end)
 Library:createButtomLine()
 
 Library:createBottomButton("Clear Logs", function()
+    if Logger.Stacking then
+        Library:unstackTabs()
+
+        task.delay(0.1, Library.stackTabs)
+    end
+
     Library:clearLogs()
 end)
 
