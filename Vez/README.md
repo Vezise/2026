@@ -133,6 +133,8 @@ Toggle logging on & off, self explanatory.
 ## Stacking Toggle
 Stacks animations with the same AnimationId to avoid clutter; recommended to use this for performance and for your own sanity.
 
+---
+
 # License
 
 ## Terms of Use
