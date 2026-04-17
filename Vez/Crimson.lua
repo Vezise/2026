@@ -490,6 +490,9 @@ Library:createBottomButton("Copy AnimId", function()
 end)
 
 Library:createBottomButton("Copy Properties", function()
+    Logger.Selected = Logger:GetSelected()
+    if Logger.Selected == nil then return end
+	
 	Logger:CopyProperties()
 
 	Library:createSmallNoti("Copied properties!", "rbxassetid://128652484951291", 2)
