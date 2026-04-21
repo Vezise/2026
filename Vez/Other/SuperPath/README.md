@@ -18,13 +18,14 @@ A standalone, `loadstring`-friendly rebuild of the SuperPath pathfinding library
 10. [Error Types](#error-types)
 11. [Recipes / Patterns](#recipes--patterns)
 12. [Known Limitations](#known-limitations)
+13. [Credits](#credits)
 
 ---
 
 ## Quick Start
 
 ```lua
-local SuperPath = loadstring(game:HttpGet("<raw-url-to-SuperPath_Reconstructed.lua>"))()
+local SuperPath = loadstring(game:HttpGet("https://raw.githubusercontent.com/Vezise/2026/refs/heads/main/Vez/Other/SuperPath/SuperPath_Reconstructed.lua"))()
 
 local char = game.Players.LocalPlayer.Character
 local pather = SuperPath.Agent(char, {
@@ -40,7 +41,7 @@ pather:Run(Vector3.new(0, 5, 0))
 ## Loading the Library
 
 ```lua
-local SuperPath = loadstring(game:HttpGet("<raw-url>"))()
+local SuperPath = loadstring(game:HttpGet("https://raw.githubusercontent.com/Vezise/2026/refs/heads/main/Vez/Other/SuperPath/SuperPath_Reconstructed.lua"))()
 ```
 
 Alternatively, if stored as a ModuleScript, `require(path.to.SuperPath)` works the same way.
