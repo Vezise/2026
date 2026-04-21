@@ -347,7 +347,7 @@ pather = nil
 
 ## Credits
 
-- **SuperPath** — original modular library, here consolidated into a single file.
+- **SuperPath** — https://devforum.roblox.com/t/superpath-advanced-pathfinding-module-with-waypoint-optimization-builtin-raycasting-etc/4571286 consolidated into a single file.
 - **SignalPlus v3.7.2** — © 2025 Alexander Lindholt, MIT. https://github.com/AlexanderLindholt/SignalPlus
 
 ## License
