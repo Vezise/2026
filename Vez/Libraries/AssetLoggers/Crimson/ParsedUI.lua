@@ -797,8 +797,7 @@ local viewport = new("ViewportFrame", {
 	Size = UDim2.fromScale(1, 1),
 	Ambient = Color3.fromRGB(200, 200, 200),
 	LightColor = Color3.fromRGB(140, 140, 140),
-	LightDirection = Vector3.new(-1, -1, -1),
-	CameraFieldOfView = 61.2252426,
+	LightDirection = Vector3.new(-1, -1, -1)
 })
 
 local vpCamera = new("Camera", {
