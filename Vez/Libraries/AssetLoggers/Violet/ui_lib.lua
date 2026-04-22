@@ -46,7 +46,6 @@ end
 do
 	local worldModel = SoundLoggerUI.Background.little.contain.ViewportFrame.WorldModel
 	local rig = worldModel.Rig
-	local rigRootCFrame = (rig:FindFirstChild("HumanoidRootPart") or rig.PrimaryPart or rig:FindFirstChildWhichIsA("BasePart")).CFrame
 	rig:Destroy()
 
 	local clone = Instance.new("Model")
