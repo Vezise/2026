@@ -734,7 +734,7 @@ local worldModel = new("WorldModel", {
 })
 
 local rig = new("Model", {
-    Parent = viewport,
+    Parent = worldModel,
     Name = "Rig"
 })
 
