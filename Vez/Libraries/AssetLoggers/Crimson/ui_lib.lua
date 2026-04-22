@@ -1,4 +1,4 @@
-local repo = "https://raw.githubusercontent.com/ybahopper/ui-for-vez/main/"
+local repo = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Crimson/"
 local load = function(f) return loadstring(game:HttpGet(repo .. f))() end
 local fetch = function(f) return game:HttpGet(repo .. f) end
 
