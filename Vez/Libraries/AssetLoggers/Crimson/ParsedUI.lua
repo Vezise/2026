@@ -733,7 +733,9 @@ vpCamera.FieldOfView = 61.2252426
 vpCamera.Parent = viewport
 viewport.CurrentCamera = vpCamera
 
-local Rig = new("Model", { Name = "Rig", Parent = viewport })
+local worldModel = new("WorldModel", { Name = "WorldModel", Parent = viewport })
+
+local Rig = new("Model", { Name = "Rig", Parent = worldModel })
 
 local function makePart(props)
 	local p = Instance.new("Part")
