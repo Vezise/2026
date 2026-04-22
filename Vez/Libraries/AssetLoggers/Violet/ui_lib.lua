@@ -29,15 +29,18 @@ local Style = {
 }
 
 local function tween(instance, properties, info)
-	if ActiveTweens[instance] then
-		ActiveTweens[instance]:Cancel()
-	end
-	local t = TweenService:Create(instance, info or TWEEN_DEFAULT, properties)
-	t.Completed:Connect(function()
-		ActiveTweens[instance] = nil
+	pcall(function()
+		if ActiveTweens[instance] then
+			ActiveTweens[instance]:Cancel()
+		end
+		local t = TweenService:Create(instance, info or TWEEN_DEFAULT, properties)
+		t.Completed:Connect(function()
+			ActiveTweens[instance] = nil
+		end)
+		ActiveTweens[instance] = t
+		t:Play()
+		return t
 	end)
-	t:Play()
-	return t
 end
 
 do
