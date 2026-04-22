@@ -9,11 +9,11 @@ local Players = game:GetService("Players")
 local CoreGui = cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")
 local TextService = game:GetService("TextService")
 
-local existing = CoreGui:FindFirstChild("AnimLoggerUI")
+local existing = CoreGui:FindFirstChild("SoundLoggerUI")
 if existing then existing:Destroy() end
 
 local RBXMXParser = load("RBXMXParser.lua")
-local AnimLoggerUI = RBXMXParser.Deserialize(fetch("ui_lib_noti_13.rbxmx"), CoreGui)[1]
+local SoundLoggerUI = RBXMXParser.Deserialize(fetch("ui_lib_noti_13.rbxmx"), CoreGui)[1]
 
 local ActiveTweens = {}
 local TWEEN_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -43,7 +43,7 @@ local previewAnimator
 local currentTrack
 
 do
-	local worldModel = AnimLoggerUI.Background.little.contain.ViewportFrame.WorldModel
+	local worldModel = SoundLoggerUI.Background.little.contain.ViewportFrame.WorldModel
 	local rig = worldModel.Rig
 	local rigRootCFrame = (rig:FindFirstChild("HumanoidRootPart") or rig.PrimaryPart or rig:FindFirstChildWhichIsA("BasePart")).CFrame
 	rig:Destroy()
@@ -87,9 +87,9 @@ local function playPreview(animationId)
 	anim:Destroy()
 end
 
-local scrollingFrame = AnimLoggerUI.Background.contain.left.contain.ScrollingFrame
+local scrollingFrame = SoundLoggerUI.Background.contain.left.contain.ScrollingFrame
 local tabTemplate = scrollingFrame.logUn
-local contentTemplate = AnimLoggerUI.Background.contain.center.contain
+local contentTemplate = SoundLoggerUI.Background.contain.center.contain
 local tabs = {}
 
 local function selectTab(target)
@@ -128,7 +128,7 @@ local function connectHover(button, tab, content)
 end
 
 do
-	local background = AnimLoggerUI.Background
+	local background = SoundLoggerUI.Background
 	local dragging, dragStart, startPos
 
 	background.InputBegan:Connect(function(input)
@@ -352,13 +352,13 @@ function lib:clearLogs()
 		end
 	end
 		
-	for _, Log in CoreGui.AnimLoggerUI.Background.contain.left.contain.ScrollingFrame:GetChildren() do
+	for _, Log in CoreGui.SoundLoggerUI.Background.contain.left.contain.ScrollingFrame:GetChildren() do
 		if Log.Name ~= "logUn" and Log.Name ~= "UIListLayout" then
 			Log:Destroy()
 		end
 	end
 
-	for _, Content in CoreGui.AnimLoggerUI.Background.contain.center:GetChildren() do
+	for _, Content in CoreGui.SoundLoggerUI.Background.contain.center:GetChildren() do
 		if Content.Name ~= "contain" then
 			Content:Destroy()
 		end
@@ -368,7 +368,7 @@ function lib:clearLogs()
 end
 
 function lib:createTopToggle(name, callback)
-	local parent = AnimLoggerUI.Background.top.layout2
+	local parent = SoundLoggerUI.Background.top.layout2
 	local toggle = parent.togglelog:Clone()
 	toggle.Visible = true
 	toggle.Parent = parent
@@ -411,7 +411,7 @@ function lib:createTopToggle(name, callback)
 end
 
 function lib:createAnimToggle(name, callback)
-	local parent = AnimLoggerUI.Background.little.contain.layout2
+	local parent = SoundLoggerUI.Background.little.contain.layout2
 	local toggle = parent.togglestack:Clone()
 	toggle.Visible = true
 	toggle.Parent = parent
@@ -454,7 +454,7 @@ function lib:createAnimToggle(name, callback)
 end
 
 function lib:createBottomButton(name, callback)
-	local parent = AnimLoggerUI.Background.contain.bottom.contain
+	local parent = SoundLoggerUI.Background.contain.bottom.contain
 	local toggle = parent.clear:Clone()
 	toggle.Visible = true
 	toggle.Parent = parent
@@ -482,7 +482,7 @@ function lib:createBottomButton(name, callback)
 end
 
 function lib:updateBottomButton(button, name)
-	local parent = AnimLoggerUI.Background.contain.bottom.contain
+	local parent = SoundLoggerUI.Background.contain.bottom.contain
 	local toggle = parent:FindFirstChild(button)
 	if not toggle then return end
 	local textLabel = toggle:FindFirstChild(button)
@@ -498,7 +498,7 @@ function lib:updateBottomButton(button, name)
 end
 
 function lib:createButtomLine()
-	local parent = AnimLoggerUI.Background.contain.bottom.contain
+	local parent = SoundLoggerUI.Background.contain.bottom.contain
 	local toggle = parent.line:Clone()
 	toggle.Visible = true
 	toggle.Parent = parent
@@ -507,7 +507,7 @@ end
 local NotiOriginals = {}
 
 function lib:createSmallNoti(text, icon, duration)
-    local parent = AnimLoggerUI.Background.noticontain
+    local parent = SoundLoggerUI.Background.noticontain
     local noti = parent.small:Clone()
 	noti.Name = "sigma"
 	noti.noti.TextLabel.Text = text
@@ -535,7 +535,7 @@ function lib:createSmallNoti(text, icon, duration)
 end
 
 function lib:createBigNoti(title, desc, icon, duration)
-    local parent = AnimLoggerUI.Background.noticontain
+    local parent = SoundLoggerUI.Background.noticontain
     local noti = parent.big:Clone()
 	noti.Name = "sigma"
 	noti.noti.moretext.desc.Text = desc
@@ -584,7 +584,7 @@ function lib:createBigNoti(title, desc, icon, duration)
 end
 
 function lib:createBigButtonNoti(title, desc, icon, duration)
-    local parent = AnimLoggerUI.Background.noticontain
+    local parent = SoundLoggerUI.Background.noticontain
     local noti = parent.bigbutton:Clone()
 	noti.Name = "sigma"
 	noti.noti.noti.moretext.desc.Text = desc
