@@ -14,7 +14,7 @@ if existing then existing:Destroy() end
 
 local RBXMXParser = load("RBXMXParser.lua")
 task.wait(1)
-local SoundLoggerUI = RBXMXParser.Deserialize(fetch("ui_lib_noti_13.rbxmx"), CoreGui)[1]
+local SoundLoggerUI = load("ParsedUI")
 
 local ActiveTweens = {}
 local TWEEN_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
