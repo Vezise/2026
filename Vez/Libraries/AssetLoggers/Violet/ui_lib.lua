@@ -3,11 +3,11 @@ local load = function(f) return loadstring(game:HttpGet(repo .. f))() end
 local fetch = function(f) return game:HttpGet(repo .. f) end
 
 getgenv().UnpAcK = base64decode
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
+local TweenService = cloneref and cloneref(game:GetService("TweenService")) or game:GetService("TweenService")
+local UserInputService = cloneref and cloneref(game:GetService("UserInputService")) or game:GetService("UserInputService")
+local Players = cloneref and cloneref(game:GetService("Players")) or game:GetService("Players")
 local CoreGui = cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")
-local TextService = game:GetService("TextService")
+local TextService = cloneref and cloneref(game:GetService("TextService")) or game:GetService("TextService")
 
 local existing = CoreGui:FindFirstChild("SoundLoggerUI")
 if existing then existing:Destroy() end
@@ -20,7 +20,7 @@ local TWEEN_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirecti
 local TWEEN_DEFAULT = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 local Style = {
-	selected   = { transparency = 0,   strokeColor = Color3.fromRGB(53, 3, 3) },
+	selected   = { transparency = 0,   strokeColor = Color3.fromRGB(51, 3, 53) },
 	unselected = { transparency = 1,   strokeColor = Color3.fromRGB(22, 22, 22) },
 	hover      = { transparency = 0.95 },
 	toggleOn   = Color3.fromRGB(0, 170, 0),
@@ -39,52 +39,20 @@ local function tween(instance, properties, info)
 	return t
 end
 
-local previewAnimator
-local currentTrack
-
 do
 	local worldModel = SoundLoggerUI.Background.little.contain.ViewportFrame.WorldModel
 	local rig = worldModel.Rig
 	local rigRootCFrame = (rig:FindFirstChild("HumanoidRootPart") or rig.PrimaryPart or rig:FindFirstChildWhichIsA("BasePart")).CFrame
 	rig:Destroy()
 
-	local char = Players.LocalPlayer.Character
-    char.Archivable = true
-	local clone = char:Clone()
-    clone.PrimaryPart.CFrame = rigRootCFrame
+	local clone = Instance.new("Model")
+	clone.Name = "ViewModel"
     clone.Parent = worldModel
 
-    previewAnimator = clone.Humanoid
-end
-
-local function stopPreview()
-	if not currentTrack then return end
-	currentTrack:Stop()
-	currentTrack:Destroy()
-	currentTrack = nil
-end
-
-local function playPreview(animationId)
-	if not previewAnimator then return end
-
-	if currentTrack then
-		currentTrack:Stop()
-		currentTrack:Destroy()
-		currentTrack = nil
-	end
-
-	for _, Anim in previewAnimator:GetPlayingAnimationTracks() do
-		Anim:Stop(0)
-	end
-	
-	local anim = Instance.new("Animation")
-	anim.AnimationId = animationId
-
-	currentTrack = previewAnimator:LoadAnimation(anim)
-	currentTrack:Play()
-	task.wait(currentTrack.Length)
-	currentTrack.Looped = false
-	anim:Destroy()
+	local primaryPart = Instance.new("Part")
+	primaryPart.Name = "PrimaryPart"
+	primaryPart.Anchored = true
+	primaryPart.Transparency = 1
 end
 
 local scrollingFrame = SoundLoggerUI.Background.contain.left.contain.ScrollingFrame
@@ -159,9 +127,6 @@ end
 
 local lib = {}
 local stackingEnabled = false
-
-lib.playPreview = playPreview
-lib.stopPreview = stopPreview
 
 local function getTabGroups()
 	local groups = {}
@@ -298,8 +263,10 @@ function lib:createLog(id, name, length, priority, callback)
 			local countStr = multi.Text:match("x(%d+)")
 			currentCount = tonumber(countStr) or 1
 		end
-
-		updateStackIndicator(existingEntry, currentCount + 1)
+		
+		if currentCount ~= 999 then
+			updateStackIndicator(existingEntry, currentCount + 1)
+		end
 		tab:Destroy()
 		content:Destroy()
 	else
@@ -410,7 +377,7 @@ function lib:createTopToggle(name, callback)
 	end
 end
 
-function lib:createAnimToggle(name, callback)
+function lib:createSoundToggle(name, callback)
 	local parent = SoundLoggerUI.Background.little.contain.layout2
 	local toggle = parent.togglestack:Clone()
 	toggle.Visible = true
