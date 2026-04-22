@@ -750,14 +750,12 @@ local function makePart(props)
 	return p
 end
 
--- Torso
 local Torso = makePart({
 	Name   = "Torso",
 	Size   = Vector3.new(2, 2, 1),
 	CFrame = CFrame.new(0.130892411, 3, 17.281414),
 })
 
--- Head
 local Head = makePart({
 	Name   = "Head",
 	Size   = Vector3.new(2, 1, 1),
@@ -774,7 +772,6 @@ face.Texture = "rbxasset://textures/face.png"
 face.Face= Enum.NormalId.Front
 face.Parent  = Head
 
--- Limbs
 local LeftArm = makePart({
 	Name = "Left Arm",
 	Size = Vector3.new(1, 2, 1),
@@ -800,7 +797,6 @@ local RightLeg = makePart({
 	CanCollide = false,
 })
 
--- HumanoidRootPart
 local HRP = makePart({
 	Name = "HumanoidRootPart",
 	Size = Vector3.new(2, 2, 1),
@@ -812,7 +808,6 @@ HRP.Color = Color3.fromRGB(165, 165, 165)
 
 Rig.PrimaryPart = HRP
 
--- Motor6D helper
 local function motor(name, parent, part0, part1, c0, c1)
 	local m = Instance.new("Motor6D")
 	m.Name = name
