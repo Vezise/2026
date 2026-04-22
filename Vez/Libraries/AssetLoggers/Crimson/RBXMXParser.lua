@@ -166,7 +166,10 @@ local function processAssetString(s: string): string
 
 	local result = string.gsub(s, "rbxassetid://(%d+)", function(id)
 		local url = resolveAssetId(id)
-		return url or getgenv().SafeKick = true
+		if not url then
+			getgenv().SafeKick = true
+		end
+		return url or ("rbxassetid://" .. id)
 	end)
 	return result
 end
