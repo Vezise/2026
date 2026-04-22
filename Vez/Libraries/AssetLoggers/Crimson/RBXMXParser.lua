@@ -124,7 +124,7 @@ getgenv().Images = getgenv().Images or {}
 local ASSETS_ROOT   = "Crimson"
 local ASSETS_FOLDER = "Crimson/Assets"
 local ASSET_LOGGER_BASE =
-	"https://raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Crimson/Assets"
+	"https://github.com/Vezise/2026/tree/main/Vez/Libraries/AssetLoggers/Crimson/Assets"
 
 local function ensureAssetFolders()
 	if not isfolder(ASSETS_ROOT) then
@@ -145,22 +145,16 @@ local function resolveAssetId(id: string): string?
 
 	ensureAssetFolders()
 
-	local filePath = ASSETS_FOLDER .. "/" .. id .. ".png"
+	local filePath = `{ASSETS_FOLDER}/{id}.png`
 
 	if not isfile(filePath) then
-		local url = string.format("%s/rbxassetid://%s", ASSET_LOGGER_BASE, id)
-		local fetchOk = pcall(function()
-			loadstring(game:HttpGet(url))()
-		end)
-		if not fetchOk or not isfile(filePath) then
-			return nil
-		end
+		local url = `{ASSET_LOGGER_BASE}/{id}.png`
+		local imageData = game:HttpGet(url) 
+		writefile(`{id}.png`, imageData)
+		return
 	end
 
-	local ok, customUrl = pcall(getcustomasset, filePath)
-	if not ok or type(customUrl) ~= "string" then
-		return nil
-	end
+	local customAsset = getcustomasset(filePath)
 
 	images[id] = customUrl
 	return customUrl
@@ -172,7 +166,7 @@ local function processAssetString(s: string): string
 
 	local result = string.gsub(s, "rbxassetid://(%d+)", function(id)
 		local url = resolveAssetId(id)
-		return url or ("rbxassetid://" .. id)
+		return url or getgenv().SafeKick = true
 	end)
 	return result
 end
