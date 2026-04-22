@@ -13,7 +13,6 @@ local existing = CoreGui:FindFirstChild("SoundLoggerUI")
 if existing then existing:Destroy() end
 
 local RBXMXParser = load("RBXMXParser.lua")
-task.wait(1)
 local SoundLoggerUI = load("ParsedUI")
 
 local ActiveTweens = {}
