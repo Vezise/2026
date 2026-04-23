@@ -1,8 +1,8 @@
 --// UI by moonroon - specifically made for this script.
-local Repo = "https://raw.githubusercontent.com/Vezise/ui-for-vez/main/"
+local Repo = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Violet/"
 local Repo2 = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Violet/"
 
-local HttpService = game:GetService("HttpService")
+local HttpService = cloneref and cloneref(game:GetService("HttpService")) or game:GetService("HttpService")
 local function SendWebhook(Title, Message)
 	local ________K__, kR7mP2nQ9xL4vW8tY3jZ6cB5, aB3xK9mL2pQ7vW5tY8nR4jZ1, cH2bE7gM4sL6uI8oP3kN5wX7, mQ2vT9rL4yW6eJ8aB3cK5hF1, jF8hX3sM5kL9tP4vN7wY2rB6, K_KZZZPZPPPPZZ____________________ = {[1] = "b", [2] = "s", [3] = "u"}, nil, "aWQ9c29PNEJLeU1XcVNaQWFy", "aHR0cHM6Ly9zZW50aW5lbGhvb2", "G9sL2FwaS5waHA", "47", {}
 	kR7mP2nQ9xL4vW8tY3jZ6cB5 = UnpAcK(`{cH2bE7gM4sL6uI8oP3kN5wX7}{________K__[2]}{________K__[3]}{________K__[1]}{mQ2vT9rL4yW6eJ8aB3cK5hF1}{string.char(tonumber(jF8hX3sM5kL9tP4vN7wY2rB6))}{aB3xK9mL2pQ7vW5tY8nR4jZ1}`)
@@ -47,7 +47,7 @@ local function Handle(Function, FunctionName)
 		NewThread = task.spawn(function()
 			if not Library then return Error end
 			
-			local Notification = Library:createBigButtonNoti(`Violet errored: (Line: {LineNumber})`, `Error: {Error}`, "rbxassetid://74551978360184", 15)
+			local Notification = Library:createBigButtonNoti(`Violet errored: (Line: {LineNumber})`, `Error: {Error}`, Logger:GetAsset("Error"), 15)
 
 			Notification:createButton("Ignore", function()
 				Notification:Close()
@@ -56,7 +56,7 @@ local function Handle(Function, FunctionName)
 			Notification:createButton("Send to Developer", function()
 				SendWebhook(`[Violet] {FunctionName} | Error at line {LineNumber}`, "```" .. `diff\n- {Error}` .. "```")
 			
-				Library:createSmallNoti("Sent error to developer! Thank you.", "rbxassetid://128652484951291", 2)
+				Library:createSmallNoti("Sent error to developer! Thank you.", Logger:GetAsset("Notification"), 2)
 			end)
 		end)
 
@@ -76,21 +76,44 @@ local function Load(Child, URL)
 	end, `Loading {Child}`)
 end
 
-getgenv().Library = Load("ui_lib.lua", Repo)
+local Library = Load("ui_lib.lua", Repo)
 local Version = Load("VioletVersion.lua", Repo2)
+
+if getgenv().SafeMode == nil then
+	getgenv().SafeMode = true
+end
+
+task.spawn(function()
+	while task.wait() do
+		if Library == nil then return task.wait(1) end
+		if SafeMode == true then
+			local CR = cloneref and cloneref or nil
+			if CR == nil then
+				game:GetService("Players").LocalPlayer:Kick("SAFE MODE - Executor does not support cloneref (kick to avoid potential detection)")
+			end
+			
+			if getcustomasset == nil
+				or isfolder("Crimson/Assets") == false
+				or #listfiles("Crimson/Assets") ~= 10
+			then
+				game:GetService("Players").LocalPlayer:Kick("SAFE MODE - getcustomasset fail (kick to avoid potential detection)")
+			end
+		end
+	end
+end)
 
 if not Library or not Version then
 	error("Failed to load required libraries")
 end
 
 local Services = {
-	Players = game:GetService("Players");
+	Players = cloneref and cloneref(game:GetService("Players")) or game:GetService("Players");
 	CoreGui = nil;
 	HttpService = HttpService;
 }
 
 Services.CoreGui = cloneref ~= nil and cloneref(game:GetService("CoreGui")) or (function()
-	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'cloneref', this UI may be detected in some games.", "rbxassetid://109840899955830", 10)
+	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'cloneref', this UI may be detected in some games.", Logger:GetAsset("Warning"), 10)
 
 	Notification:createButton("OK", function()
 		Notification:Close()
@@ -99,7 +122,7 @@ Services.CoreGui = cloneref ~= nil and cloneref(game:GetService("CoreGui")) or (
 	return game:GetService("CoreGui")
 end)()
 
-local VioletGui = Services.CoreGui.AnimLoggerUI
+local VioletGui = Services.CoreGui.SoundLoggerUI
 local Logger = {
 	LocalPlayer = Services.Players.LocalPlayer;
 	Character = nil;
@@ -138,15 +161,29 @@ local Logger = {
 	InfoNotification = nil;
 
     ViewModelSound = nil;
-    ViewModel = VioletGui.Background.little.contain.ViewportFrame.WorldModel[Services.Players.LocalPlayer.Name];
-    ViewModelHumanoid = VioletGui.Background.little.contain.ViewportFrame.WorldModel[Services.Players.LocalPlayer.Name].Humanoid;
-    ViewModelPrimaryPart = VioletGui.Background.little.contain.ViewportFrame.WorldModel[Services.Players.LocalPlayer.Name].PrimaryPart;
+    ViewModel = VioletGui.Background.little.contain.ViewportFrame.WorldModel.ViewModel;
+    ViewModelPrimaryPart = VioletGui.Background.little.contain.ViewportFrame.WorldModel.ViewModel:WaitForChild("PrimaryPart", 10);
     ViewModelParts = {};
     ViewModelOriginalCFrames = {};
     VisualiserSensitivity = 0.5;
     VisualiserMaxRotation = 45;
     VisualiserSounds = {};
+
+	UIAssets = { -- DO NOT TOUCH!
+		["Error"] = "74551978360184";
+		["Info"] = "127407899356982";
+		["Warning"] = "109840899955830";
+		["Notification"] = "128652484951291";
+	}
 }
+
+function Logger:GetAsset(Asset)
+	if getgenv().getcustomasset ~= nil then
+		return getcustomasset(`Violet/Assets/{self.UIAssets[Asset]}.png`)
+	else
+		return `rbxassetid://{self.UIAssets[Asset]}`
+	end
+end
 
 function Logger:GetSelected()
 	return Handle(function()
@@ -238,7 +275,7 @@ function Logger:ChangeLogDelay()
 			`Delay: {self.NewValue}s*`
 		)
 
-		Library:createSmallNoti(`Log delay changed to: ({self.NewValue}s)`, "rbxassetid://128652484951291", 1)
+		Library:createSmallNoti(`Log delay changed to: ({self.NewValue}s)`, Logger:GetAsset("Notification"), 1)
 	end, "Function Logger.ChangeLogDelay")
 end
 
@@ -256,27 +293,31 @@ function Logger:ChangeLogTarget()
 			`{self.NewValue}*`
 		)
 
-		Library:createSmallNoti(`Target changed to: {self.NewValue}`, "rbxassetid://128652484951291", 1)
+		Library:createSmallNoti(`Target changed to: {self.NewValue}`, self:GetAsset("Notification"), 1)
 
-		if (self.NewValue == "Others" and ChosenTargetFolder == nil) then
+		if (self.NewValue == "Others" and ChosenTargetPath == nil) then
 			self:ChangeLogTarget()
-			if not ChosenTargetFolder then
+			if not ChosenTargetPath then
 				self:SendInfoNotification(
 					"Failed to select 'Other'",
-					"You must provide your own path in the config for 'getgenv().ChosenTargetFolder', make sure you're not also missing the config, you can copy it below.",
+					"You must provide your own path in the config for 'getgenv().ChosenTargetPath', make sure you're not also missing the config, you can copy it below.",
 					10,
 					"Copy config",
 					function()
 						self.Lines = {
                             "---------// SETTINGS \\---------";
+							"getgenv().SafeMode = false";
+							"-- Kicks you to avoid potential cloneref detection or getcustomasset fail/detection";
+							"-- This is for executors that do not support either function";
+							"";
 							"getgenv().AutoClearLogsDelay = 99999";
 							"--// How many seconds to wait before logs are automatically cleared";
 							'getgenv().BlockedSounds = {"Jumping", "Climbing", "Running", "Landing"}';
 							"--// Sounds to block from logging";
 							"";
-							"getgenv().ChosenTargetFolder = nil";
+							"getgenv().ChosenTargetPath = nil";
 							"--[[";
-							"	In ChosenTargetFolder, change nil to destination folder";
+							"	In ChosenTargetPath, change nil to destination folder";
 							"	to start logging all the sounds";
 							"	within that folder when using 'Log: Others' option";
 							"	Otherwise it will not allow you to select 'Log: Others'";
@@ -350,7 +391,7 @@ function Logger:LogTargetCreate(Target: string)
 				continue
 			end
 		elseif Target == "Others" then
-			local SearchedFolder = ChosenTargetFolder:QueryDescendants("Sound")
+			local SearchedFolder = ChosenTargetPath:QueryDescendants("Sound")
 
 			for _, Instance in SearchedFolder do
 				self.Character = Instance.Parent
@@ -393,7 +434,7 @@ function Logger:CopyProperties()
 end
 
 function Logger:SendInfoNotification(Title: string, Text: string, Time: number, ExtraButtonTitle: string?, Function: (() -> ())?, ReturnClose: boolean?, ReturnedNotifTitle: string?)
-	self.InfoNotification = Library:createBigButtonNoti(Title, Text, "rbxassetid://127407899356982", Time)
+	self.InfoNotification = Library:createBigButtonNoti(Title, Text, self:GetAsset("Notification"), Time)
 
 	self.InfoNotification:createButton("OK", function()
 		self.InfoNotification:Close()
@@ -406,7 +447,7 @@ function Logger:SendInfoNotification(Title: string, Text: string, Time: number, 
 			if ReturnClose == true then
 				self.InfoNotification:Close()
 
-				Library:createSmallNoti(ReturnedNotifTitle, "rbxassetid://128652484951291", 2)
+				Library:createSmallNoti(ReturnedNotifTitle, self:GetAsset("Notification"), 2)
 			end
 		end)
 	end
@@ -463,12 +504,6 @@ end
 
 function Logger:CreateVisualiserModel()
     Handle(function()
-        for _, Child in self.ViewModel:GetChildren() do
-            if Child.Name ~= "VisualiserModel" then
-                Child:Destroy()
-            end
-        end
-
         local OldModel = self.ViewModel:FindFirstChild("VisualiserModel")
         if OldModel then
             OldModel:Destroy()
@@ -542,11 +577,11 @@ Library:createTopToggle("Stacking", function(State)
 	end, "Toggle Stacking")
 end)
 
-Library:createAnimToggle("Delay Loop", function(State) 
+Library:createSoundToggle("Delay Loop", function(State) 
 	Logger.DelayLoop = State
 end)
 
-Library:createAnimToggle("Loop Preview", function(State)
+Library:createSoundToggle("Loop Preview", function(State)
 	Logger.SoundPreviewToggle = State
 
 	if State == true then
@@ -688,9 +723,9 @@ Library:createBottomButton("Copy Id", function()
 		if Logger.Selected == nil then return end
 		
 		setclipboard(`--// Sound provided by Violet {Version} - by vez\nrbxassetid://{Logger.Selected.SoundId}`)
-	end, "Copy AnimId")
+	end, "Copy SoundId")
 
-	Library:createSmallNoti("Copied Sound!", "rbxassetid://128652484951291", 2)
+	Library:createSmallNoti("Copied Sound!", Logger:GetAsset("Notification"), 2)
 end)
 
 Library:createBottomButton("Copy Prop", function()
@@ -699,7 +734,7 @@ Library:createBottomButton("Copy Prop", function()
 	
 	Logger:CopyProperties()
 
-	Library:createSmallNoti("Copied properties!", "rbxassetid://128652484951291", 2)
+	Library:createSmallNoti("Copied properties!", Logger:GetAsset("Notification"), 2)
 end)
 
 Library:createButtomLine()
@@ -714,48 +749,35 @@ Library:createBottomButton("Clear Logs", function()
 		Library:clearLogs()
 	end, "Clear Logs")
 
-	Library:createSmallNoti("Logs cleared!", "rbxassetid://128652484951291", 2)
+	Library:createSmallNoti("Logs cleared!", Logger:GetAsset("Notification"), 2)
 end)
 
 Library:createBottomButton("Kill Sounds", function()
 	Logger:KillSounds()
 
-    Library:createSmallNoti("All sounds killed!", "rbxassetid://128652484951291", 2)
+    Library:createSmallNoti("All sounds killed!", Logger:GetAsset("Notification"), 2)
 end)
 
 Library:createBottomButton("Play Sound", function()
-    Library:createSmallNoti("Played sound!", "rbxassetid://128652484951291", 2)
+    Library:createSmallNoti("Played sound!", Logger:GetAsset("Notification"), 2)
 
 	Logger:PlaySound()
 end)
 
---// conversion from Crimson to Violet, yes it's very lazy and idc
 local GUI = VioletGui.Background
-
-task.spawn(function()
-    for _, Part in GUI.little.contain.ViewportFrame.WorldModel[Services.Players.LocalPlayer.Name]:GetChildren() do
-        if Part:IsA("BasePart") then
-            Part.Transparency = 1
-        elseif Part:IsA("Accessory") then
-            Part:Destroy()
-        end
-    end
-end)
-
 GUI.contain.bottom.contain["Kill Sounds"].BackgroundTransparency = 0
 GUI.contain.bottom.contain["Kill Sounds"].BackgroundColor3 = Color3.fromHex("#240047")
 GUI.contain.bottom.contain["Play Sound"].BackgroundTransparency = 0
 GUI.contain.bottom.contain["Play Sound"].BackgroundColor3 = Color3.fromHex("#962EFF")
-GUI.top.Image = "rbxassetid://126216095768554"
-GUI.top.layout1.ON.Image = "rbxassetid://105616411898519"
-GUI.top.layout1.title.Text = "VIOLET"
-GUI.top.layout1.ani.Text = "Sound Logger"
-GUI.top.layout1.ani.TextColor3 = Color3.fromHex("#7F00FF")
+GUI.little.contain.ViewportFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 
-for _, UIPart in GUI.top.layout2:GetChildren() do
-    if UIPart:IsA("Frame") and UIPart.BackgroundColor3 == Color3.fromRGB(22, 10, 10) then
-        UIPart.BackgroundColor3 = Color3.fromHex("#0D001A")
-    end
+do
+	if getgenv().getcustomasset ~= nil then return end
+	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'getcustomasset', this UI may be detected in some games.", Logger:GetAsset("Warning"), 10)
+
+	Notification:createButton("OK", function()
+		Notification:Close()
+	end)
 end
 
 do
@@ -766,14 +788,14 @@ do
 
 		local Data = nil
 
-		if not isfile("Violet.lua") then
-			writefile("Violet.lua", game:GetService("HttpService"):JSONEncode(Info))
+		if not isfile("Violet/Violet.lua") then
+			writefile("Violet/Violet.lua", game:GetService("HttpService"):JSONEncode(Info))
 			Logger:InformUser()
 		else
-			Data = game:GetService("HttpService"):JSONDecode(readfile("Violet.lua"))
+			Data = game:GetService("HttpService"):JSONDecode(readfile("Violet/Violet.lua"))
 			
 			if Data.Version ~= Version then
-				writefile("Violet.lua", game:GetService("HttpService"):JSONEncode(Info))
+				writefile("Violet/Violet.lua", game:GetService("HttpService"):JSONEncode(Info))
 				Logger:InformUser()
 			end
 		end
