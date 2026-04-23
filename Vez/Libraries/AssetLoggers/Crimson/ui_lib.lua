@@ -1,15 +1,15 @@
-local repo = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Crimson/"
+local repo = "raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Crimson/"
 local load = function(f) return loadstring(game:HttpGet(repo .. f))() end
 local fetch = function(f) return game:HttpGet(repo .. f) end
 
 getgenv().UnpAcK = base64decode
-local TweenService = cloneref and cloneref(game:GetService("TweenService")) or game:GetService("TweenService")
-local UserInputService = cloneref and cloneref(game:GetService("UserInputService")) or game:GetService("UserInputService")
-local Players = cloneref and cloneref(game:GetService("Players")) or game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 local CoreGui = cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")
-local TextService = cloneref and cloneref(game:GetService("TextService")) or game:GetService("TextService")
+local TextService = game:GetService("TextService")
 
-local existing = CoreGui:FindFirstChild("SoundLoggerUI")
+local existing = CoreGui:FindFirstChild("AnimLoggerUI")
 if existing then existing:Destroy() end
 
 local RBXMXParser = load("RBXMXParser.lua")
@@ -28,18 +28,15 @@ local Style = {
 }
 
 local function tween(instance, properties, info)
-	pcall(function()
-		if ActiveTweens[instance] then
-			ActiveTweens[instance]:Cancel()
-		end
-		local t = TweenService:Create(instance, info or TWEEN_DEFAULT, properties)
-		t.Completed:Connect(function()
-			ActiveTweens[instance] = nil
-		end)
-		ActiveTweens[instance] = t
-		t:Play()
-		return t
+	if ActiveTweens[instance] then
+		ActiveTweens[instance]:Cancel()
+	end
+	local t = TweenService:Create(instance, info or TWEEN_DEFAULT, properties)
+	t.Completed:Connect(function()
+		ActiveTweens[instance] = nil
 	end)
+	t:Play()
+	return t
 end
 
 local previewAnimator
