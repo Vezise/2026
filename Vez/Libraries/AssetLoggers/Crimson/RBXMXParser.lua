@@ -1,3 +1,31 @@
+--// Asset loader (Crimson) -----------------------------------------------------
+local Assets = {
+	"108453875048733.png";
+	"82686076130111.png";
+	"95222964296464.png";
+	"114069756293603.png";
+	"136563593316996.png";
+}
+
+local URL = "https://github.com/Vezise/2026/tree/main/Vez/Libraries/AssetLoggers/Crimson/Assets"
+local AssetData
+
+if not isfolder("Crimson") then
+	makefolder("Crimson")
+end
+
+if not isfolder("Crimson/Assets") then
+	makefolder("Crimson/Assets")
+end
+
+for _, Asset in Assets do
+	if not isfile(`Crimson/Assets/{Asset}`) then
+		AssetData = game:HttpGet(`{URL}/{Asset}`)
+		writefile(`Crimson/Assets/{Asset}`, AssetData)
+	end
+end
+--//----------------------------------------------------------------------------
+
 local CollectionService = game:GetService("CollectionService")
 
 local RBXMXParser = {}
@@ -101,6 +129,32 @@ local function b64decode(data: string): string
 	return table.concat(out)
 end
 
+-- Rewrites "rbxassetid://<id>" (and bare numeric ids) into a local custom-asset
+-- path when the file exists on disk under Crimson/Assets, otherwise falls back
+-- to the original rbxassetid string. Mirrors:
+--   getcustomasset and getcustomasset("Crimson/Assets/<id>.png") or "rbxassetid://<id>"
+local function resolveAssetId(value: string): string
+	if type(value) ~= "string" or value == "" then
+		return value
+	end
+
+	local id = string.match(value, "^rbxassetid://(%d+)$")
+	if not id then
+		-- leave non-rbxassetid content (http://, rbxasset://, rbxthumb://, etc.) untouched
+		return value
+	end
+
+	local path = `Crimson/Assets/{id}.png`
+	if getcustomasset and isfile and isfile(path) then
+		local ok, result = pcall(getcustomasset, path)
+		if ok and type(result) == "string" and result ~= "" then
+			return result
+		end
+	end
+
+	return `rbxassetid://{id}`
+end
+
 local XML_ENTITIES = {
 	["&amp;"] = "&",
 	["&lt;"] = "<",
@@ -117,61 +171,6 @@ local function xmlDecode(s: string): string
 		s = string.gsub(s, entity, char)
 	end
 	return s
-end
-
-getgenv().Images = getgenv().Images or {}
-
-local ASSETS_ROOT   = "Crimson"
-local ASSETS_FOLDER = "Crimson/Assets"
-local ASSET_LOGGER_BASE =
-	"https://github.com/Vezise/2026/tree/main/Vez/Libraries/AssetLoggers/Crimson/Assets"
-
-local function ensureAssetFolders()
-	if not isfolder(ASSETS_ROOT) then
-		makefolder(ASSETS_ROOT)
-	end
-	if not isfolder(ASSETS_FOLDER) then
-		makefolder(ASSETS_FOLDER)
-	end
-end
-
-local function resolveAssetId(id: string): string?
-	if not id or id == "" then return nil end
-
-	local images = getgenv().Images
-	if images[id] then
-		return images[id]
-	end
-
-	ensureAssetFolders()
-
-	local filePath = `{ASSETS_FOLDER}/{id}.png`
-
-	if not isfile(filePath) then
-		local url = `{ASSET_LOGGER_BASE}/{id}.png`
-		local imageData = game:HttpGet(url) 
-		writefile(`{id}.png`, imageData)
-		return
-	end
-
-	local customAsset = getcustomasset(filePath)
-
-	images[id] = customUrl
-	return customUrl
-end
-
-local function processAssetString(s: string): string
-	if type(s) ~= "string" or s == "" then return s end
-	if not string.find(s, "rbxassetid", 1, true) then return s end
-
-	local result = string.gsub(s, "rbxassetid://(%d+)", function(id)
-		local url = resolveAssetId(id)
-		if not url then
-			getgenv().SafeKick = true
-		end
-		return url or ("rbxassetid://" .. id)
-	end)
-	return result
 end
 
 local function parseXML(text: string)
@@ -441,7 +440,7 @@ end
 local function readContent(node)
 	local urlNode = getChild(node, "url")
 	if urlNode then
-		return processAssetString(getText(urlNode))
+		return resolveAssetId(getText(urlNode))
 	end
 	local nullNode = getChild(node, "null")
 	if nullNode then
@@ -452,8 +451,10 @@ local function readContent(node)
 		return getText(hashNode)
 	end
 	local t = getText(node)
-	if string.match(t, "^%s*$") then return "" end
-	return processAssetString(t)
+	if string.match(t, "^%s*$") then
+		return ""
+	end
+	return resolveAssetId(t)
 end
 
 local function readRay(node)
@@ -593,7 +594,8 @@ local function readProperty(propNode, sharedStrings: { [string]: string })
 	local text = getText(propNode)
 
 	if tag == "string" or tag == "ProtectedString" then
-		return processAssetString(text)
+		-- strings that happen to be rbxassetid urls get rerouted to local files
+		return resolveAssetId(text)
 	elseif tag == "BinaryString" then
 		return b64decode(string.gsub(text, "%s+", ""))
 	elseif tag == "SharedString" then
