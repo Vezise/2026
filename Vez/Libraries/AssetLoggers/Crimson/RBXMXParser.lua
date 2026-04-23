@@ -6,6 +6,8 @@ local Assets = {
 	"136563593316996.png";
 	"128652484951291.png";
 	"139816139131321.png";
+	"127407899356982.png";
+	"74551978360184.png";
 }
 
 local URL = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Crimson/Assets"
