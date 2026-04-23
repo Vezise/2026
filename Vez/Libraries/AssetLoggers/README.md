@@ -1,5 +1,5 @@
 ### UI Files for Crimson & Violet
-
+---
 ## Crimson - Animation Logger
 <img width="975" height="485" alt="image" src="https://github.com/user-attachments/assets/d5c642a5-e4de-4f3e-b128-51e4c0041076" />
 
