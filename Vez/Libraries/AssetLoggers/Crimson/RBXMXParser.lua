@@ -23,7 +23,7 @@ end
 
 local function RequestAsset(Asset)
 	local Request = request({
-        Url = `Url/{Asset}`,
+        Url = `URL/{Asset}`,
         Method = "GET",
     })
 
