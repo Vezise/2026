@@ -113,7 +113,7 @@ local Services = {
 }
 
 Services.CoreGui = cloneref ~= nil and cloneref(game:GetService("CoreGui")) or (function()
-	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'cloneref', this UI may be detected in some games.", Logger:GetAsset("Warning"), 10)
+	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'cloneref', this UI may be detected in some games.", "rbxassetid://109840899955830", 10)
 
 	Notification:createButton("OK", function()
 		Notification:Close()
