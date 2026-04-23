@@ -8,6 +8,7 @@ local Assets = {
 	"139816139131321.png";
 	"127407899356982.png";
 	"74551978360184.png";
+	"109840899955830.png";
 }
 
 local URL = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Violet/Assets"
