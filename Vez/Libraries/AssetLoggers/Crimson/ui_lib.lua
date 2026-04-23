@@ -13,7 +13,7 @@ local existing = CoreGui:FindFirstChild("SoundLoggerUI")
 if existing then existing:Destroy() end
 
 local RBXMXParser = load("RBXMXParser.lua")
-local AnimLoggerUI = load("ParsedUI.lua")
+local AnimLoggerUI = RBXMXParser.Deserialize(fetch("ui_lib_noti_13.rbxmx"), CoreGui)[1]
 
 local ActiveTweens = {}
 local TWEEN_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
