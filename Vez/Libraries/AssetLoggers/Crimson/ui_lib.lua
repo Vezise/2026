@@ -80,11 +80,13 @@ local function playPreview(animationId)
 	local anim = Instance.new("Animation")
 	anim.AnimationId = animationId
 
-	currentTrack = previewAnimator:LoadAnimation(anim)
-	currentTrack:Play()
-	task.wait(currentTrack.Length)
-	currentTrack.Looped = false
-	anim:Destroy()
+	task.spawn(function()
+		currentTrack = previewAnimator:LoadAnimation(anim)
+		currentTrack:Play()
+		task.wait(currentTrack.Length)
+		currentTrack.Looped = false
+		anim:Destroy()
+	end)
 end
 
 local scrollingFrame = AnimLoggerUI.Background.contain.left.contain.ScrollingFrame
