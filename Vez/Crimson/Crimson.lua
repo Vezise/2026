@@ -578,6 +578,26 @@ task.spawn(function()
 	end
 end)
 
+task.spawn(function()
+    local NewVers = nil
+
+	while task.wait(3) do
+		NewVers = loadstring(game:HttpGet("https://raw.githubusercontent.com/Vezise/2026/refs/heads/main/Vez/Crimson/CrimsonVersion.lua"))()
+		
+		if NewVers ~= Version then
+			Logger:SendInfoNotification("Script has updated!", `Version: {Version} -> {NewVers}`, 999, "Execute", function()
+				Logger.Logging = false
+				
+				task.wait(0.3)
+
+				loadstring(game:HttpGet(("https://raw.githubusercontent.com/%sise/2026/main/%s/%s/%s.lua"):format("Vez", "Vez", "Crimson", "Crimson")))()
+			end, true, "Executing new version..")
+			
+			break
+		end
+	end
+end)
+
 do
 	Handle(function()
 		local Info = {
