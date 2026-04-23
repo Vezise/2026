@@ -1,6 +1,6 @@
 --// UI by moonroon - specifically made for this script.
-local Repo = "https://raw.githubusercontent.com/Vezise/ui-for-vez/main/"
-local Repo2 = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Crimson/" -- put into new folder
+local Repo = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Libraries/AssetLoggers/Crimson/"
+local Repo2 = "https://raw.githubusercontent.com/Vezise/2026/main/Vez/Crimson/"
 
 local HttpService = game:GetService("HttpService")
 local function SendWebhook(Title, Message)
@@ -47,7 +47,7 @@ local function Handle(Function, FunctionName)
 		NewThread = task.spawn(function()
 			if not Library then return Error end
 			
-			local Notification = Library:createBigButtonNoti(`Crimson errored: (Line: {LineNumber})`, `Error: {Error}`, "rbxassetid://74551978360184", 15)
+			local Notification = Library:createBigButtonNoti(`Crimson errored: (Line: {LineNumber})`, `Error: {Error}`, self:GetAsset("Error"), 15)
 
 			Notification:createButton("Ignore", function()
 				Notification:Close()
@@ -56,7 +56,7 @@ local function Handle(Function, FunctionName)
 			Notification:createButton("Send to Developer", function()
 				SendWebhook(`[Crimson] {FunctionName} | Error at line {LineNumber}`, "```" .. `diff\n- {Error}` .. "```")
 			
-				Library:createSmallNoti("Sent error to developer! Thank you.", "rbxassetid://128652484951291", 2)
+				Library:createSmallNoti("Sent error to developer! Thank you.", Logger:GetAsset("Notification"), 2)
 			end)
 		end)
 
@@ -76,8 +76,31 @@ local function Load(Child, URL)
 	end, `Loading {Child}`)
 end
 
-getgenv().Library = Load("ui_lib.lua", Repo)
+local Library = Load("ui_lib.lua", Repo)
 local Version = Load("CrimsonVersion.lua", Repo2)
+
+if getgenv().SafeMode == nil then
+	getgenv().SafeMode = true
+end
+
+task.spawn(function()
+	while task.wait() do
+		if Library == nil then return task.wait(1) end
+		if SafeMode == true then
+			local CR = cloneref and cloneref or nil
+			if CR == nil then
+				game:GetService("Players").LocalPlayer:Kick("SAFE MODE - Executor does not support cloneref (kick to avoid potential detection)")
+			end
+			
+			if getcustomasset == nil
+				or isfolder("Crimson/Assets") == false
+				or #listfiles("Crimson/Assets") ~= 10
+			then
+				game:GetService("Players").LocalPlayer:Kick("SAFE MODE - getcustomasset fail (kick to avoid potential detection)")
+			end
+		end
+	end
+end)
 
 if not Library or not Version then
 	error("Failed to load required libraries")
@@ -90,7 +113,7 @@ local Services = {
 }
 
 Services.CoreGui = cloneref ~= nil and cloneref(game:GetService("CoreGui")) or (function()
-	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'cloneref', this UI may be detected in some games.", "rbxassetid://109840899955830", 10)
+	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'cloneref', this UI may be detected in some games.", Logger:GetAsset("Warning"), 10)
 
 	Notification:createButton("OK", function()
 		Notification:Close()
@@ -138,7 +161,22 @@ local Logger = {
 	};
 
 	InfoNotification = nil;
+
+	UIAssets = { -- DO NOT TOUCH!
+		["Error"] = "74551978360184";
+		["Info"] = "127407899356982";
+		["Warning"] = "109840899955830";
+		["Notification"] = "128652484951291";
+	}
 }
+
+function Logger:GetAsset(Asset)
+	if getgenv().getcustomasset ~= nil then
+		return getcustomasset(`Crimson/Assets/{self.UIAssets[Asset]}.png`)
+	else
+		return `rbxassetid://{self.UIAssets[Asset]}`
+	end
+end
 
 function Logger:GetSelected()
 	return Handle(function()
@@ -200,7 +238,11 @@ function Logger:PlayAnimation()
 		self.TemporaryAnimTrack:Play()
 
 		task.wait(self.Selected.Length)
-		self.TemporaryAnimTrack:Stop()
+
+		if self.TemporaryAnimTrack.IsPlaying == true then
+			self.TemporaryAnimTrack:Stop()
+		end
+
 		self.TemporaryAnim:Destroy()
 
 		self.TemporaryAnim = nil
@@ -222,7 +264,7 @@ function Logger:ChangeLogDelay()
 			`Delay: {self.NewValue}s*`
 		)
 
-		Library:createSmallNoti(`Log delay changed to: ({self.NewValue}s)`, "rbxassetid://128652484951291", 1)
+		Library:createSmallNoti(`Log delay changed to: ({self.NewValue}s)`, self:GetAsset("Notification"), 1)
 	end, "Function Logger.ChangeLogDelay")
 end
 
@@ -240,7 +282,7 @@ function Logger:ChangeLogTarget()
 			`{self.NewValue}*`
 		)
 
-		Library:createSmallNoti(`Target changed to: {self.NewValue}`, "rbxassetid://128652484951291", 1)
+		Library:createSmallNoti(`Target changed to: {self.NewValue}`, self:GetAsset("Notification"), 1)
 
 		if (self.NewValue == "Others" and ChosenTargetFolder == nil) then
 			self:ChangeLogTarget()
@@ -252,6 +294,11 @@ function Logger:ChangeLogTarget()
 					"Copy config",
 					function()
 						self.Lines = {
+                            "---------// SETTINGS \\---------";
+							"getgenv().SafeMode = false";
+							"-- Kicks you to avoid potential cloneref detection or getcustomasset fail/detection";
+							"-- This is for executors that do not support either function";
+							"";
 							"getgenv().AutoClearLogsDelay = 99999";
 							"--// How many seconds to wait before logs are automatically cleared";
 							'getgenv().BlockedAnimations = {"Animation1", "Animation2", "RunAnim", "WalkAnim"}';
@@ -374,7 +421,7 @@ function Logger:CopyProperties()
 end
 
 function Logger:SendInfoNotification(Title: string, Text: string, Time: number, ExtraButtonTitle: string?, Function: (() -> ())?, ReturnClose: boolean?, ReturnedNotifTitle: string?)
-	self.InfoNotification = Library:createBigButtonNoti(Title, Text, "rbxassetid://127407899356982", Time)
+	self.InfoNotification = Library:createBigButtonNoti(Title, Text, self:GetAsset("Info"), Time)
 
 	self.InfoNotification:createButton("OK", function()
 		self.InfoNotification:Close()
@@ -387,7 +434,7 @@ function Logger:SendInfoNotification(Title: string, Text: string, Time: number, 
 			if ReturnClose == true then
 				self.InfoNotification:Close()
 
-				Library:createSmallNoti(ReturnedNotifTitle, "rbxassetid://128652484951291", 2)
+				Library:createSmallNoti(ReturnedNotifTitle, self:GetAsset("Notification"), 2)
 			end
 		end)
 	end
@@ -486,7 +533,7 @@ Library:createBottomButton("Copy AnimId", function()
 		setclipboard(`--// AnimationId provided by Crimson {Version} - by vez\nrbxassetid://{Logger.Selected.AnimationId}`)
 	end, "Copy AnimId")
 
-	Library:createSmallNoti("Copied AnimationId!", "rbxassetid://128652484951291", 2)
+	Library:createSmallNoti("Copied AnimationId!", Logger:GetAsset("Notification"), 2)
 end)
 
 Library:createBottomButton("Copy Properties", function()
@@ -495,7 +542,7 @@ Library:createBottomButton("Copy Properties", function()
 	
 	Logger:CopyProperties()
 
-	Library:createSmallNoti("Copied properties!", "rbxassetid://128652484951291", 2)
+	Library:createSmallNoti("Copied properties!", Logger:GetAsset("Notification"), 2)
 end)
 
 Library:createButtomLine()
@@ -510,7 +557,7 @@ Library:createBottomButton("Clear Logs", function()
 		Library:clearLogs()
 	end, "Clear Logs")
 
-	Library:createSmallNoti("Logs cleared!", "rbxassetid://128652484951291", 2)
+	Library:createSmallNoti("Logs cleared!", Logger:GetAsset("Notification"), 2)
 end)
 
 Library:createBottomButton("Play Animation", function()
@@ -518,6 +565,16 @@ Library:createBottomButton("Play Animation", function()
 end)
 
 Services.CoreGui.AnimLoggerUI.Background.contain.bottom.contain["Play Animation"].BackgroundTransparency = 0
+Services.CoreGui.AnimLoggerUI.Background.little.contain.ViewportFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+
+do
+	if getgenv().getcustomasset ~= nil then return end
+	local Notification = Library:createBigButtonNoti("WARNING!", "Your exploit does not support 'getcustomasset', this UI may be detected in some games.", Logger:GetAsset("Warning"), 10)
+
+	Notification:createButton("OK", function()
+		Notification:Close()
+	end)
+end
 
 do
 	Handle(function()
@@ -527,14 +584,14 @@ do
 
 		local Data = nil
 
-		if not isfile("Crimson.lua") then
-			writefile("Crimson.lua", game:GetService("HttpService"):JSONEncode(Info))
+		if not isfile("Crimson/Crimson.lua") then
+			writefile("Crimson/Crimson.lua", game:GetService("HttpService"):JSONEncode(Info))
 			Logger:InformUser()
 		else
-			Data = game:GetService("HttpService"):JSONDecode(readfile("Crimson.lua"))
+			Data = game:GetService("HttpService"):JSONDecode(readfile("Crimson/Crimson.lua"))
 			
 			if Data.Version ~= Version then
-				writefile("Crimson.lua", game:GetService("HttpService"):JSONEncode(Info))
+				writefile("Crimson/Crimson.lua", game:GetService("HttpService"):JSONEncode(Info))
 				Logger:InformUser()
 			end
 		end
