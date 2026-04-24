@@ -38,7 +38,7 @@ loadstring(game:HttpGet(("https://raw.githubusercontent.com/%sise/2026/main/%s/%
 - **Instantaneous Logging** - Instantly log animations
 - **Animation Blocking** - Block specific animations that may be useless or annoying (by name via the config, AnimId support not added yet)
 - **Choose Your Targets** - Log animations from your LocalPlayer, all Players or from a path of your own
-- **Auto Clear Logs** - Automatically clear logs on a customizable interval
+- **Auto Clear Logs** - Automatically clear logs on a customisable interval
 - **'As Simple As Possible'** - Extremely simple to use, even for people who lack knowledge in Luau
 
 ## Why Would I Use This?
