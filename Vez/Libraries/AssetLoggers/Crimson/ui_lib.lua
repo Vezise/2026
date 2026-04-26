@@ -88,7 +88,11 @@ local function playPreview(animationId)
 		anim:Destroy()
 	end)
 
-	return true
+	return
+end
+
+local function isStillPlaying()
+	return currentTrack and currentTrack.IsPlaying
 end
 
 local scrollingFrame = AnimLoggerUI.Background.contain.left.contain.ScrollingFrame
@@ -166,6 +170,7 @@ local stackingEnabled = false
 
 lib.playPreview = playPreview
 lib.stopPreview = stopPreview
+lib.isStillPlaying = isStillPlaying
 
 local function getTabGroups()
 	local groups = {}
