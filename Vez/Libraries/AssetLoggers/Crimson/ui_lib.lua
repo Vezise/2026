@@ -88,7 +88,7 @@ local function playPreview(animationId)
 		anim:Destroy()
 	end)
 
-	return (currentTrack.Length)
+	return true
 end
 
 local scrollingFrame = AnimLoggerUI.Background.contain.left.contain.ScrollingFrame
