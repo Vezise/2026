@@ -259,89 +259,87 @@ function lib:isStacking()
 end
 
 function lib:createLog(id, name, length, priority, callback)
-	pcall(function()
-		local funcs = {}
+	local funcs = {}
 	
-		local tab = tabTemplate:Clone()
-		tab.Name = id
-		tab.Visible = true
-	    tab.Size = UDim2.new(1,0,0,0)
-		tab.Parent = scrollingFrame
+	local tab = tabTemplate:Clone()
+	tab.Name = id
+	tab.Visible = true
+	tab.Size = UDim2.new(1,0,0,0)
+	tab.Parent = scrollingFrame
+
+	local log = tab:FindFirstChild("log")
+	if log then
+		local label = log:FindFirstChild("TextLabel")
+		if label then label.Text = id end
+	end
+
+	tween(tab, { Size = UDim2.new(1,0,0,43) }, TWEEN_DEFAULT)
+
+	local content = contentTemplate:Clone()
+	content.Name = id
+	content.Visible = false
+	content.Parent = contentTemplate.Parent
+
+	content.name.value.Text = name or nil
+	content.contain.length.value.Text = length or nil 
+	content.contain.priority.value.Text = priority or nil
+
+	local entry = { tab = tab, content = content }
 	
-		local log = tab:FindFirstChild("log")
-		if log then
-			local label = log:FindFirstChild("TextLabel")
-			if label then label.Text = id end
+	local isDuplicate = false
+	local existingEntry = nil
+	
+	if stackingEnabled then
+		for _, checkEntry in tabs do
+			if checkEntry.tab.Name == id then
+				isDuplicate = true
+				existingEntry = checkEntry
+				break
+			end
 		end
+	end
 	
-		tween(tab, { Size = UDim2.new(1,0,0,43) }, TWEEN_DEFAULT)
-	
-		local content = contentTemplate:Clone()
-		content.Name = id
-		content.Visible = false
-		content.Parent = contentTemplate.Parent
-	
-		content.name.value.Text = name
-		content.contain.length.value.Text = length
-		content.contain.priority.value.Text = priority
-	
-		local entry = { tab = tab, content = content }
+	if isDuplicate and existingEntry then
+		local log = existingEntry.tab:FindFirstChild("log")
+		local multi = log and log:FindFirstChild("multi")
+		local currentCount = 1
 		
-		local isDuplicate = false
-		local existingEntry = nil
+		if multi and multi.Visible then
+			local countStr = multi.Text:match("x(%d+)")
+			currentCount = tonumber(countStr) or 1
+		end
+
+		updateStackIndicator(existingEntry, currentCount + 1)
+		tab:Destroy()
+		content:Destroy()
+	else
+		table.insert(tabs, entry)
+		tab.LayoutOrder = -#tabs
+
+		local button = tab:FindFirstChildWhichIsA("TextButton", true)
+		if button then
+			button.MouseButton1Click:Connect(function()
+				selectTab(entry)
+				if callback then callback() end
+			end)
+			connectHover(button, tab, content)
+		end
+	end
 		
-		if stackingEnabled then
-			for _, checkEntry in tabs do
-				if checkEntry.tab.Name == id then
-					isDuplicate = true
-					existingEntry = checkEntry
-					break
-				end
-			end
+	function funcs:makeProperty(name, val, color)
+		if isDuplicate then
+			return
 		end
 		
-		if isDuplicate and existingEntry then
-			local log = existingEntry.tab:FindFirstChild("log")
-			local multi = log and log:FindFirstChild("multi")
-			local currentCount = 1
-			
-			if multi and multi.Visible then
-				local countStr = multi.Text:match("x(%d+)")
-				currentCount = tonumber(countStr) or 1
-			end
-	
-			updateStackIndicator(existingEntry, currentCount + 1)
-			tab:Destroy()
-			content:Destroy()
-		else
-			table.insert(tabs, entry)
-			tab.LayoutOrder = -#tabs
-	
-			local button = tab:FindFirstChildWhichIsA("TextButton", true)
-			if button then
-				button.MouseButton1Click:Connect(function()
-		            selectTab(entry)
-		            if callback then callback() end
-		        end)
-				connectHover(button, tab, content)
-			end
+		local prop = content.propdif:Clone()
+		prop.Visible = true
+		prop.name.Text = name
+		prop.value.Text = val
+		if color then
+			prop.value.TextColor3 = color
 		end
-			
-		function funcs:makeProperty(name, val, color)
-			if isDuplicate then
-				return
-			end
-			
-			local prop = content.propdif:Clone()
-			prop.Visible = true
-			prop.name.Text = name
-			prop.value.Text = val
-			if color then
-				prop.value.TextColor3 = color
-			end
-			prop.Parent = content
-		end
-	end)
+		prop.Parent = content
+	end
 
 	return funcs
 end
