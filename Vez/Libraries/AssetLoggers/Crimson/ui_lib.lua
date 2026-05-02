@@ -82,9 +82,10 @@ local function playPreview(animationId)
 
 	task.spawn(function()
 		currentTrack = previewAnimator:LoadAnimation(anim)
+		currentTrack.Looped = false
 		currentTrack:Play()
 		task.wait(currentTrack.Length)
-		currentTrack.Looped = false
+		
 		anim:Destroy()
 	end)
 
