@@ -131,6 +131,8 @@ local RiskyServices = {
     "GenerationService";
 }
 
+local NewInstance = Instance.new
+
 local cloneref = (function()
     local Native = cloneref
     if not Native then
@@ -3449,18 +3451,31 @@ local function FormatSegment(Name, IsRoot)
         return IsRoot and Name or `.{Name}`
     end
 
-    if not Name:find('"') and not Name:find("\\") and not Name:find("\n") and not Name:find("\r") then
-        return `["{Name}"]`
+    return `[{string.format("%q", Name)}]`
+end
+
+local function IsScriptViewable(Instance)
+    if not Instance then
+        return false
     end
 
-    local Level = 0
-    while Name:find(`]{string.rep("=", Level)}]`, 1, true) do
-        Level += 1
+    local ClassName = Instance.ClassName
+
+    if ClassName == "LocalScript"
+        or ClassName == "ModuleScript"
+    then
+        return true
     end
 
-    --local Eq = string.rep("=", Level)
-    --return `{Eq}[{"`"}{Name}{"`"}]{Eq}`
-    return `[{"`"}{Name}{"`"}]`
+    if ClassName == "Script" then
+        local Success, RunContext = pcall(function()
+            return Instance.RunContext
+        end)
+
+        return Success and RunContext == Enum.RunContext.Client
+    end
+
+    return false
 end
 
 Explorer = {
@@ -3585,6 +3600,19 @@ Explorer = {
 
     PropertyFilters = {};
     PropertyFilterTemplate = nil;
+
+    ExpandedInstances = setmetatable({}, {__mode = "k"});
+    SelectionHighlights = setmetatable({}, {__mode = "k"});
+
+    DragOperation = nil;
+    _JustDragged = false;
+
+    UseLuaExpertDecompiler = false;
+
+    ViewedObject = nil;
+    ViewConnection = nil;
+    ViewSavedCFrame = nil;
+    ViewSavedCameraType = nil;
 }
 
 function Explorer:SpawnTask(TaskName, Callback)
@@ -3664,10 +3692,6 @@ function Explorer:GetInstancePath(Object)
         return "game"
     end
 
-    if IsWorkspace(Object) then
-        return "workspace"
-    end
-
     if IsLocalPlayer(Object) then
         return `game:GetService("Players").LocalPlayer`
     end
@@ -3677,12 +3701,6 @@ function Explorer:GetInstancePath(Object)
     local Anchor
 
     while Cursor and not IsGame(Cursor) do
-        if IsWorkspace(Cursor) then
-            Anchor = "workspace"
-
-            break
-        end
-
         if IsLocalPlayer(Cursor) then
             Anchor = `game:GetService("Players").LocalPlayer`
 
@@ -3984,6 +4002,92 @@ function Explorer:ApplyToSelection(PropertyName, Value)
     end
 end
 
+function Explorer:HandleDoubleClick(Node)
+    if not Node or not Node.Instance then
+        return
+    end
+
+    if Node.IsNilContainer then
+        return
+    end
+
+    if IsScriptViewable(Node.Instance) then
+        self:OpenScriptViewer(Node.Instance, not self.UseLuaExpertDecompiler)
+
+        return
+    end
+
+    self:BeginRename(Node)
+end
+
+function Explorer:BeginRename(Node)
+    if not Node
+        or not Node.Label
+        or not Node.Label.Parent
+    then
+        return
+    end
+
+    local Label = Node.Label
+    local OldText = Node.Instance.Name
+    Label.Visible = false
+
+    local Box = VexUI:CreateInstance("TextBox", {
+        Size = Label.Size;
+        Position = Label.Position;
+        BackgroundColor3 = Theme.Field;
+        BackgroundTransparency = 0.15;
+        BorderSizePixel = 0;
+        Font = Label.Font;
+        Text = OldText;
+        TextColor3 = Theme.Text;
+        TextSize = Label.TextSize;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        ZIndex = (Label.ZIndex or 1) + 1;
+        Parent = Label.Parent;
+    })
+    VexUI:AddCorner(Box, 3)
+    VexUI:AddStroke(Box, Theme.Accent, 1)
+
+    task.defer(function()
+        if Box.Parent then
+            Box:CaptureFocus()
+            Box.SelectionStart = 1
+            Box.CursorPosition = #OldText + 1
+        end
+    end)
+
+    local Done = false
+    local function Finish(Apply)
+        if Done then
+            return
+        end
+
+        Done = true
+
+        if Apply then
+            local NewName = Box.Text
+            if NewName ~= "" and NewName ~= OldText then
+                pcall(function()
+                    Node.Instance.Name = NewName 
+                end)
+            end
+        end
+
+        if Box.Parent then
+            Box:Destroy()
+        end
+        if Label.Parent then
+            Label.Visible = true
+        end
+    end
+
+    Box.FocusLost:Connect(function(Enter)
+        Finish(Enter)
+    end)
+end
+
 function Explorer:CreateNodeRow(Node, RowParent)
     local IndentOffset = 6 + Node.Depth * 14
 
@@ -4069,12 +4173,26 @@ function Explorer:CreateNodeRow(Node, RowParent)
         VexUI:Tween(Row, {BackgroundTransparency = 1})
     end)))
 
+    local LastClickAt = 0
     table.insert(Node.Connections, Track(Row.MouseButton1Click:Connect(function()
+        if self._JustDragged then
+            return
+        end
+
         if self.ReparentMode then
             self:CommitReparent(Node.Instance)
 
             return
         end
+
+        local Now = os.clock()
+        if Now - LastClickAt < 0.35 then
+            LastClickAt = 0
+            self:HandleDoubleClick(Node)
+
+            return
+        end
+        LastClickAt = Now
 
         if self.ShiftHeld and self.SelectionAnchor then
             self:RangeSelect(self.SelectionAnchor, Node.Instance)
@@ -4088,6 +4206,10 @@ function Explorer:CreateNodeRow(Node, RowParent)
     end)))
 
     table.insert(Node.Connections, Track(Arrow.MouseButton1Click:Connect(function()
+        if self._JustDragged then
+            return
+        end
+
         self:ToggleNode(Node)
     end)))
 
@@ -4099,6 +4221,24 @@ function Explorer:CreateNodeRow(Node, RowParent)
 
         local Mouse = self.LocalPlayer:GetMouse()
         self:OpenContextMenu(Mouse.X, Mouse.Y)
+    end)))
+
+    table.insert(Node.Connections, Track(Row.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.DragOperation = {
+                StartX = Input.Position.X;
+                StartY = Input.Position.Y;
+                Started = false;
+                Source = Node.Instance;
+                SourceName = Node.Instance.Name;
+            }
+        end
+    end)))
+
+    table.insert(Node.Connections, Track(Row.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton3 then
+            self:ToggleViewObject(Node.Instance)
+        end
     end)))
 
     local function ScheduleSearchRefresh()
@@ -4295,6 +4435,18 @@ function Explorer:CreateChildNode(ParentNode, Object)
     table.insert(ParentNode.Children, Node)
     self:ApplySearchFilterToNode(Node)
 
+    if self.ExpandedInstances and self.ExpandedInstances[Object] then
+        task.defer(function()
+            if KillScript then
+                return
+            end
+
+            if Node.NodeFrame and Node.NodeFrame.Parent then
+                self:ExpandNode(Node)
+            end
+        end)
+    end
+
     return Node
 end
 
@@ -4356,6 +4508,11 @@ function Explorer:ExpandNode(Node)
     end
 
     Node.Expanded = true
+
+    if not Node.IsNilContainer then
+        self.ExpandedInstances[Node.Instance] = true
+    end
+
     self:UpdateArrow(Node)
     Node.ChildContainer.Visible = true
 
@@ -4495,6 +4652,11 @@ function Explorer:CollapseNode(Node)
     end
 
     Node.Expanded = false
+
+    if not Node.IsNilContainer then
+        self.ExpandedInstances[Node.Instance] = nil
+    end
+
     self:UpdateArrow(Node)
     Node.ChildContainer.Visible = false
 
@@ -4519,6 +4681,43 @@ function Explorer:ToggleNode(Node)
         self:CollapseNode(Node)
     else
         self:ExpandNode(Node)
+    end
+end
+
+function Explorer:UpdateSelectionHighlights()
+    self.SelectionHighlights = self.SelectionHighlights or setmetatable({}, {__mode = "k"})
+
+    for Inst, Hl in self.SelectionHighlights do
+        if not self.SelectedSet[Inst] then
+            pcall(function() Hl:Destroy() end)
+            self.SelectionHighlights[Inst] = nil
+        end
+    end
+
+    for Inst in self.SelectedSet do
+        if not self.SelectionHighlights[Inst] then
+            local CanAdorn = false
+            pcall(function()
+                CanAdorn = Inst:IsA("BasePart") or Inst:IsA("Model")
+            end)
+            if CanAdorn then
+                local Good, Hl = pcall(function()
+                    local H = Instance.new("Highlight")
+                    H.Name = "VexSelectionHighlight"
+                    H.FillTransparency = 1
+                    H.FillColor = Theme.Accent
+                    H.OutlineColor = Theme.Accent
+                    H.OutlineTransparency = 0
+                    H.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    H.Adornee = Inst
+                    H.Parent = self.ScreenGui
+                    return H
+                end)
+                if Good and Hl then
+                    self.SelectionHighlights[Inst] = Hl
+                end
+            end
+        end
     end
 end
 
@@ -5574,11 +5773,7 @@ end
 
 function Explorer:ExpandAncestorsOf(Object)
     local Chain = {}
-    print("[VEX] EAO leaf=", Chain[#Chain],
-    "leafNode=", self.NodesByInstance[Chain[#Chain]],
-    "rootNode=", self.NodesByInstance[Chain[1]],
-    "matchSet=", self.MatchSet[Chain[#Chain]],
-    "subtreeRoot=", self.SubtreeMatchSet[Chain[1]])
+
     local Cursor = ClonerefInstance(Object)
     while Cursor and Cursor.Parent ~= nil do
         table.insert(Chain, 1, Cursor)
@@ -6056,6 +6251,7 @@ end
 function Explorer:OnSelectionChanged()
     if self.SelectedInstance then
         self:RenderProperties(self.SelectedInstance)
+        self:UpdateSelectionHighlights()
 
         if self.PropertiesTitleLabel then
             self.PropertiesTitleLabel.Text = `{self.SelectedInstance.ClassName}  -  {self.SelectedInstance.Name}`
@@ -6737,6 +6933,55 @@ function Explorer:RenderProperties(Object)
                 end
             end
 
+            AddSpacer(4)
+
+            local AttributeButtonRow = VexUI:CreateInstance("Frame", {
+                Size = UDim2.new(1, 0, 0, 26);
+                BackgroundTransparency = 1;
+                Parent = self.PropertiesContent;
+            })
+
+            local AttributeButtonLayout = VexUI:AddListLayout(
+                AttributeButtonRow,
+                4,
+                Enum.FillDirection.Horizontal
+            )
+
+            AttributeButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+
+            local function CreateAttributeButton(ButtonText, Callback)
+                local Button = VexUI:CreateInstance("TextButton", {
+                    Size = UDim2.new(1 / 3, -3, 1, 0);
+                    BackgroundColor3 = Theme.Field;
+                    BorderSizePixel = 0;
+                    AutoButtonColor = false;
+                    Font = Fonts.SemiBold;
+                    Text = ButtonText;
+                    TextColor3 = Theme.Text;
+                    TextSize = 11;
+                    Parent = AttributeButtonRow;
+                })
+
+                VexUI:AddCorner(Button, 4)
+                VexUI:AddStroke(Button, Theme.Border, 1)
+
+                Button.MouseButton1Click:Connect(Callback)
+
+                return Button
+            end
+
+            CreateAttributeButton("Add", function()
+                self:OpenAttributeModal("Add Attribute", nil, nil)
+            end)
+
+            CreateAttributeButton("Edit", function()
+                self:OpenEditAttributeModal()
+            end)
+
+            CreateAttributeButton("Remove", function()
+                self:OpenRemoveAttributeModal()
+            end)
+
             AddSpacer(6)
             AddDivider()
             AddSpacer(4)
@@ -6783,6 +7028,49 @@ function Explorer:RenderProperties(Object)
                 })
             end
         end
+
+        AddSpacer(4)
+
+        local TagButtonRow = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 26);
+            BackgroundTransparency = 1;
+            Parent = self.PropertiesContent;
+        })
+
+        VexUI:AddListLayout(
+            TagButtonRow,
+            6,
+            Enum.FillDirection.Horizontal
+        )
+
+        local function CreateTagButton(ButtonText, Callback)
+            local Button = VexUI:CreateInstance("TextButton", {
+                Size = UDim2.new(0.5, -3, 1, 0);
+                BackgroundColor3 = Theme.Field;
+                BorderSizePixel = 0;
+                AutoButtonColor = false;
+                Font = Fonts.SemiBold;
+                Text = ButtonText;
+                TextColor3 = Theme.Text;
+                TextSize = 11;
+                Parent = TagButtonRow;
+            })
+
+            VexUI:AddCorner(Button, 4)
+            VexUI:AddStroke(Button, Theme.Border, 1)
+
+            Button.MouseButton1Click:Connect(Callback)
+
+            return Button
+        end
+
+        CreateTagButton("Add Tag", function()
+            self:OpenAddTagModal()
+        end)
+
+        CreateTagButton("Remove Tag", function()
+            self:OpenRemoveTagModal()
+        end)
 
         AddSpacer(6)
         AddDivider()
@@ -6971,12 +7259,17 @@ function Explorer:CreateModalWindow(Title, Width, Height)
 end
 
 function Explorer:OpenColorPicker(InitialColor, OnApply)
-    local Window, Body = self:CreateModalWindow("Color Picker", 280, 220)
+    local Window, Body = self:CreateModalWindow("Color Picker", 320, 420)
+    VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
 
-    local Layout = VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
+    local H, S, V = Color3.toHSV(InitialColor)
+    local R = math.floor(InitialColor.R * 255 + 0.5)
+    local G = math.floor(InitialColor.G * 255 + 0.5)
+    local B = math.floor(InitialColor.B * 255 + 0.5)
+    local Updating = false
 
     local Preview = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 50);
+        Size = UDim2.new(1, 0, 0, 36);
         BackgroundColor3 = InitialColor;
         BorderSizePixel = 0;
         LayoutOrder = 1;
@@ -6986,13 +7279,185 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
     VexUI:AddCorner(Preview, 6)
     VexUI:AddStroke(Preview, Theme.Border, 1)
 
-    local Red = math.floor(InitialColor.R * 255 + 0.5)
-    local Green = math.floor(InitialColor.G * 255 + 0.5)
-    local Blue = math.floor(InitialColor.B * 255 + 0.5)
+    local SVBox = VexUI:CreateInstance("ImageButton", {
+        Size = UDim2.new(1, 0, 0, 140);
+        BackgroundColor3 = Color3.fromHSV(H, 1, 1);
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Image = "";
+        LayoutOrder = 2;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    VexUI:AddCorner(SVBox, 4)
 
-    local function CreateChannelSlider(LabelText, ChannelColor, InitialValue, OrderIndex, OnChange)
+    local WhiteOverlay = VexUI:CreateInstance("Frame", {
+        Size = UDim2.fromScale(1, 1);
+        BackgroundColor3 = Color3.new(1,1,1);
+        BorderSizePixel = 0;
+        ZIndex = 203;
+        Parent = SVBox;
+    })
+    VexUI:AddCorner(WhiteOverlay, 4)
+    VexUI:CreateInstance("UIGradient", {
+        Color = ColorSequence.new(Color3.new(1,1,1));
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(1, 1),
+        });
+        Parent = WhiteOverlay;
+    })
+
+    local BlackOverlay = VexUI:CreateInstance("Frame", {
+        Size = UDim2.fromScale(1, 1);
+        BackgroundColor3 = Color3.new(0,0,0);
+        BorderSizePixel = 0;
+        ZIndex = 204;
+        Parent = SVBox;
+    })
+    VexUI:AddCorner(BlackOverlay, 4)
+    VexUI:CreateInstance("UIGradient", {
+        Color = ColorSequence.new(Color3.new(0,0,0));
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(1, 0),
+        });
+        Rotation = 90;
+        Parent = BlackOverlay;
+    })
+
+    local SVCursor = VexUI:CreateInstance("Frame", {
+        Size = UDim2.fromOffset(10, 10);
+        Position = UDim2.fromScale(S, 1 - V);
+        AnchorPoint = Vector2.new(0.5, 0.5);
+        BackgroundTransparency = 1;
+        ZIndex = 205;
+        Parent = SVBox;
+    })
+    VexUI:AddCorner(SVCursor, 8)
+    VexUI:AddStroke(SVCursor, Color3.new(1,1,1), 2)
+
+    local HueStrip = VexUI:CreateInstance("ImageButton", {
+        Size = UDim2.new(1, 0, 0, 18);
+        BackgroundColor3 = Color3.new(1,1,1);
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Image = "";
+        LayoutOrder = 3;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    VexUI:AddCorner(HueStrip, 4)
+    VexUI:CreateInstance("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromHSV(0,1, 1)),
+            ColorSequenceKeypoint.new(1/6, Color3.fromHSV(1/6, 1, 1)),
+            ColorSequenceKeypoint.new(2/6, Color3.fromHSV(2/6, 1, 1)),
+            ColorSequenceKeypoint.new(3/6, Color3.fromHSV(3/6, 1, 1)),
+            ColorSequenceKeypoint.new(4/6, Color3.fromHSV(4/6, 1, 1)),
+            ColorSequenceKeypoint.new(5/6, Color3.fromHSV(5/6, 1, 1)),
+            ColorSequenceKeypoint.new(1, Color3.fromHSV(0.999, 1, 1))
+        });
+        Parent = HueStrip;
+    })
+
+    local HueCursor = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(0, 4, 1, 4);
+        Position = UDim2.new(H, 0, 0, -2);
+        AnchorPoint = Vector2.new(0.5, 0);
+        BackgroundColor3 = Color3.new(1,1,1);
+        BorderSizePixel = 0;
+        ZIndex = 203;
+        Parent = HueStrip;
+    })
+    VexUI:AddStroke(HueCursor, Color3.fromRGB(0,0,0), 1)
+
+    local function CommitColor()
+        local C = Color3.fromHSV(H, S, V)
+        R = math.floor(C.R * 255 + 0.5)
+        G = math.floor(C.G * 255 + 0.5)
+        B = math.floor(C.B * 255 + 0.5)
+        Preview.BackgroundColor3 = C
+        SVBox.BackgroundColor3 = Color3.fromHSV(H, 1, 1)
+        SVCursor.Position = UDim2.fromScale(S, 1 - V)
+        HueCursor.Position = UDim2.new(H, 0, 0, -2)
+        OnApply(C)
+    end
+
+    local function FromRGB()
+        H, S, V = Color3.toHSV(Color3.fromRGB(R, G, B))
+        CommitColor()
+    end
+
+    local SVDrag = false
+    local function UpdateSV(InputX, InputY)
+        local Frac_x = math.clamp((InputX - SVBox.AbsolutePosition.X) / SVBox.AbsoluteSize.X, 0, 1)
+        local Frac_y = math.clamp((InputY - SVBox.AbsolutePosition.Y) / SVBox.AbsoluteSize.Y, 0, 1)
+        S = Frac_x
+        V = 1 - Frac_y
+        CommitColor()
+    end
+
+    SVBox.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch
+        then
+            SVDrag = true
+            UpdateSV(Input.Position.X, Input.Position.Y)
+        end
+    end)
+
+    Services.UserInputService.InputChanged:Connect(function(Input)
+        if SVDrag and (Input.UserInputType == Enum.UserInputType.MouseMovement
+            or Input.UserInputType == Enum.UserInputType.Touch)
+        then
+            UpdateSV(Input.Position.X, Input.Position.Y)
+        end
+    end)
+
+    Services.UserInputService.InputEnded:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch
+        then
+            SVDrag = false
+        end
+    end)
+
+    local HueDrag = false
+    local function UpdateHue(InputX)
+        local Frac = math.clamp((InputX - HueStrip.AbsolutePosition.X) / HueStrip.AbsoluteSize.X, 0, 0.999)
+        H = Frac
+        CommitColor()
+    end
+
+    HueStrip.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch
+        then
+            HueDrag = true
+            UpdateHue(Input.Position.X)
+        end
+    end)
+
+    Services.UserInputService.InputChanged:Connect(function(Input)
+        if HueDrag and (Input.UserInputType == Enum.UserInputType.MouseMovement
+            or Input.UserInputType == Enum.UserInputType.Touch)
+        then
+            UpdateHue(Input.Position.X)
+        end
+    end)
+
+    Services.UserInputService.InputEnded:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch
+        then
+            HueDrag = false
+        end
+    end)
+
+    local function CreateChannelSlider(LabelText, ChannelColor, GetVal, SetVal, OrderIndex)
         local Holder = VexUI:CreateInstance("Frame", {
-            Size = UDim2.new(1, 0, 0, 36);
+            Size = UDim2.new(1, 0, 0, 32);
             BackgroundTransparency = 1;
             LayoutOrder = OrderIndex;
             ZIndex = 202;
@@ -7016,7 +7481,7 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
             Position = UDim2.new(1, -32, 0, 0);
             BackgroundTransparency = 1;
             Font = Fonts.Mono;
-            Text = tostring(InitialValue);
+            Text = tostring(GetVal());
             TextColor3 = Theme.Text;
             TextSize = 11;
             TextXAlignment = Enum.TextXAlignment.Right;
@@ -7024,28 +7489,28 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
             Parent = Holder;
         })
 
-        local TrackFrame = VexUI:CreateInstance("Frame", {
+        local Tk = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 6);
-            Position = UDim2.new(0, 0, 0, 22);
+            Position = UDim2.new(0, 0, 0, 20);
             BackgroundColor3 = Theme.Field;
             BorderSizePixel = 0;
             ZIndex = 203;
             Parent = Holder;
         })
-        VexUI:AddCorner(TrackFrame, 3)
 
+        VexUI:AddCorner(Tk, 3)
         local Fill = VexUI:CreateInstance("Frame", {
-            Size = UDim2.new(InitialValue / 255, 0, 1, 0);
+            Size = UDim2.new(GetVal()/255, 0, 1, 0);
             BackgroundColor3 = ChannelColor;
             BorderSizePixel = 0;
             ZIndex = 204;
-            Parent = TrackFrame;
+            Parent = Tk;
         })
-        VexUI:AddCorner(Fill, 3)
 
-        local HitArea = VexUI:CreateInstance("TextButton", {
+        VexUI:AddCorner(Fill, 3)
+        local Hit = VexUI:CreateInstance("TextButton", {
             Size = UDim2.new(1, 0, 0, 22);
-            Position = UDim2.new(0, 0, 0, 14);
+            Position = UDim2.new(0, 0, 0, 12);
             BackgroundTransparency = 1;
             AutoButtonColor = false;
             Text = "";
@@ -7053,61 +7518,75 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
             Parent = Holder;
         })
 
-        local Dragging = false
-        local function Update(InputX)
-            local Fraction = math.clamp(
-                (InputX - TrackFrame.AbsolutePosition.X) / TrackFrame.AbsoluteSize.X,
-                0, 1
-            )
-
-            local NewValue = math.floor(Fraction * 255 + 0.5)
-            Fill.Size = UDim2.new(Fraction, 0, 1, 0)
-            ValueLabel.Text = tostring(NewValue)
-            OnChange(NewValue)
+        local Drag = false
+        local function Up(X)
+            local F = math.clamp((X - Tk.AbsolutePosition.X) / Tk.AbsoluteSize.X, 0, 1)
+            local NV = math.floor(F * 255 + 0.5)
+            Fill.Size = UDim2.new(F, 0, 1, 0)
+            ValueLabel.Text = tostring(NV)
+            SetVal(NV)
+            FromRGB()
         end
 
-        HitArea.InputBegan:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1
-                or Input.UserInputType == Enum.UserInputType.Touch
+        Hit.InputBegan:Connect(function(I)
+            if I.UserInputType == Enum.UserInputType.MouseButton1
+                or I.UserInputType == Enum.UserInputType.Touch
             then
-                Dragging = true
-                Update(Input.Position.X)
+                Drag = true Up(I.Position.X)
             end
         end)
 
-        Services.UserInputService.InputChanged:Connect(function(Input)
-            if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement
-                or Input.UserInputType == Enum.UserInputType.Touch)
+        Services.UserInputService.InputChanged:Connect(function(I)
+            if Drag
+                and (I.UserInputType == Enum.UserInputType.MouseMovement or I.UserInputType == Enum.UserInputType.Touch)
             then
-                Update(Input.Position.X)
+                Up(I.Position.X)
             end
         end)
 
-        Services.UserInputService.InputEnded:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1
-                or Input.UserInputType == Enum.UserInputType.Touch
+        Services.UserInputService.InputEnded:Connect(function(I)
+            if I.UserInputType == Enum.UserInputType.MouseButton1
+                or I.UserInputType == Enum.UserInputType.Touch
             then
-                Dragging = false
+                Drag = false
             end
         end)
+
+        return function()
+            Fill.Size = UDim2.new(GetVal()/255, 0, 1, 0)
+            ValueLabel.Text = tostring(GetVal())
+        end
     end
 
-    local function Refresh()
-        Preview.BackgroundColor3 = Color3.fromRGB(Red, Green, Blue)
-        OnApply(Color3.fromRGB(Red, Green, Blue))
-    end
+    CreateChannelSlider("R", Theme.Red,
+        function()
+            return R
+        end,
+        function(v)
+            R = v
+        end,
+        4
+    )
 
-    CreateChannelSlider("R", Theme.Red, Red, 2, function(Value)
-        Red = Value Refresh()
-    end)
-    
-    CreateChannelSlider("G", Theme.Green, Green, 3, function(Value)
-        Green = Value Refresh() 
-    end)
+    CreateChannelSlider("G", Theme.Green,
+        function()
+            return G
+        end,
+        function(v)
+            G = v
+        end,
+        5
+    )
 
-    CreateChannelSlider("B", Theme.Blue, Blue, 4, function(Value)
-        Blue = Value Refresh()
-    end)
+    CreateChannelSlider("B", Theme.Blue,
+        function()
+            return B
+        end,
+        function(v)
+            B = v
+        end,
+        6
+    )
 end
 
 function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSearch, ItemHeight, ItemIconFunction)
@@ -7442,6 +7921,115 @@ function Explorer:TeleportSelfTo(Object)
     return true
 end
 
+function Explorer:GetViewTarget(Instance)
+    if typeof(Instance) ~= "Instance" then
+        return nil
+    end
+
+    if Instance:IsA("Model") then
+        local Success, BoundingCFrame, BoundingSize = pcall(function()
+            local ModelCFrame, ModelSize = Instance:GetBoundingBox()
+            return ModelCFrame, ModelSize
+        end)
+
+        if Success and BoundingCFrame then
+            return BoundingCFrame, BoundingSize
+        end
+
+        local Success2, PivotCFrame = pcall(function()
+            return Instance:GetPivot()
+        end)
+
+        if Success2 and PivotCFrame then
+            return PivotCFrame, Vector3.new(8, 8, 8)
+        end
+
+    elseif Instance:IsA("BasePart") then
+        return Instance.CFrame, Instance.Size
+    end
+
+    return nil
+end
+
+
+function Explorer:StartViewObject(Instance)
+    self:StopViewObject()
+
+    if not self:GetViewTarget(Instance) then
+        self:Notify("Cannot view this instance")
+        return
+    end
+
+    local Camera = workspace.CurrentCamera
+    if not Camera then
+        return
+    end
+
+    self.ViewSavedCFrame = Camera.CFrame
+    self.ViewSavedCameraType = Camera.CameraType
+
+    Camera.CameraType = Enum.CameraType.Scriptable
+    self.ViewedObject = Instance
+
+    self.ViewConnection = Track(Services.RunService.RenderStepped:Connect(function()
+        local ViewedObject = self.ViewedObject
+        if not ViewedObject or not Camera.Parent then
+            return
+        end
+
+        local TargetCFrame, TargetSize = self:GetViewTarget(ViewedObject)
+        if not TargetCFrame then
+            self:StopViewObject()
+            return
+        end
+
+        local MaxSize = math.max(TargetSize.X, TargetSize.Y, TargetSize.Z, 4)
+        local Distance = MaxSize * 2.6
+
+        Camera.CFrame = CFrame.lookAt(
+            TargetCFrame.Position + Vector3.new(Distance * 0.7, Distance * 0.45, Distance * 0.7),
+            TargetCFrame.Position
+        )
+    end))
+
+    self:Notify(`Viewing {Instance.Name} (middle-click to reset)`)
+end
+
+
+function Explorer:StopViewObject()
+    if self.ViewConnection then
+        pcall(function()
+            self.ViewConnection:Disconnect()
+        end)
+        self.ViewConnection = nil
+    end
+
+    local Camera = workspace.CurrentCamera
+
+    if Camera and self.ViewSavedCameraType then
+        pcall(function()
+            Camera.CameraType = self.ViewSavedCameraType
+
+            if self.ViewSavedCFrame then
+                Camera.CFrame = self.ViewSavedCFrame
+            end
+        end)
+    end
+
+    self.ViewedObject = nil
+    self.ViewSavedCFrame = nil
+    self.ViewSavedCameraType = nil
+end
+
+
+function Explorer:ToggleViewObject(Instance)
+    if self.ViewedObject == Instance then
+        self:StopViewObject()
+    else
+        self:StartViewObject(Instance)
+    end
+end
+
 function Explorer:UpdateReparentIndicator()
     if not self.ReparentIndicator then
         return
@@ -7540,6 +8128,697 @@ function Explorer:OpenInsertObject()
             return ClassName
         end
     )
+end
+
+local AttributeTypes = {
+    "string"; "number"; "boolean";
+    "Vector3"; "Vector2";
+    "Color3"; "BrickColor";
+    "UDim"; "UDim2"; "CFrame";
+    "NumberRange";
+}
+
+function Explorer:ParseAttributeValue(AttributeType, InputText)
+    local Text = InputText or ""
+
+    if AttributeType == "string" then
+        return Text
+    end
+
+    if AttributeType == "number" then
+        return tonumber(Text)
+    end
+
+    if AttributeType == "boolean" then
+        local NormalizedText = Text:lower()
+
+        if NormalizedText == "true" or NormalizedText == "1" then
+            return true
+        end
+
+        if NormalizedText == "false" or NormalizedText == "0" or NormalizedText == "" then
+            return false
+        end
+
+        return nil
+    end
+
+    if AttributeType == "Vector3" then
+        local XValue, YValue, ZValue =
+            Text:match("([%-%d%.]+)[,%s]+([%-%d%.]+)[,%s]+([%-%d%.]+)")
+
+        if XValue then
+            return Vector3.new(
+                tonumber(XValue),
+                tonumber(YValue),
+                tonumber(ZValue)
+            )
+        end
+    elseif AttributeType == "Vector2" then
+        local XValue, YValue =
+            Text:match("([%-%d%.]+)[,%s]+([%-%d%.]+)")
+
+        if XValue then
+            return Vector2.new(
+                tonumber(XValue),
+                tonumber(YValue)
+            )
+        end
+    elseif AttributeType == "Color3" then
+        local RedValue, GreenValue, BlueValue =
+            Text:match("([%-%d%.]+)[,%s]+([%-%d%.]+)[,%s]+([%-%d%.]+)")
+
+        if RedValue then
+            local Red = tonumber(RedValue)
+            local Green = tonumber(GreenValue)
+            local Blue = tonumber(BlueValue)
+
+            if Red > 1 or Green > 1 or Blue > 1 then
+                return Color3.fromRGB(
+                    math.clamp(Red, 0, 255),
+                    math.clamp(Green, 0, 255),
+                    math.clamp(Blue, 0, 255)
+                )
+            end
+
+            return Color3.new(Red, Green, Blue)
+        end
+    elseif AttributeType == "BrickColor" then
+        local Success, BrickColorValue = pcall(BrickColor.new, Text)
+
+        if Success then
+            return BrickColorValue
+        end
+    elseif AttributeType == "UDim" then
+        local ScaleValue, OffsetValue =
+            Text:match("([%-%d%.]+)[,%s]+([%-%d]+)")
+
+        if ScaleValue then
+            return UDim.new(
+                tonumber(ScaleValue),
+                tonumber(OffsetValue)
+            )
+        end
+    elseif AttributeType == "UDim2" then
+        local ScaleX, OffsetX, ScaleY, OffsetY =
+            Text:match("{?([%-%d%.]+)[,%s]+([%-%d]+)}?[,%s}]+{?([%-%d%.]+)[,%s]+([%-%d]+)}?")
+
+        if ScaleX then
+            return UDim2.new(
+                tonumber(ScaleX),
+                tonumber(OffsetX),
+                tonumber(ScaleY),
+                tonumber(OffsetY)
+            )
+        end
+    elseif AttributeType == "CFrame" then
+        local NumberValues = {}
+
+        for Value in Text:gmatch("[%-%d%.]+") do
+            table.insert(NumberValues, tonumber(Value))
+        end
+
+        if #NumberValues == 12 then
+            return CFrame.new(table.unpack(NumberValues))
+        end
+
+        if #NumberValues == 3 then
+            return CFrame.new(
+                NumberValues[1],
+                NumberValues[2],
+                NumberValues[3]
+            )
+        end
+    elseif AttributeType == "NumberRange" then
+        local MinimumValue, MaximumValue =
+            Text:match("([%-%d%.]+)[,%s]+([%-%d%.]+)")
+
+        if MinimumValue then
+            return NumberRange.new(
+                tonumber(MinimumValue),
+                tonumber(MaximumValue)
+            )
+        end
+    end
+
+    return nil
+end
+
+function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
+    local Object = self.SelectedInstance
+    if not Object then
+        return
+    end
+
+    local Window, Body = self:CreateModalWindow(Title or "Attribute", 320, 220)
+    VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
+
+    local function MakeFieldRow(LabelText, Order)
+        local Row = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 26);
+            BackgroundTransparency = 1;
+            LayoutOrder = Order;
+            ZIndex = 202;
+            Parent = Body;
+        })
+        VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(0, 50, 1, 0);
+            BackgroundTransparency = 1;
+            Font = Fonts.Medium;
+            Text = LabelText;
+            TextColor3 = Theme.TextDim;
+            TextSize = 12;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ZIndex = 203;
+            Parent = Row;
+        })
+        return Row
+    end
+
+    local NameRow = MakeFieldRow("Name", 1)
+    local NameBox = VexUI:CreateInstance("TextBox", {
+        Size = UDim2.new(1, -56, 1, 0);
+        Position = UDim2.new(0, 56, 0, 0);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        Font = Fonts.Mono;
+        PlaceholderText = "Attribute name";
+        PlaceholderColor3 = Theme.TextFaded;
+        Text = ExistingName or "";
+        TextColor3 = Theme.Text;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        ZIndex = 203;
+        Parent = NameRow;
+    })
+    VexUI:AddCorner(NameBox, 4)
+    VexUI:AddStroke(NameBox, Theme.Border, 1)
+    VexUI:AddPadding(NameBox, 0, 6, 0, 6)
+
+    local TypeRow = MakeFieldRow("Type", 2)
+    local CurrentType = "string"
+    if ExistingValue ~= nil then
+        local detected = typeof(ExistingValue)
+        for _, Type in AttributeTypes do
+            if Type == detected then
+                CurrentType = Type
+                
+                break
+            end
+        end
+    end
+
+    local TypeBtn = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(1, -56, 1, 0);
+        Position = UDim2.new(0, 56, 0, 0);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Font = Fonts.Mono;
+        Text = `{CurrentType}  ▾`;
+        TextColor3 = Theme.PropEnum;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = 203;
+        Parent = TypeRow;
+    })
+    VexUI:AddCorner(TypeBtn, 4)
+    VexUI:AddStroke(TypeBtn, Theme.Border, 1)
+    VexUI:AddPadding(TypeBtn, 0, 8, 0, 8)
+
+    local TypeDropdown = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, -56, 0, #AttributeTypes * 22);
+        Position = UDim2.new(0, 56, 1, 4);
+        BackgroundColor3 = Theme.Window;
+        BorderSizePixel = 0;
+        Visible = false;
+        ZIndex = 220;
+        Parent = TypeRow;
+    })
+    VexUI:AddCorner(TypeDropdown, 4)
+    VexUI:AddStroke(TypeDropdown, Theme.Border, 1)
+    VexUI:AddListLayout(TypeDropdown, 0, Enum.FillDirection.Vertical)
+
+    for _, Type in AttributeTypes do
+        local Item = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.new(1, 0, 0, 22);
+            BackgroundTransparency = 1;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.Mono;
+            Text = "  " .. Type;
+            TextColor3 = Theme.Text;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ZIndex = 221;
+            Parent = TypeDropdown;
+        })
+        Item.MouseEnter:Connect(function() Item.BackgroundTransparency = 0.5 end)
+        Item.MouseLeave:Connect(function() Item.BackgroundTransparency = 1 end)
+        Item.MouseButton1Click:Connect(function()
+            CurrentType = Type
+            TypeBtn.Text = `{Type}  ▾`
+            TypeDropdown.Visible = false
+        end)
+    end
+    TypeBtn.MouseButton1Click:Connect(function()
+        TypeDropdown.Visible = not TypeDropdown.Visible
+    end)
+
+    local ValueRow = MakeFieldRow("Value", 3)
+    local ValueBox = VexUI:CreateInstance("TextBox", {
+        Size = UDim2.new(1, -56, 1, 0);
+        Position = UDim2.new(0, 56, 0, 0);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        Font = Fonts.Mono;
+        Text = ExistingValue ~= nil and tostring(ExistingValue) or "";
+        PlaceholderText = "Value";
+        PlaceholderColor3 = Theme.TextFaded;
+        TextColor3 = Theme.Text;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        ZIndex = 203;
+        Parent = ValueRow;
+    })
+    VexUI:AddCorner(ValueBox, 4)
+    VexUI:AddStroke(ValueBox, Theme.Border, 1)
+    VexUI:AddPadding(ValueBox, 0, 6, 0, 6)
+
+    local BtnRow = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 0, 30);
+        BackgroundTransparency = 1;
+        LayoutOrder = 5;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    local BL = VexUI:AddListLayout(BtnRow, 8, Enum.FillDirection.Horizontal)
+    BL.HorizontalAlignment = Enum.HorizontalAlignment.Right
+
+    local function MakeBtn(Text, Accent)
+        local B = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.fromOffset(90, 28);
+            BackgroundColor3 = Accent and Theme.Accent or Theme.Field;
+            BackgroundTransparency = Accent and 0.85 or 0;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.SemiBold;
+            Text = Text;
+            TextColor3 = Accent and Theme.Accent or Theme.Text;
+            TextSize = 12;
+            ZIndex = 203;
+            Parent = BtnRow;
+        })
+        VexUI:AddCorner(B, 4)
+        VexUI:AddStroke(B, Accent and Theme.Accent or Theme.Border, 1)
+        return B
+    end
+
+    local SaveBtn = MakeBtn("Save", true)
+    local CancelBtn = MakeBtn("Cancel", false)
+
+    CancelBtn.MouseButton1Click:Connect(function() self:CloseModal() end)
+    SaveBtn.MouseButton1Click:Connect(function()
+        local NewName = (NameBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if NewName == "" then
+            self:Notify("Name required")
+            
+            return
+        end
+
+        local NewValue = self:ParseAttributeValue(CurrentType, ValueBox.Text)
+        if NewValue == nil and CurrentType ~= "string" then
+            if CurrentType == "boolean" then
+                NewValue = false
+            else
+                self:Notify(`Invalid {CurrentType} value`)
+
+                return
+            end
+        end
+
+        for _, Obj in self:GetSelectionList() do
+            pcall(function()
+                if ExistingName and ExistingName ~= NewName then
+                    Obj:SetAttribute(ExistingName, nil)
+                end
+                Obj:SetAttribute(NewName, NewValue)
+            end)
+        end
+
+        self:CloseModal()
+        if self.SelectedInstance then
+            self:RenderProperties(self.SelectedInstance)
+        end
+    end)
+end
+
+function Explorer:OpenRemoveAttributeModal()
+    local Object = self.SelectedInstance
+    if not Object then
+        return
+    end
+
+    local Items = CollectAttributes(Object)
+    if #Items == 0 then
+        self:Notify("No attributes")
+
+        return
+    end
+
+    self:OpenListModal("Remove Attribute", Items,
+        function(e) return `{e.Name}  ({typeof(e.Value)})` end,
+        function(e)
+            for _, Obj in self:GetSelectionList() do
+                pcall(function()
+                    Obj:SetAttribute(e.Name, nil)
+                end)
+            end
+
+            self:CloseModal()
+            if self.SelectedInstance then
+                self:RenderProperties(self.SelectedInstance)
+            end
+        end,
+    true)
+end
+
+function Explorer:OpenEditAttributeModal()
+    local Object = self.SelectedInstance
+    if not Object then
+        return
+    end
+
+    local Items = CollectAttributes(Object)
+    if #Items == 0 then
+        self:Notify("No attributes")
+
+        return
+    end
+
+    self:OpenListModal("Edit Attribute", Items,
+        function(e)
+            return `{e.Name}  ({typeof(e.Value)})`
+        end,
+        function(e)
+            self:CloseModal()
+            self:OpenAttributeModal(`Edit Attribute {e.Name}`, e.Name, e.Value)
+        end,
+    true)
+end
+
+function Explorer:OpenAddTagModal()
+    local Object = self.SelectedInstance
+    if not Object then
+        return
+    end
+
+    local Window, Body = self:CreateModalWindow("Add Tag", 280, 130)
+    VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
+
+    local Box = VexUI:CreateInstance("TextBox", {
+        Size = UDim2.new(1, 0, 0, 26);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        Font = Fonts.Mono;
+        PlaceholderText = "Tag name";
+        PlaceholderColor3 = Theme.TextFaded;
+        Text = "";
+        TextColor3 = Theme.Text;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        LayoutOrder = 1;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    VexUI:AddCorner(Box, 4)
+    VexUI:AddStroke(Box, Theme.Border, 1)
+    VexUI:AddPadding(Box, 0, 8, 0, 8)
+
+    local BtnRow = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 0, 28);
+        BackgroundTransparency = 1;
+        LayoutOrder = 2;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    local L = VexUI:AddListLayout(BtnRow, 8, Enum.FillDirection.Horizontal)
+    L.HorizontalAlignment = Enum.HorizontalAlignment.Right
+
+    local function MakeBtn(Text, Accent)
+        local B = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.fromOffset(80, 28);
+            BackgroundColor3 = Accent and Theme.Accent or Theme.Field;
+            BackgroundTransparency = Accent and 0.85 or 0;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.SemiBold;
+            Text = Text;
+            TextColor3 = Accent and Theme.Accent or Theme.Text;
+            TextSize = 12;
+            ZIndex = 203;
+            Parent = BtnRow;
+        })
+        VexUI:AddCorner(B, 4)
+        VexUI:AddStroke(B, Accent and Theme.Accent or Theme.Border, 1)
+        return B
+    end
+
+    local Save = MakeBtn("Save", true)
+    local Cancel = MakeBtn("Cancel", false)
+
+    Cancel.MouseButton1Click:Connect(function()
+        self:CloseModal()
+    end)
+
+    Save.MouseButton1Click:Connect(function()
+        local Tag = (Box.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if Tag == "" then
+            return
+        end
+
+        for _, Obj in self:GetSelectionList() do
+            pcall(function()
+                Services.CollectionService:AddTag(Obj, Tag)
+            end)
+        end
+
+        self:CloseModal()
+
+        if self.SelectedInstance then
+            self:RenderProperties(self.SelectedInstance)
+        end
+    end)
+end
+
+function Explorer:OpenRemoveTagModal()
+    local Object = self.SelectedInstance
+    if not Object then
+        return
+    end
+
+    local Tags = CollectTags(Object)
+    if #Tags == 0 then
+        self:Notify("No tags")
+
+        return
+    end
+
+    self:OpenListModal("Remove Tag", Tags,
+        function(Tag) return
+            tostring(Tag)
+        end,
+        function(Tag)
+            for _, Obj in self:GetSelectionList() do
+                pcall(function() Services.CollectionService:RemoveTag(Obj, Tag) end)
+            end
+
+            self:CloseModal()
+
+            if self.SelectedInstance then
+                self:RenderProperties(self.SelectedInstance)
+            end
+        end,
+    true)
+end
+
+function Explorer:Open3DPreview(Instance)
+    if typeof(Instance) ~= "Instance" then
+        return
+    end
+
+    local ClonedInstance
+    pcall(function()
+        Instance.Archivable = true
+        ClonedInstance = Instance:Clone()
+    end)
+
+    if not ClonedInstance then
+        self:Notify("Cannot clone instance")
+        return
+    end
+
+    local PreviewWindow = VexUI:CreateWindow({
+        Parent = self.ScreenGui;
+        Title = `3D Preview - {Instance.Name}`;
+        Size = UDim2.fromOffset(380, 380);
+        Position = UDim2.fromOffset(140, 140);
+    })
+
+    PreviewWindow.Frame.ZIndex = 70
+
+    PreviewWindow:AddTitleButton("X", 26, true, function()
+        PreviewWindow.Frame:Destroy()
+    end, "CloseIcon")
+
+    local WindowBody = PreviewWindow.Body
+
+    local ViewportContainer = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, -16, 1, -16);
+        Position = UDim2.new(0, 8, 0, 8);
+        BackgroundColor3 = Theme.Background;
+        BorderSizePixel = 0;
+        ClipsDescendants = true;
+        Parent = WindowBody;
+    })
+
+    VexUI:AddCorner(ViewportContainer, 6)
+
+    local ViewportFrame = VexUI:CreateInstance("ViewportFrame", {
+        Size = UDim2.fromScale(1, 1);
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0);
+        BackgroundTransparency = 0;
+        BorderSizePixel = 0;
+        Ambient = Color3.fromRGB(140, 140, 140);
+        LightColor = Color3.fromRGB(255, 255, 255);
+        LightDirection = Vector3.new(-1, -1, -1);
+        Parent = ViewportContainer;
+    })
+
+    local Camera = NewInstance("Camera")
+    ViewportFrame.CurrentCamera = Camera
+    Camera.Parent = ViewportFrame
+
+    local WorldModel = NewInstance("WorldModel")
+    WorldModel.Parent = ViewportFrame
+
+    local function AnchorAllParts(Object)
+        if Object:IsA("BasePart") then
+            Object.Anchored = true
+        end
+
+        for _, Child in Object:GetChildren() do
+            AnchorAllParts(Child)
+        end
+    end
+
+    pcall(AnchorAllParts, ClonedInstance)
+    ClonedInstance.Parent = WorldModel
+
+    local CenterPosition
+    local SizeVector
+
+    if ClonedInstance:IsA("Model") then
+        local Success, BoundingCFrame, BoundingSize = pcall(function()
+            local ModelCFrame, ModelSize = ClonedInstance:GetBoundingBox()
+            return ModelCFrame, ModelSize
+        end)
+
+        if Success then
+            CenterPosition = BoundingCFrame.Position
+            SizeVector = BoundingSize
+        end
+
+    elseif ClonedInstance:IsA("BasePart") then
+        CenterPosition = ClonedInstance.Position
+        SizeVector = ClonedInstance.Size
+    end
+
+    CenterPosition = CenterPosition or Vector3.new()
+    SizeVector = SizeVector or Vector3.new(4, 4, 4)
+
+    local MaxDimension = math.max(SizeVector.X, SizeVector.Y, SizeVector.Z, 2)
+    local Distance = MaxDimension * 1.4
+
+    local Yaw = 0
+    local Pitch = math.rad(15)
+    local AutoRotate = true
+
+    local function UpdateCamera()
+        local CosPitch = math.cos(Pitch)
+
+        local OffsetX = Distance * CosPitch * math.sin(Yaw)
+        local OffsetY = Distance * math.sin(Pitch)
+        local OffsetZ = Distance * CosPitch * math.cos(Yaw)
+
+        Camera.CFrame = CFrame.lookAt(
+            CenterPosition + Vector3.new(OffsetX, OffsetY, OffsetZ),
+            CenterPosition
+        )
+    end
+
+    UpdateCamera()
+
+    local RenderConnection = Track(Services.RunService.RenderStepped:Connect(function(DeltaTime)
+        if AutoRotate then
+            Yaw += DeltaTime * 0.5
+            UpdateCamera()
+        end
+    end))
+
+    PreviewWindow.Frame.AncestryChanged:Connect(function(_, Parent)
+        if not Parent then
+            pcall(function()
+                RenderConnection:Disconnect()
+            end)
+        end
+    end)
+
+    local IsDragging = false
+    local LastMouseX, LastMouseY
+
+    ViewportContainer.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch
+        then
+            IsDragging = true
+            --AutoRotate = false
+            LastMouseX, LastMouseY = Input.Position.X, Input.Position.Y
+        end
+    end)
+
+    Track(Services.UserInputService.InputChanged:Connect(function(Input)
+        if not IsDragging or not PreviewWindow.Frame.Parent then
+            return
+        end
+
+        if Input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and Input.UserInputType ~= Enum.UserInputType.Touch
+        then
+            return
+        end
+
+        local DeltaX = Input.Position.X - LastMouseX
+        local DeltaY = Input.Position.Y - LastMouseY
+
+        LastMouseX, LastMouseY = Input.Position.X, Input.Position.Y
+
+        Yaw -= DeltaX * 0.01
+        Pitch = math.clamp(Pitch + DeltaY * 0.01, -math.rad(85), math.rad(85))
+
+        UpdateCamera()
+    end))
+
+    Track(Services.UserInputService.InputEnded:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1
+            or Input.UserInputType == Enum.UserInputType.Touch
+        then
+            IsDragging = false
+        end
+    end))
 end
 
 function Explorer:OpenCallFunction()
@@ -8638,6 +9917,402 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     MakeEdge(UDim2.new(0, 0, 0, 0), UDim2.fromOffset(EdgeThickness, EdgeThickness), -1, -1)
 end
 
+function Explorer:ToggleConsole()
+    local ConsoleWindow = self.ConsoleWindow
+
+    if ConsoleWindow and ConsoleWindow.Parent then
+        ConsoleWindow:Destroy()
+        self.ConsoleWindow = nil
+
+        if self.ConsoleConnection then
+            pcall(function()
+                self.ConsoleConnection:Disconnect()
+            end)
+
+            self.ConsoleConnection = nil
+        end
+
+        return
+    end
+
+    self:OpenConsole()
+end
+
+function Explorer:OpenConsole()
+    local ConsoleWindow = VexUI:CreateWindow({
+        Parent = self.ScreenGui;
+        Title = "Console";
+        Size = UDim2.fromOffset(560, 380);
+        Position = UDim2.fromOffset(80, 80);
+    })
+
+    self.ConsoleWindow = ConsoleWindow.Frame
+
+    ConsoleWindow:AddTitleButton("X", 26, true, function()
+        self:ToggleConsole()
+    end, "CloseIcon")
+
+    local WindowBody = ConsoleWindow.Body
+
+    local IsAutoScrollEnabled = true
+    local ConsoleTextSize = 12
+    local LogEntries = {}
+
+    local TopBar = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, -16, 0, 26);
+        Position = UDim2.new(0, 8, 0, 6);
+        BackgroundTransparency = 1;
+        Parent = WindowBody;
+    })
+
+    local TopBarLayout = VexUI:AddListLayout(
+        TopBar,
+        6,
+        Enum.FillDirection.Horizontal
+    )
+
+    TopBarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local function CreateTopBarButton(ButtonText, Callback)
+        local Button = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.new(0, 0, 1, 0);
+            AutomaticSize = Enum.AutomaticSize.X;
+            BackgroundColor3 = Theme.Field;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.SemiBold;
+            Text = ButtonText;
+            TextColor3 = Theme.TextDim;
+            TextSize = 14;
+            Parent = TopBar;
+        })
+
+        VexUI:AddCorner(Button, 4)
+        VexUI:AddStroke(Button, Theme.Border, 1)
+        VexUI:AddPadding(Button, 0, 8, 0, 8)
+
+        Button.MouseButton1Click:Connect(Callback)
+
+        return Button
+    end
+
+    local AutoScrollButton
+
+    local function UpdateAutoScrollButton()
+        AutoScrollButton.Text = IsAutoScrollEnabled and "Auto-Scroll: ON" or "Auto-Scroll: OFF"
+        AutoScrollButton.TextSize = 12
+
+        AutoScrollButton.TextColor3 = IsAutoScrollEnabled and Theme.Green or Theme.TextDim
+    end
+
+    AutoScrollButton = CreateTopBarButton("Auto-Scroll: ON", function()
+        IsAutoScrollEnabled = not IsAutoScrollEnabled
+        UpdateAutoScrollButton()
+    end)
+
+    UpdateAutoScrollButton()
+
+    local SizeLabel = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(0, 60, 1, 0);
+        BackgroundTransparency = 1;
+        Font = Fonts.Mono;
+        Text = `Size: {ConsoleTextSize}`;
+        TextColor3 = Theme.TextDim;
+        TextSize = 12;
+        Parent = TopBar;
+    })
+
+    local function ApplyConsoleTextSize()
+        for _, LogLabel in LogEntries do
+            if LogLabel.Parent then
+                LogLabel.TextSize = ConsoleTextSize
+            end
+        end
+
+        SizeLabel.Text = `Size: {ConsoleTextSize}`
+    end
+
+    CreateTopBarButton("-", function()
+        ConsoleTextSize = math.max(8, ConsoleTextSize - 1)
+        ApplyConsoleTextSize()
+    end)
+
+    CreateTopBarButton("+", function()
+        ConsoleTextSize = math.min(24, ConsoleTextSize + 1)
+        ApplyConsoleTextSize()
+    end)
+
+    CreateTopBarButton("Clear", function()
+        for _, LogLabel in LogEntries do
+            if LogLabel.Parent then
+                LogLabel:Destroy()
+            end
+        end
+
+        LogEntries = {}
+    end)
+
+    local LogScrollFrame = VexUI:CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, -16, 1, -78);
+        Position = UDim2.new(0, 8, 0, 38);
+        BackgroundColor3 = Theme.Background;
+        BorderSizePixel = 0;
+        ScrollBarThickness = 4;
+        ScrollBarImageColor3 = Theme.Border;
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+        ScrollingDirection = Enum.ScrollingDirection.Y;
+        Parent = WindowBody;
+    })
+
+    VexUI:AddCorner(LogScrollFrame, 4)
+    VexUI:AddPadding(LogScrollFrame, 4, 6, 4, 6)
+    VexUI:AddListLayout(LogScrollFrame, 1, Enum.FillDirection.Vertical)
+
+    local function AppendLog(LogText, LogColor)
+        local LogLabel = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 0);
+            AutomaticSize = Enum.AutomaticSize.Y;
+            BackgroundTransparency = 1;
+            Font = Fonts.Mono;
+            Text = tostring(LogText);
+            TextColor3 = LogColor or Theme.Text;
+            TextSize = ConsoleTextSize;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextWrapped = true;
+            Parent = LogScrollFrame;
+        })
+
+        table.insert(LogEntries, LogLabel)
+
+        if IsAutoScrollEnabled then
+            task.defer(function()
+                if LogScrollFrame.Parent then
+                    LogScrollFrame.CanvasPosition =
+                        Vector2.new(0, LogScrollFrame.AbsoluteCanvasSize.Y)
+                end
+            end)
+        end
+    end
+
+    local LogService = GetService("LogService")
+
+    pcall(function()
+        for _, Entry in LogService:GetLogHistory() do
+            local Color
+
+            if Entry.messageType == Enum.MessageType.MessageError then
+                Color = Theme.Red
+            elseif Entry.messageType == Enum.MessageType.MessageWarning then
+                Color = Theme.Yellow
+            elseif Entry.messageType == Enum.MessageType.MessageInfo then
+                Color = Theme.Blue
+            else
+                Color = Theme.Text
+            end
+
+            AppendLog(Entry.message, Color)
+        end
+    end)
+
+    self.ConsoleConnection = Track(LogService.MessageOut:Connect(function(Message, MessageType)
+        local Color
+
+        if MessageType == Enum.MessageType.MessageError then
+            Color = Theme.Red
+        elseif MessageType == Enum.MessageType.MessageWarning then
+            Color = Theme.Yellow
+        elseif MessageType == Enum.MessageType.MessageInfo then
+            Color = Theme.Blue
+        else
+            Color = Theme.Text
+        end
+
+        AppendLog(Message, Color)
+    end))
+
+    local CommandRow = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, -16, 0, 28);
+        Position = UDim2.new(0, 8, 1, -36);
+        BackgroundTransparency = 1;
+        Parent = WindowBody;
+    })
+
+    local CommandLayout = VexUI:AddListLayout(
+        CommandRow,
+        6,
+        Enum.FillDirection.Horizontal
+    )
+
+    CommandLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local CommandBox = VexUI:CreateInstance("TextBox", {
+        Size = UDim2.new(1, -76, 1, 0);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        Font = Fonts.Mono;
+        PlaceholderText = "Run code (loadstring)...";
+        PlaceholderColor3 = Theme.TextFaded;
+        Text = "";
+        TextColor3 = Theme.Text;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        Parent = CommandRow;
+    })
+
+    VexUI:AddCorner(CommandBox, 4)
+    VexUI:AddStroke(CommandBox, Theme.Border, 1)
+    VexUI:AddPadding(CommandBox, 0, 8, 0, 8)
+
+    local RunButton = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.fromOffset(70, 28);
+        BackgroundColor3 = Theme.Accent;
+        BackgroundTransparency = 0.85;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Font = Fonts.SemiBold;
+        Text = "Run";
+        TextColor3 = Theme.Accent;
+        TextSize = 12;
+        Parent = CommandRow;
+    })
+
+    VexUI:AddCorner(RunButton, 4)
+    VexUI:AddStroke(RunButton, Theme.Accent, 1)
+
+    local function FormatArgument(Value)
+        local ValueType = typeof(Value)
+
+        if ValueType == "string" then
+            return Value
+        end
+
+        if ValueType == "Instance" then
+            return `{Value.ClassName}({Value:GetFullName()})`
+        end
+
+        if ValueType == "table" then
+            local Success, EncodedJson = pcall(function()
+                return Services.HttpService:JSONEncode(Value)
+            end)
+
+            if Success then
+                return EncodedJson
+            end
+
+            return tostring(Value)
+        end
+
+        return tostring(Value)
+    end
+
+    local function FormatArguments(...)
+        local ArgumentCount = select("#", ...)
+
+        if ArgumentCount == 0 then
+            return ""
+        end
+
+        local FormattedParts = {}
+
+        for Index = 1, ArgumentCount do
+            FormattedParts[Index] = FormatArgument(select(Index, ...))
+        end
+
+        return table.concat(FormattedParts, "  ")
+    end
+
+        local function ExecuteCommand()
+            local Code = CommandBox.Text
+            if Code == "" then
+                return
+            end
+
+            AppendLog(`> {Code}`, Theme.Accent)
+
+            local function CapturedPrint(...)
+                AppendLog(FormatArguments(...), Theme.Text)
+            end
+
+            local function CapturedWarn(...)
+                AppendLog(FormatArguments(...), Theme.Yellow)
+            end
+
+            local function CapturedError(Message, Level)
+                AppendLog(`error: {tostring(Message)}`, Theme.Red)
+                error(Message, (Level or 1) + 1)
+            end
+
+            local OriginalLoadstring = loadstring
+
+            local function CapturedLoadstring(Source, ChunkName)
+                if type(Source) ~= "string" then
+                    return nil, "loadstring: source must be a string"
+                end
+
+                local InjectedSource =
+                    "local print, warn, error, loadstring = ...\n" .. Source
+
+                local CompiledFunction, CompileError =
+                    OriginalLoadstring(InjectedSource, ChunkName or "VexConsoleChunk")
+
+                if not CompiledFunction then
+                    return nil, CompileError
+                end
+
+                return function(...)
+                    return CompiledFunction(
+                        CapturedPrint,
+                        CapturedWarn,
+                        CapturedError,
+                        CapturedLoadstring,
+                        ...
+                    )
+                end
+            end
+
+            local IsExpression = Code:sub(1, 1) == "="
+            local Body = IsExpression and ("return " .. Code:sub(2)) or Code
+
+            local CompiledFunction, CompileError = CapturedLoadstring(Body, "VexConsole")
+
+            if not CompiledFunction then
+                AppendLog(`compile: {CompileError}`, Theme.Red)
+                return
+            end
+
+            local Results = table.pack(pcall(CompiledFunction))
+            local Success = Results[1]
+
+            if not Success then
+                AppendLog(`runtime: {tostring(Results[2])}`, Theme.Red)
+                return
+            end
+
+            if IsExpression and Results.n > 1 then
+                local OutputParts = {}
+
+                for Index = 2, Results.n do
+                    OutputParts[#OutputParts + 1] =
+                        FormatArg(Results[Index])
+                end
+
+                AppendLog(table.concat(OutputParts, "  "), Theme.Green)
+            end
+
+            CommandBox.Text = ""
+        end
+
+    RunButton.MouseButton1Click:Connect(ExecuteCommand)
+
+    CommandBox.FocusLost:Connect(function(EnterPressed)
+        if EnterPressed then
+            ExecuteCommand()
+        end
+    end)
+end
+
 function Explorer:OpenSettings()
     local Window, Body = self:CreateModalWindow("Settings", 460, 540)
 
@@ -8929,6 +10604,11 @@ function Explorer:OpenSettings()
         self:SaveConfig()
     end)
 
+    CreateToggle("Use lua.expert decompiler", self.UseLuaExpertDecompiler, 4.5, function(State)
+        self.UseLuaExpertDecompiler = State
+        self:SaveConfig()
+    end)
+
     CreateHeader("Theme Preset", 5)
 
     local PresetRow = CreateRow(6)
@@ -9031,15 +10711,13 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
         return
     end
 
-    local Blocker = VexUI:CreateInstance("TextButton", {
+    local Blocker = VexUI:CreateInstance("Frame", {
         Size = UDim2.fromScale(1, 1);
         BackgroundTransparency = 1;
-        AutoButtonColor = false;
-        Text = "";
-        Modal = true;
         ZIndex = 150;
         Parent = self.ScreenGui;
     })
+    local FiltersClickConn
 
     local Camera = workspace.CurrentCamera
     local Viewport = Camera and Camera.ViewportSize or Vector2.new(1366, 768)
@@ -9090,6 +10768,11 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
     end
 
     local function Close()
+        if FiltersClickConn then
+            FiltersClickConn:Disconnect()
+            FiltersClickConn = nil
+        end
+
         Dropdown:Destroy()
         Blocker:Destroy()
 
@@ -9098,6 +10781,31 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             self.FiltersBlocker = nil
         end
     end
+
+    FiltersClickConn = Services.UserInputService.InputBegan:Connect(function(Input)
+        if Input.UserInputType ~= Enum.UserInputType.MouseButton1
+            and Input.UserInputType ~= Enum.UserInputType.MouseButton2
+            and Input.UserInputType ~= Enum.UserInputType.Touch
+        then
+            return
+        end
+
+        if not Dropdown or not Dropdown.Parent then
+            Close()
+            return
+        end
+
+        local Pos = Input.Position
+        local AbsP = Dropdown.AbsolutePosition
+        local AbsS = Dropdown.AbsoluteSize
+        if Pos.X >= AbsP.X and Pos.X <= AbsP.X + AbsS.X
+            and Pos.Y >= AbsP.Y and Pos.Y <= AbsP.Y + AbsS.Y
+        then
+            return
+        end
+
+        Close()
+    end)
 
     Window:AddTitleButton("X", 26, true, Close, "CloseIcon")
 
@@ -9556,6 +11264,10 @@ function Explorer:BuildExplorerWindow()
     })
     self.ExplorerWindow = Window
 
+    Window:AddTitleButton("C", 26, false, function()
+        self:ToggleConsole()
+    end)
+
     Window:AddTitleButton("...", 26, false, function()
         self:OpenSettings()
     end, "SettingsIcon")
@@ -9805,6 +11517,144 @@ function Explorer:BuildExplorerWindow()
         self:ScheduleNodeRealiser()
         if self.UpdateStickyHeader then
             self.UpdateStickyHeader()
+        end
+    end))
+end
+
+function Explorer:SetupDragHandlers()
+    if self.DragHandlersInstalled then
+        return
+    end
+
+    self.DragHandlersInstalled = true
+
+    Track(Services.UserInputService.InputChanged:Connect(function(Input)
+        local DragOperation = self.DragOperation
+        if not DragOperation then
+            return
+        end
+
+        if Input.UserInputType ~= Enum.UserInputType.MouseMovement
+            and Input.UserInputType ~= Enum.UserInputType.Touch
+        then
+            return
+        end
+
+        local DeltaX = Input.Position.X - DragOperation.StartX
+        local DeltaY = Input.Position.Y - DragOperation.StartY
+
+        if not DragOperation.HasStarted and (DeltaX * DeltaX + DeltaY * DeltaY) > 64 then
+            DragOperation.HasStarted = true
+
+            DragOperation.GhostLabel = VexUI:CreateInstance("TextLabel", {
+                Size = UDim2.fromOffset(200, 22);
+                BackgroundColor3 = Theme.Window;
+                BackgroundTransparency = 0.05;
+                BorderSizePixel = 0;
+                Font = Fonts.SemiBold;
+                Text = `  ⇄ {DragOperation.SourceName}`;
+                TextColor3 = Theme.Accent;
+                TextSize = 12;
+                TextXAlignment = Enum.TextXAlignment.Left;
+                ZIndex = 500;
+                Parent = self.ScreenGui;
+            })
+
+            VexUI:AddCorner(DragOperation.GhostLabel, 4)
+            VexUI:AddStroke(DragOperation.GhostLabel, Theme.Accent, 1)
+        end
+
+        if DragOperation.HasStarted and DragOperation.GhostLabel then
+            DragOperation.GhostLabel.Position =
+                UDim2.fromOffset(Input.Position.X + 12, Input.Position.Y + 8)
+        end
+    end))
+
+    Track(Services.UserInputService.InputEnded:Connect(function(Input)
+        if Input.UserInputType ~= Enum.UserInputType.MouseButton1
+            and Input.UserInputType ~= Enum.UserInputType.Touch
+        then
+            return
+        end
+
+        local DragOperation = self.DragOperation
+        if not DragOperation then
+            return
+        end
+
+        self.DragOperation = nil
+
+        if DragOperation.GhostLabel then
+            DragOperation.GhostLabel:Destroy()
+        end
+
+        if not DragOperation.HasStarted then
+            return
+        end
+
+        self.JustDragged = true
+        task.delay(0.15, function()
+            self.JustDragged = false
+        end)
+
+        local MouseX, MouseY = Input.Position.X, Input.Position.Y
+        local TargetInstance
+
+        for Instance, Node in self.NodesByInstance do
+            if Node.Row
+                and Node.Row.Parent
+                and Node.Row.Visible
+                and Node.Row.AbsoluteSize.Y > 0
+            then
+                local AbsolutePosition = Node.Row.AbsolutePosition
+                local AbsoluteSize = Node.Row.AbsoluteSize
+
+                if MouseX >= AbsolutePosition.X
+                    and MouseX <= AbsolutePosition.X + AbsoluteSize.X
+                    and MouseY >= AbsolutePosition.Y
+                    and MouseY <= AbsolutePosition.Y + AbsoluteSize.Y
+                then
+                    TargetInstance = Instance
+                    break
+                end
+            end
+        end
+
+        if not TargetInstance then
+            return
+        end
+
+        if TargetInstance == self.NilContainerPlaceholder then
+            return
+        end
+
+        if TargetInstance == DragOperation.Source then
+            return
+        end
+
+        local SourceInstances
+
+        if self.SelectedSet[DragOperation.Source] then
+            SourceInstances = self:GetSelectionList()
+        else
+            SourceInstances = { DragOperation.Source }
+        end
+
+        local SuccessfulReparents = 0
+
+        for _, SourceInstance in SourceInstances do
+            local Success = pcall(function()
+                if SourceInstance ~= TargetInstance
+                    and not TargetInstance:IsDescendantOf(SourceInstance)
+                then
+                    SourceInstance.Parent = TargetInstance
+                    SuccessfulReparents += 1
+                end
+            end)
+        end
+
+        if SuccessfulReparents > 0 then
+            self:Notify(`Reparented {SuccessfulReparents} into {TargetInstance.Name}`)
         end
     end))
 end
@@ -10109,6 +11959,28 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
 
     MakeSeparator()
 
+    local CanView = false
+    if Target then
+        pcall(function()
+            CanView = Target:IsA("BasePart") or Target:IsA("Model")
+        end)
+    end
+
+    local ViewLabel = "View Object"
+    if self.ViewedObject == Target then
+        ViewLabel = "View Object  (middle-click to reset)"
+    end
+
+    MakeItem(ViewLabel, not CanView, function()
+        self:ToggleViewObject(Target)
+    end)
+
+    MakeItem("3D Preview Object", not CanView, function()
+        self:Open3DPreview(Target)
+    end)
+
+    MakeSeparator()
+
     MakeItem("Anchor", false, function()
         local Count = self:SetAnchorOnSelection(true)
         self:Notify(`Anchored {Count} part(s)`)
@@ -10144,6 +12016,20 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
     end)
 
     local IsScript = PrimaryClass == "LocalScript" or PrimaryClass == "ModuleScript"
+
+    if not IsScript
+        and PrimaryClass == "Script"
+        and self.SelectedInstance
+    then
+        local Success, RunContext = pcall(function()
+            return self.SelectedInstance.RunContext
+        end)
+
+        if Success and RunContext == Enum.RunContext.Client then
+            IsScript = true
+        end
+    end
+
     MakeItem("Script View (Default)", not IsScript, function()
         self:OpenScriptViewer(self.SelectedInstance, true)
     end)
@@ -10330,6 +12216,7 @@ function Explorer:BuildConfigData()
         ToggleKey = self.ToggleKey.Name;
         AutoRefreshProperties = self.AutoRefreshProperties;
         RefreshDelay = self.RefreshDelay;
+        UseLuaExpertDecompiler = self.UseLuaExpertDecompiler;
         NilFilterClass = (self.NilFilterClass or ""):gsub("^%s+", ""):gsub("%s+$", "");
         ActiveClassFilters = ClassFilterList;
         HiddenServices = HiddenServiceList;
@@ -10389,6 +12276,10 @@ function Explorer:ApplyConfigData(Data)
         self.SearchIncludesNil = Data.SearchIncludesNil
     else
         self.SearchIncludesNil = true
+    end
+
+    if typeof(Data.UseLuaExpertDecompiler) == "boolean" then
+        self.UseLuaExpertDecompiler = Data.UseLuaExpertDecompiler
     end
 
     if typeof(Data.Theme) == "table" then
@@ -10511,6 +12402,15 @@ function Explorer:Kill()
     self:ClearPropertyConnections()
     self:ResetTasks()
 
+    self:StopViewObject()
+
+    for _, Highlight in self.SelectionHighlights or {} do
+        pcall(function()
+            Highlight:Destroy()
+        end)
+    end
+    self.SelectionHighlights = setmetatable({}, {__mode = "k"})
+
     for _, Node in {table.unpack(self.RootNodes)} do
         pcall(function()
             self:DestroyNode(Node)
@@ -10581,6 +12481,16 @@ function Explorer:Create()
 
         self:RebuildExplorer()
         self:AddPropertiesLabel("Select an instance.")
+
+        BindTheme("Accent", function(Color)
+            for _, Hl in Explorer.SelectionHighlights or {} do
+                if Hl and Hl.Parent then
+                    Hl.OutlineColor = Color
+                end
+            end
+        end)
+
+        self:SetupDragHandlers()
     end, "Function Explorer.Create")
 end
 
