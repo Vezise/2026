@@ -441,6 +441,7 @@ local AvailableAssets = {
     BindableEvent = true; BindableFunction = true; BodyVelocity = true;
     BoxHandleAdornment = true; Camera = true; Chat = true; ClickDetector = true;
     ColorCorrectionEffect = true; ConeHandleAdornment = true; Configuration = true;
+    ConsoleIcon = true;
     CoreGui = true; CylinderHandleAdornment = true; Explosion = true; Fire = true;
     Flag = true; FlagStand = true; Folder = true; Frame = true; Highlight = true;
     HingeConstraint = true; Humanoid = true; ImageButton = true; ImageFrame = true;
@@ -616,6 +617,10 @@ local function GetClassAssetId(ClassName)
         return nil
     end
 
+    if type(ClassName) ~= "string" or ClassName == "" then
+        ClassName = "Instance"
+    end
+
     if AssetCache[ClassName] ~= nil then
         return AssetCache[ClassName] or nil
     end
@@ -630,18 +635,15 @@ local function GetClassAssetId(ClassName)
     local Path = DownloadAsset(AssetName)
     if not Path then
         AssetCache[ClassName] = false
-
         return nil
     end
 
     local Good, AssetId = pcall(getcustomasset, Path)
-    if Good
-        and AssetId ~= ""
-    then
+    if Good and AssetId ~= "" then
         AssetCache[ClassName] = AssetId
-
         return AssetId
     end
+
     AssetCache[ClassName] = false
     return nil
 end
@@ -692,6 +694,8 @@ local function PrefetchAssets()
             end
         end
 
+        pcall(DownloadAsset, "CloseIcon")
+        pcall(DownloadAsset, "Console Icon")
         pcall(DownloadAsset, "SearchIcon")
         pcall(DownloadAsset, "SettingsIcon")
         pcall(DownloadAsset, "Unspecified")
@@ -706,9 +710,9 @@ local PinnedServices = {
     "Lighting";
     "ReplicatedFirst";
     "ReplicatedStorage";
+    "StarterGui";
     "StarterPlayer";
     "StarterPack";
-    "StarterGui";
     "CoreGui";
 }
 
@@ -939,6 +943,98 @@ local PropertyGroups = {
     };
 
     {
+        Class = "Hat";
+        Properties = {
+            "AttachmentForward";
+            "AttachmentPoint";
+            "AttachmentPos";
+            "AttachmentRight";
+            "AttachmentUp";
+        };
+    };
+
+    {
+        Class = "HumanoidDescription";
+        Properties = {
+            "BackAccessory";
+            "BodyTypeScale";
+            "ClimbAnimation";
+            "DepthScale";
+            "Face";
+            "FaceAccessory";
+            "FallAnimation";
+            "FrontAccessory";
+            "GraphicTShirt";
+            "HairAccessory";
+            "HatAccessory";
+            "Head";
+            "HeadColor";
+            "HeadScale";
+            "HeightScale";
+            "IdleAnimation";
+            "JumpAnimation";
+            "LeftArm";
+            "LeftArmColor";
+            "LeftLeg";
+            "LeftLegColor";
+            "MoodAnimation";
+            "NeckAccessory";
+            "Pants";
+            "ProportionScale";
+            "RightArm";
+            "RightArmColor";
+            "RightLeg";
+            "RightLegColor";
+            "RunAnimation";
+            "Shirt";
+            "ShouldersAccessory";
+            "SwimAnimation";
+            "Torso";
+            "TorsoColor";
+            "WaistAccessory";
+            "WalkAnimation";
+            "WidthScale";
+        };
+    };
+
+    {
+        Class = "WrapLayer";
+        Properties = {
+            "AutoSkin";
+            "BindOffset";
+            "Color";
+            "DebugMode";
+            "Enabled";
+            "Order";
+            "Puffiness";
+            "ReferenceMeshId";
+            "ReferenceOrigin";
+            "ShrinkFactor";
+        };
+    };
+
+    {
+        Class = "WrapTarget";
+        Properties = {
+            "CageMeshId";
+            "CageOrigin";
+            "ImportOrigin";
+            "Stiffness";
+        };
+    };
+
+    {
+        Class = "SurfaceAppearance";
+        Properties = {
+            "AlphaMode";
+            "ColorMap";
+            "MetalnessMap";
+            "NormalMap";
+            "RoughnessMap";
+        };
+    };
+
+    {
         Class = "Humanoid";
         Properties = {
             "Health";
@@ -987,6 +1083,114 @@ local PropertyGroups = {
     };
 
     {
+        Class = "SoundGroup";
+        Properties = {
+            "Volume";
+        };
+    };
+
+    {
+        Class = "EqualizerSoundEffect";
+        Properties = {
+            "Enabled";
+            "HighGain";
+            "LowGain";
+            "MidGain";
+            "Priority";
+        };
+    };
+
+    {
+        Class = "ReverbSoundEffect";
+        Properties = {
+            "DecayTime";
+            "Density";
+            "Diffusion";
+            "DryLevel";
+            "Enabled";
+            "Priority";
+            "WetLevel";
+        };
+    };
+
+    {
+        Class = "ChorusSoundEffect";
+        Properties = {
+            "Depth";
+            "Enabled";
+            "Mix";
+            "Priority";
+            "Rate";
+        };
+    };
+
+    {
+        Class = "CompressorSoundEffect";
+        Properties = {
+            "Attack";
+            "Enabled";
+            "GainMakeup";
+            "Priority";
+            "Ratio";
+            "Release";
+            "SideChain";
+            "Threshold";
+        };
+    };
+
+    {
+        Class = "DistortionSoundEffect";
+        Properties = {
+            "Enabled";
+            "Level";
+            "Priority";
+        };
+    };
+
+    {
+        Class = "EchoSoundEffect";
+        Properties = {
+            "Delay";
+            "DryLevel";
+            "Enabled";
+            "Feedback";
+            "Priority";
+            "WetLevel";
+        };
+    };
+
+    {
+        Class = "FlangeSoundEffect";
+        Properties = {
+            "Depth";
+            "Enabled";
+            "Mix";
+            "Priority";
+            "Rate";
+        };
+    };
+
+    {
+        Class = "PitchShiftSoundEffect";
+        Properties = {
+            "Enabled";
+            "Octave";
+            "Priority";
+        };
+    };
+
+    {
+        Class = "TremoloSoundEffect";
+        Properties = {
+            "Depth";
+            "Duty";
+            "Enabled";
+            "Frequency";
+            "Priority";
+        };
+    };
+
+    {
         Class = "Tool";
         Properties = {
             "Grip";
@@ -1000,6 +1204,255 @@ local PropertyGroups = {
             "TextureId";
             "Enabled";
             "ManualActivationOnly";
+        };
+    };
+
+    {
+        Class = "LayerCollector";
+        Properties = {
+            "Enabled";
+            "ResetOnSpawn";
+            "ZIndexBehavior";
+        };
+    };
+
+    {
+        Class = "GuiBase2d";
+        Properties = {
+            "AbsolutePosition";
+            "AbsoluteRotation";
+            "AbsoluteSize";
+        };
+    };
+
+    {
+        Class = "GuiButton";
+        Properties = {
+            "AutoButtonColor";
+            "Modal";
+            "Selected";
+            "Style";
+        };
+    };
+
+    {
+        Class = "ViewportFrame";
+        Properties = {
+            "Ambient";
+            "CurrentCamera";
+            "ImageColor3";
+            "ImageTransparency";
+            "LightColor";
+            "LightDirection";
+        };
+    };
+
+    {
+        Class = "CanvasGroup";
+        Properties = {
+            "GroupColor3";
+            "GroupTransparency";
+        };
+    };
+
+    {
+        Class = "VideoFrame";
+        Properties = {
+            "Video";
+            "Volume";
+            "Playing";
+            "Looped";
+            "PlaybackSpeed";
+            "TimePosition";
+            "Resolution";
+            "IsLoaded";
+        };
+    };
+
+    {
+        Class = "UIPageLayout";
+        Properties = {
+            "Animated";
+            "Circular";
+            "CurrentPage";
+            "EasingDirection";
+            "EasingStyle";
+            "GamepadInputEnabled";
+            "Padding";
+            "ScrollWheelInputEnabled";
+            "TouchInputEnabled";
+            "TweenTime";
+        };
+    };
+
+    {
+        Class = "UITableLayout";
+        Properties = {
+            "FillEmptySpaceColumns";
+            "FillEmptySpaceRows";
+            "MajorAxis";
+            "Padding";
+        };
+    };
+
+    {
+        Class = "UITextSizeConstraint";
+        Properties = {
+            "MaxTextSize";
+            "MinTextSize";
+        };
+    };
+
+    {
+        Class = "UIFlexItem";
+        Properties = {
+            "FlexMode";
+            "GrowRatio";
+            "ItemLineAlignment";
+            "ShrinkRatio";
+        };
+    };
+
+    {
+        Class = "RemoteEvent";
+        Properties = {};
+    };
+
+    {
+        Class = "RemoteFunction";
+        Properties = {};
+    };
+
+    {
+        Class = "UnreliableRemoteEvent";
+        Properties = {};
+    };
+
+    {
+        Class = "BindableEvent";
+        Properties = {};
+    };
+
+    {
+        Class = "BindableFunction";
+        Properties = {};
+    };
+
+    {
+        Class = "BallSocketConstraint";
+        Properties = {
+            "LimitsEnabled";
+            "MaxFrictionTorque";
+            "Radius";
+            "Restitution";
+            "TwistLimitsEnabled";
+            "TwistLowerAngle";
+            "TwistUpperAngle";
+            "UpperAngle";
+        };
+    };
+
+    {
+        Class = "PrismaticConstraint";
+        Properties = {
+            "ActuatorType";
+            "LimitsEnabled";
+            "LowerLimit";
+            "UpperLimit";
+            "Restitution";
+            "ServoMaxForce";
+            "Speed";
+            "TargetPosition";
+            "Velocity";
+        };
+    };
+
+    {
+        Class = "CylindricalConstraint";
+        Properties = {
+            "ActuatorType";
+            "AngularActuatorType";
+            "AngularLimitsEnabled";
+            "AngularRestitution";
+            "AngularSpeed";
+            "AngularVelocity";
+            "InclinationAngle";
+            "LimitsEnabled";
+            "LowerAngle";
+            "LowerLimit";
+            "MotorMaxAngularAcceleration";
+            "MotorMaxForce";
+            "Restitution";
+            "ServoMaxForce";
+            "TargetAngle";
+            "TargetPosition";
+            "UpperAngle";
+            "UpperLimit";
+        };
+    };
+
+    {
+        Class = "PlaneConstraint";
+        Properties = {};
+    };
+
+    {
+        Class = "NoCollisionConstraint";
+        Properties = {
+            "Part0";
+            "Part1";
+            "Enabled";
+        };
+    };
+
+    {
+        Class = "PathfindingModifier";
+        Properties = {
+            "Label";
+            "PassThrough";
+        };
+    };
+
+    {
+        Class = "PathfindingLink";
+        Properties = {
+            "Attachment0";
+            "Attachment1";
+            "IsBidirectional";
+            "Label";
+        };
+    };
+
+    {
+        Class = "Dialog";
+        Properties = {
+            "BehaviorType";
+            "ConversationDistance";
+            "GoodbyeChoiceActive";
+            "GoodbyeDialog";
+            "InUse";
+            "InitialPrompt";
+            "Purpose";
+            "Tone";
+            "TriggerDistance";
+            "TriggerOffset";
+        };
+    };
+
+    {
+        Class = "DialogChoice";
+        Properties = {
+            "GoodbyeChoiceActive";
+            "GoodbyeDialog";
+            "ResponseDialog";
+            "UserDialog";
+        };
+    };
+
+    {
+        Class = "ForceField";
+        Properties = {
+            "Visible";
         };
     };
 
@@ -1032,6 +1485,61 @@ local PropertyGroups = {
         Class = "Animation";
         Properties = {
             "AnimationId";
+        };
+    };
+
+    {
+        Class = "Animator";
+        Properties = {
+            "RootMotion";
+            "RootMotionWeight";
+            "EvaluationThrottled";
+        };
+    };
+
+    {
+        Class = "AnimationController";
+        Properties = {};
+    };
+
+    {
+        Class = "AnimationTrack";
+        Properties = {
+            "Animation";
+            "Length";
+            "TimePosition";
+            "Speed";
+            "Looped";
+            "Priority";
+            "IsPlaying";
+            "WeightCurrent";
+            "WeightTarget";
+        };
+    };
+
+    {
+        Class = "KeyframeSequence";
+        Properties = {
+            "Loop";
+            "Priority";
+            "AuthoredHipHeight";
+        };
+    };
+
+    {
+        Class = "Keyframe";
+        Properties = {
+            "Time";
+        };
+    };
+
+    {
+        Class = "Pose";
+        Properties = {
+            "CFrame";
+            "EasingDirection";
+            "EasingStyle";
+            "Weight";
         };
     };
 
@@ -1925,6 +2433,143 @@ local PropertyGroups = {
         Class = "ModuleScript";
         Properties = {};
     };
+
+    {
+        Class = "ReplicatedStorage";
+        Properties = {};
+    };
+
+    {
+        Class = "ReplicatedFirst";
+        Properties = {};
+    };
+
+    {
+        Class = "ServerStorage";
+        Properties = {};
+    };
+
+    {
+        Class = "ServerScriptService";
+        Properties = {};
+    };
+
+    {
+        Class = "StarterGui";
+        Properties = {
+            "ResetPlayerGuiOnSpawn";
+            "ScreenOrientation";
+        };
+    };
+
+    {
+        Class = "StarterPack";
+        Properties = {};
+    };
+
+    {
+        Class = "StarterPlayer";
+        Properties = {
+            "AllowCustomAnimations";
+            "AutoJumpEnabled";
+            "CameraMaxZoomDistance";
+            "CameraMinZoomDistance";
+            "CameraMode";
+            "CharacterJumpHeight";
+            "CharacterJumpPower";
+            "CharacterMaxSlopeAngle";
+            "CharacterUseJumpPower";
+            "CharacterWalkSpeed";
+            "DevCameraOcclusionMode";
+            "DevComputerCameraMovementMode";
+            "DevComputerMovementMode";
+            "DevTouchCameraMovementMode";
+            "DevTouchMovementMode";
+            "EnableMouseLockOption";
+            "HealthDisplayDistance";
+            "LoadCharacterAppearance";
+            "NameDisplayDistance";
+        };
+    };
+
+    {
+        Class = "Teams";
+        Properties = {};
+    };
+
+    {
+        Class = "SoundService";
+        Properties = {
+            "AmbientReverb";
+            "DistanceFactor";
+            "DopplerScale";
+            "RolloffScale";
+            "RespectFilteringEnabled";
+        };
+    };
+
+    {
+        Class = "CollectionService";
+        Properties = {};
+    };
+
+    {
+        Class = "TweenService";
+        Properties = {};
+    };
+
+    {
+        Class = "TextChatService";
+        Properties = {
+            "ChatVersion";
+            "CreateDefaultCommands";
+            "CreateDefaultTextChannels";
+        };
+    };
+
+    {
+        Class = "Folder";
+        Properties = {};
+    };
+
+    {
+        Class = "Configuration";
+        Properties = {};
+    };
+
+    {
+        Class = "PackageLink";
+        Properties = {
+            "PackageId";
+            "VersionNumber";
+            "AutoUpdate";
+        };
+    };
+
+    {
+        Class = "CornerWedgePart";
+        Properties = {};
+    };
+
+    {
+        Class = "WedgePart";
+        Properties = {};
+    };
+
+    {
+        Class = "FlagStand";
+        Properties = {
+            "TeamColor";
+        };
+    };
+
+    {
+        Class = "SkateboardPlatform";
+        Properties = {
+            "Steer";
+            "Throttle";
+        };
+    };
 }
 
 local function CollectProperties(Object)
@@ -1989,6 +2634,60 @@ local function CollectTags(Object)
     end)
 
     return Tags
+end
+
+local function GetGlobalCallable(Name)
+    local Env = nil
+
+    pcall(function()
+        if getgenv then
+            Env = getgenv()
+        end
+    end)
+
+    Env = Env or _G
+
+    local Fn = Env and Env[Name]
+    if type(Fn) == "function" then
+        return Fn
+    end
+
+    return nil
+end
+
+local function GetLocalCharacterRootPart()
+    local Players = Services.Players or game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local Character = LocalPlayer and LocalPlayer.Character
+
+    if not Character then
+        return nil
+    end
+
+    return Character:FindFirstChild("HumanoidRootPart")
+        or Character:FindFirstChild("Torso")
+        or Character:FindFirstChild("UpperTorso")
+        or Character:FindFirstChildWhichIsA("BasePart")
+end
+
+local function ResolveInstanceText(Text)
+    Text = tostring(Text or "")
+
+    local Lowered = Text:lower()
+    if Lowered == ""
+        or Lowered == "character"
+        or Lowered == "char"
+        or Lowered == "hrp"
+        or Lowered == "me"
+    then
+        return GetLocalCharacterRootPart()
+    end
+
+    if Lowered == "selected" then
+        return self.SelectedInstance
+    end
+
+    return nil
 end
 
 local MethodGroups = {
@@ -2279,11 +2978,81 @@ local MethodGroups = {
             };
         };
     };
+
+    {
+        Class = "ClickDetector";
+        Methods = {
+            {
+                "fireclickdetector";
+                "void";
+                {
+                    {
+                        "distance";
+                        "number";
+                        "0";
+                    };
+                    {
+                        "event";
+                        "string";
+                        "MouseClick";
+                    };
+                };
+                "global";
+            };
+        };
+    };
+
+    {
+        Class = "ProximityPrompt";
+        Methods = {
+            {
+                "fireproximityprompt";
+                "void";
+                {
+                    {
+                        "amount";
+                        "number";
+                        "1";
+                    };
+                    {
+                        "skip";
+                        "boolean";
+                        "true";
+                    };
+                };
+                "global";
+            };
+        };
+    };
+
+    {
+        Class = "BasePart";
+        Methods = {
+            {
+                "firetouchinterest";
+                "void";
+                {
+                    {
+                        "target";
+                        "BasePart";
+                        "character";
+                    };
+                    {
+                        "toggle";
+                        "number";
+                        "0";
+                    };
+                };
+                "global";
+            };
+        };
+    };
 }
 
 local function CollectMethods(Object)
     local Ordered = {}
     local Seen = {}
+
     for _, Group in MethodGroups do
         local Good, Matches = pcall(function()
             return Object:IsA(Group.Class)
@@ -2291,9 +3060,17 @@ local function CollectMethods(Object)
 
         if Good and Matches then
             for _, Method in Group.Methods do
-                if not Seen[Method[1]] then
-                    Seen[Method[1]] = true
+                local MethodName = Method[1]
+                local IsGlobal = Method[4] == "global"
 
+                if IsGlobal and not GetGlobalCallable(MethodName) then
+                    continue
+                end
+
+                local SeenKey = IsGlobal and `global:{MethodName}` or MethodName
+
+                if not Seen[SeenKey] then
+                    Seen[SeenKey] = true
                     table.insert(Ordered, Method)
                 end
             end
@@ -2454,10 +3231,19 @@ local Theme = {
     PropDefault = Color3.fromRGB(220, 220, 220);
 }
 
+local UITransparency = {
+    Window = 0;
+    TitleBar = 0;
+    Field = 0;
+    Background = 0;
+    ModalOverlay = 0.5;
+}
+
 local SaveConfigDeferred
 local InBatchSave = false
 
 local ThemeBindings = {}
+local TransparencyBindings = {}
 
 local function BindTheme(ThemeKey, Apply)
     ThemeBindings[ThemeKey] = ThemeBindings[ThemeKey] or {}
@@ -2467,10 +3253,75 @@ end
 
 local function SetThemeColor(ThemeKey, NewColor)
     Theme[ThemeKey] = NewColor
+
     local Bindings = ThemeBindings[ThemeKey]
     if Bindings then
         for _, Apply in Bindings do
             pcall(Apply, NewColor)
+        end
+    end
+
+    if not InBatchSave then
+        MarkThemeCustom()
+    end
+
+    if SaveConfigDeferred and not InBatchSave then
+        pcall(SaveConfigDeferred)
+    end
+end
+
+local function ClampTransparency(Value)
+    return math.clamp(tonumber(Value) or 0, 0, 0.95)
+end
+
+local function BindTransparency(Key, Apply)
+    TransparencyBindings[Key] = TransparencyBindings[Key] or {}
+    table.insert(TransparencyBindings[Key], Apply)
+    Apply(UITransparency[Key] or 0)
+end
+
+local ApplyingPreset = false
+
+local function RefreshThemePresetButton()
+    if Explorer
+        and Explorer.ThemePresetButton
+        and Explorer.ThemePresetButton.Parent
+    then
+        Explorer.ThemePresetButton.Text = `{Explorer.ThemePresetName or "Custom"}`
+    end
+end
+
+local function SetThemePresetName(Name)
+    if not Explorer then
+        return
+    end
+
+    Explorer.ThemePresetName = Name or "Custom"
+    RefreshThemePresetButton()
+end
+
+local function MarkThemeCustom()
+    if ApplyingPreset then
+        return
+    end
+
+    if not Explorer then
+        return
+    end
+
+    if Explorer.ThemePresetName ~= "Custom" then
+        Explorer.ThemePresetName = "Custom"
+        RefreshThemePresetButton()
+    end
+end
+
+local function SetUITransparency(Key, Value)
+    UITransparency[Key] = ClampTransparency(Value)
+
+    local Bindings = TransparencyBindings[Key]
+    if Bindings then
+        for _, Apply in Bindings do
+            pcall(Apply, UITransparency[Key])
         end
     end
 
@@ -2661,15 +3512,625 @@ local Presets = {
             PropDefault = Color3.fromRGB(28, 30, 36);
         }
     };
+    {
+        Name = "DEX++";
+        Colors = {
+            Background = Color3.fromRGB(24, 25, 24);
+            Window = Color3.fromRGB(35, 36, 34);
+            TitleBar = Color3.fromRGB(43, 44, 41);
+            Border = Color3.fromRGB(73, 76, 72);
+            BorderSoft = Color3.fromRGB(50, 52, 49);
+            Field = Color3.fromRGB(30, 32, 31);
+            FieldHover = Color3.fromRGB(48, 51, 49);
+            Selected = Color3.fromRGB(0, 82, 150);
+            SelectionBar = Color3.fromRGB(0, 120, 215);
+            Text = Color3.fromRGB(225, 225, 220);
+            TextDim = Color3.fromRGB(172, 174, 168);
+            TextFaded = Color3.fromRGB(115, 118, 112);
+            TextHeader = Color3.fromRGB(160, 165, 156);
+            Accent = Color3.fromRGB(38, 169, 245);
+            PropString = Color3.fromRGB(145, 220, 135);
+            PropNumber = Color3.fromRGB(255, 174, 78);
+            PropInstance = Color3.fromRGB(95, 185, 255);
+            PropEnum = Color3.fromRGB(210, 210, 135);
+            PropNil = Color3.fromRGB(130, 130, 125);
+            PropDefault = Color3.fromRGB(220, 220, 215);
+        }
+    };
+
+    {
+        Name = "Obsidian Blue";
+        Colors = {
+            Background = Color3.fromRGB(8, 12, 18);
+            Window = Color3.fromRGB(13, 19, 28);
+            TitleBar = Color3.fromRGB(7, 11, 17);
+            Border = Color3.fromRGB(27, 42, 60);
+            BorderSoft = Color3.fromRGB(18, 30, 44);
+            Field = Color3.fromRGB(18, 27, 39);
+            FieldHover = Color3.fromRGB(26, 40, 57);
+            Selected = Color3.fromRGB(24, 58, 94);
+            SelectionBar = Color3.fromRGB(65, 156, 255);
+            Text = Color3.fromRGB(225, 236, 245);
+            TextDim = Color3.fromRGB(145, 165, 185);
+            TextFaded = Color3.fromRGB(85, 105, 125);
+            TextHeader = Color3.fromRGB(115, 145, 175);
+            Accent = Color3.fromRGB(65, 156, 255);
+            PropString = Color3.fromRGB(120, 220, 190);
+            PropNumber = Color3.fromRGB(120, 175, 255);
+            PropInstance = Color3.fromRGB(100, 200, 255);
+            PropEnum = Color3.fromRGB(190, 220, 140);
+            PropNil = Color3.fromRGB(90, 105, 120);
+            PropDefault = Color3.fromRGB(225, 236, 245);
+        }
+    };
+
+    {
+        Name = "Rose Noir";
+        Colors = {
+            Background = Color3.fromRGB(17, 10, 14);
+            Window = Color3.fromRGB(27, 16, 23);
+            TitleBar = Color3.fromRGB(15, 8, 13);
+            Border = Color3.fromRGB(58, 32, 48);
+            BorderSoft = Color3.fromRGB(38, 22, 32);
+            Field = Color3.fromRGB(35, 20, 30);
+            FieldHover = Color3.fromRGB(50, 28, 42);
+            Selected = Color3.fromRGB(84, 36, 62);
+            SelectionBar = Color3.fromRGB(255, 95, 160);
+            Text = Color3.fromRGB(245, 225, 236);
+            TextDim = Color3.fromRGB(190, 145, 170);
+            TextFaded = Color3.fromRGB(135, 90, 115);
+            TextHeader = Color3.fromRGB(170, 115, 145);
+            Accent = Color3.fromRGB(255, 95, 160);
+            PropString = Color3.fromRGB(255, 175, 130);
+            PropNumber = Color3.fromRGB(255, 125, 160);
+            PropInstance = Color3.fromRGB(255, 150, 200);
+            PropEnum = Color3.fromRGB(225, 190, 135);
+            PropNil = Color3.fromRGB(135, 90, 115);
+            PropDefault = Color3.fromRGB(245, 225, 236);
+        }
+    };
+
+    {
+        Name = "Amethyst";
+        Colors = {
+            Background = Color3.fromRGB(13, 10, 22);
+            Window = Color3.fromRGB(22, 17, 36);
+            TitleBar = Color3.fromRGB(11, 8, 20);
+            Border = Color3.fromRGB(48, 38, 76);
+            BorderSoft = Color3.fromRGB(32, 25, 52);
+            Field = Color3.fromRGB(30, 24, 48);
+            FieldHover = Color3.fromRGB(43, 34, 68);
+            Selected = Color3.fromRGB(68, 45, 115);
+            SelectionBar = Color3.fromRGB(170, 120, 255);
+            Text = Color3.fromRGB(235, 230, 250);
+            TextDim = Color3.fromRGB(170, 155, 200);
+            TextFaded = Color3.fromRGB(115, 100, 145);
+            TextHeader = Color3.fromRGB(145, 125, 180);
+            Accent = Color3.fromRGB(170, 120, 255);
+            PropString = Color3.fromRGB(255, 185, 230);
+            PropNumber = Color3.fromRGB(190, 160, 255);
+            PropInstance = Color3.fromRGB(205, 175, 255);
+            PropEnum = Color3.fromRGB(150, 225, 235);
+            PropNil = Color3.fromRGB(115, 100, 145);
+            PropDefault = Color3.fromRGB(235, 230, 250);
+        }
+    };
+
+    {
+        Name = "Cyber Lime";
+        Colors = {
+            Background = Color3.fromRGB(5, 12, 9);
+            Window = Color3.fromRGB(10, 20, 15);
+            TitleBar = Color3.fromRGB(4, 10, 7);
+            Border = Color3.fromRGB(28, 62, 42);
+            BorderSoft = Color3.fromRGB(18, 38, 27);
+            Field = Color3.fromRGB(14, 30, 22);
+            FieldHover = Color3.fromRGB(22, 48, 34);
+            Selected = Color3.fromRGB(35, 80, 48);
+            SelectionBar = Color3.fromRGB(110, 255, 120);
+            Text = Color3.fromRGB(220, 255, 225);
+            TextDim = Color3.fromRGB(145, 195, 150);
+            TextFaded = Color3.fromRGB(85, 125, 90);
+            TextHeader = Color3.fromRGB(120, 170, 125);
+            Accent = Color3.fromRGB(110, 255, 120);
+            PropString = Color3.fromRGB(215, 255, 120);
+            PropNumber = Color3.fromRGB(120, 240, 160);
+            PropInstance = Color3.fromRGB(130, 255, 210);
+            PropEnum = Color3.fromRGB(255, 225, 120);
+            PropNil = Color3.fromRGB(85, 125, 90);
+            PropDefault = Color3.fromRGB(220, 255, 225);
+        }
+    };
+
+    {
+        Name = "Nord Frost";
+        Colors = {
+            Background = Color3.fromRGB(36, 41, 51);
+            Window = Color3.fromRGB(46, 52, 64);
+            TitleBar = Color3.fromRGB(40, 45, 56);
+            Border = Color3.fromRGB(76, 86, 106);
+            BorderSoft = Color3.fromRGB(59, 66, 82);
+            Field = Color3.fromRGB(59, 66, 82);
+            FieldHover = Color3.fromRGB(67, 76, 94);
+            Selected = Color3.fromRGB(67, 94, 116);
+            SelectionBar = Color3.fromRGB(136, 192, 208);
+            Text = Color3.fromRGB(236, 239, 244);
+            TextDim = Color3.fromRGB(216, 222, 233);
+            TextFaded = Color3.fromRGB(129, 161, 193);
+            TextHeader = Color3.fromRGB(143, 188, 187);
+            Accent = Color3.fromRGB(136, 192, 208);
+            PropString = Color3.fromRGB(163, 190, 140);
+            PropNumber = Color3.fromRGB(180, 142, 173);
+            PropInstance = Color3.fromRGB(129, 161, 193);
+            PropEnum = Color3.fromRGB(235, 203, 139);
+            PropNil = Color3.fromRGB(129, 161, 193);
+            PropDefault = Color3.fromRGB(236, 239, 244);
+        }
+    };
+
+    {
+        Name = "Gruvbox Dark";
+        Colors = {
+            Background = Color3.fromRGB(29, 32, 33);
+            Window = Color3.fromRGB(40, 40, 40);
+            TitleBar = Color3.fromRGB(35, 35, 35);
+            Border = Color3.fromRGB(80, 73, 69);
+            BorderSoft = Color3.fromRGB(60, 56, 54);
+            Field = Color3.fromRGB(50, 48, 47);
+            FieldHover = Color3.fromRGB(60, 56, 54);
+            Selected = Color3.fromRGB(69, 64, 51);
+            SelectionBar = Color3.fromRGB(250, 189, 47);
+            Text = Color3.fromRGB(235, 219, 178);
+            TextDim = Color3.fromRGB(189, 174, 147);
+            TextFaded = Color3.fromRGB(146, 131, 116);
+            TextHeader = Color3.fromRGB(168, 153, 132);
+            Accent = Color3.fromRGB(250, 189, 47);
+            PropString = Color3.fromRGB(184, 187, 38);
+            PropNumber = Color3.fromRGB(211, 134, 155);
+            PropInstance = Color3.fromRGB(131, 165, 152);
+            PropEnum = Color3.fromRGB(250, 189, 47);
+            PropNil = Color3.fromRGB(146, 131, 116);
+            PropDefault = Color3.fromRGB(235, 219, 178);
+        }
+    };
+
+    {
+        Name = "Tokyo Night";
+        Colors = {
+            Background = Color3.fromRGB(22, 22, 30);
+            Window = Color3.fromRGB(31, 35, 53);
+            TitleBar = Color3.fromRGB(26, 27, 38);
+            Border = Color3.fromRGB(65, 72, 104);
+            BorderSoft = Color3.fromRGB(41, 46, 66);
+            Field = Color3.fromRGB(36, 40, 59);
+            FieldHover = Color3.fromRGB(45, 51, 74);
+            Selected = Color3.fromRGB(41, 66, 111);
+            SelectionBar = Color3.fromRGB(122, 162, 247);
+            Text = Color3.fromRGB(192, 202, 245);
+            TextDim = Color3.fromRGB(169, 177, 214);
+            TextFaded = Color3.fromRGB(86, 95, 137);
+            TextHeader = Color3.fromRGB(125, 135, 190);
+            Accent = Color3.fromRGB(122, 162, 247);
+            PropString = Color3.fromRGB(158, 206, 106);
+            PropNumber = Color3.fromRGB(255, 158, 100);
+            PropInstance = Color3.fromRGB(125, 207, 255);
+            PropEnum = Color3.fromRGB(224, 175, 104);
+            PropNil = Color3.fromRGB(86, 95, 137);
+            PropDefault = Color3.fromRGB(192, 202, 245);
+        }
+    };
+
+    {
+        Name = "Dracula";
+        Colors = {
+            Background = Color3.fromRGB(33, 34, 44);
+            Window = Color3.fromRGB(40, 42, 54);
+            TitleBar = Color3.fromRGB(30, 31, 40);
+            Border = Color3.fromRGB(68, 71, 90);
+            BorderSoft = Color3.fromRGB(52, 55, 70);
+            Field = Color3.fromRGB(48, 50, 64);
+            FieldHover = Color3.fromRGB(59, 62, 78);
+            Selected = Color3.fromRGB(68, 54, 95);
+            SelectionBar = Color3.fromRGB(189, 147, 249);
+            Text = Color3.fromRGB(248, 248, 242);
+            TextDim = Color3.fromRGB(190, 190, 185);
+            TextFaded = Color3.fromRGB(120, 120, 130);
+            TextHeader = Color3.fromRGB(160, 160, 170);
+            Accent = Color3.fromRGB(189, 147, 249);
+            PropString = Color3.fromRGB(80, 250, 123);
+            PropNumber = Color3.fromRGB(255, 184, 108);
+            PropInstance = Color3.fromRGB(139, 233, 253);
+            PropEnum = Color3.fromRGB(241, 250, 140);
+            PropNil = Color3.fromRGB(120, 120, 130);
+            PropDefault = Color3.fromRGB(248, 248, 242);
+        }
+    };
+
+    {
+        Name = "Solarized Dark";
+        Colors = {
+            Background = Color3.fromRGB(0, 33, 41);
+            Window = Color3.fromRGB(0, 43, 54);
+            TitleBar = Color3.fromRGB(0, 29, 36);
+            Border = Color3.fromRGB(7, 54, 66);
+            BorderSoft = Color3.fromRGB(3, 45, 56);
+            Field = Color3.fromRGB(7, 54, 66);
+            FieldHover = Color3.fromRGB(12, 66, 80);
+            Selected = Color3.fromRGB(18, 78, 92);
+            SelectionBar = Color3.fromRGB(38, 139, 210);
+            Text = Color3.fromRGB(238, 232, 213);
+            TextDim = Color3.fromRGB(147, 161, 161);
+            TextFaded = Color3.fromRGB(101, 123, 131);
+            TextHeader = Color3.fromRGB(131, 148, 150);
+            Accent = Color3.fromRGB(38, 139, 210);
+            PropString = Color3.fromRGB(133, 153, 0);
+            PropNumber = Color3.fromRGB(203, 75, 22);
+            PropInstance = Color3.fromRGB(42, 161, 152);
+            PropEnum = Color3.fromRGB(181, 137, 0);
+            PropNil = Color3.fromRGB(101, 123, 131);
+            PropDefault = Color3.fromRGB(238, 232, 213);
+        }
+    };
+
+    {
+        Name = "Catppuccin Mocha";
+        Colors = {
+            Background = Color3.fromRGB(17, 17, 27);
+            Window = Color3.fromRGB(30, 30, 46);
+            TitleBar = Color3.fromRGB(24, 24, 37);
+            Border = Color3.fromRGB(69, 71, 90);
+            BorderSoft = Color3.fromRGB(49, 50, 68);
+            Field = Color3.fromRGB(41, 42, 58);
+            FieldHover = Color3.fromRGB(49, 50, 68);
+            Selected = Color3.fromRGB(58, 53, 88);
+            SelectionBar = Color3.fromRGB(203, 166, 247);
+            Text = Color3.fromRGB(205, 214, 244);
+            TextDim = Color3.fromRGB(186, 194, 222);
+            TextFaded = Color3.fromRGB(127, 132, 156);
+            TextHeader = Color3.fromRGB(166, 173, 200);
+            Accent = Color3.fromRGB(203, 166, 247);
+            PropString = Color3.fromRGB(166, 227, 161);
+            PropNumber = Color3.fromRGB(250, 179, 135);
+            PropInstance = Color3.fromRGB(137, 220, 235);
+            PropEnum = Color3.fromRGB(249, 226, 175);
+            PropNil = Color3.fromRGB(127, 132, 156);
+            PropDefault = Color3.fromRGB(205, 214, 244);
+        }
+    };
+
+    {
+        Name = "Monokai";
+        Colors = {
+            Background = Color3.fromRGB(25, 26, 24);
+            Window = Color3.fromRGB(39, 40, 34);
+            TitleBar = Color3.fromRGB(31, 32, 28);
+            Border = Color3.fromRGB(73, 72, 62);
+            BorderSoft = Color3.fromRGB(55, 55, 48);
+            Field = Color3.fromRGB(48, 49, 43);
+            FieldHover = Color3.fromRGB(60, 61, 54);
+            Selected = Color3.fromRGB(73, 64, 42);
+            SelectionBar = Color3.fromRGB(253, 151, 31);
+            Text = Color3.fromRGB(248, 248, 242);
+            TextDim = Color3.fromRGB(190, 190, 180);
+            TextFaded = Color3.fromRGB(117, 113, 94);
+            TextHeader = Color3.fromRGB(160, 155, 135);
+            Accent = Color3.fromRGB(253, 151, 31);
+            PropString = Color3.fromRGB(230, 219, 116);
+            PropNumber = Color3.fromRGB(174, 129, 255);
+            PropInstance = Color3.fromRGB(102, 217, 239);
+            PropEnum = Color3.fromRGB(166, 226, 46);
+            PropNil = Color3.fromRGB(117, 113, 94);
+            PropDefault = Color3.fromRGB(248, 248, 242);
+        }
+    };
+
+    {
+        Name = "Cherry Blossom";
+        Colors = {
+            Background = Color3.fromRGB(24, 15, 20);
+            Window = Color3.fromRGB(36, 24, 31);
+            TitleBar = Color3.fromRGB(28, 18, 24);
+            Border = Color3.fromRGB(80, 50, 64);
+            BorderSoft = Color3.fromRGB(55, 35, 45);
+            Field = Color3.fromRGB(45, 30, 39);
+            FieldHover = Color3.fromRGB(62, 40, 52);
+            Selected = Color3.fromRGB(90, 50, 68);
+            SelectionBar = Color3.fromRGB(255, 155, 190);
+            Text = Color3.fromRGB(255, 235, 242);
+            TextDim = Color3.fromRGB(210, 165, 185);
+            TextFaded = Color3.fromRGB(145, 100, 120);
+            TextHeader = Color3.fromRGB(185, 130, 155);
+            Accent = Color3.fromRGB(255, 155, 190);
+            PropString = Color3.fromRGB(255, 210, 145);
+            PropNumber = Color3.fromRGB(255, 145, 170);
+            PropInstance = Color3.fromRGB(190, 190, 255);
+            PropEnum = Color3.fromRGB(190, 235, 170);
+            PropNil = Color3.fromRGB(145, 100, 120);
+            PropDefault = Color3.fromRGB(255, 235, 242);
+        }
+    };
+
+    {
+        Name = "Mint Slate";
+        Colors = {
+            Background = Color3.fromRGB(13, 22, 22);
+            Window = Color3.fromRGB(20, 34, 34);
+            TitleBar = Color3.fromRGB(12, 26, 26);
+            Border = Color3.fromRGB(38, 70, 66);
+            BorderSoft = Color3.fromRGB(28, 50, 48);
+            Field = Color3.fromRGB(25, 45, 44);
+            FieldHover = Color3.fromRGB(35, 62, 60);
+            Selected = Color3.fromRGB(38, 82, 75);
+            SelectionBar = Color3.fromRGB(95, 230, 190);
+            Text = Color3.fromRGB(225, 245, 240);
+            TextDim = Color3.fromRGB(150, 190, 180);
+            TextFaded = Color3.fromRGB(95, 130, 125);
+            TextHeader = Color3.fromRGB(125, 165, 155);
+            Accent = Color3.fromRGB(95, 230, 190);
+            PropString = Color3.fromRGB(150, 245, 180);
+            PropNumber = Color3.fromRGB(130, 210, 255);
+            PropInstance = Color3.fromRGB(130, 245, 235);
+            PropEnum = Color3.fromRGB(220, 230, 150);
+            PropNil = Color3.fromRGB(95, 130, 125);
+            PropDefault = Color3.fromRGB(225, 245, 240);
+        }
+    };
+
+    {
+        Name = "Amber Terminal";
+        Colors = {
+            Background = Color3.fromRGB(12, 9, 3);
+            Window = Color3.fromRGB(22, 17, 7);
+            TitleBar = Color3.fromRGB(15, 11, 4);
+            Border = Color3.fromRGB(65, 45, 14);
+            BorderSoft = Color3.fromRGB(38, 28, 10);
+            Field = Color3.fromRGB(30, 22, 8);
+            FieldHover = Color3.fromRGB(46, 33, 11);
+            Selected = Color3.fromRGB(80, 52, 14);
+            SelectionBar = Color3.fromRGB(255, 176, 50);
+            Text = Color3.fromRGB(255, 230, 180);
+            TextDim = Color3.fromRGB(210, 165, 95);
+            TextFaded = Color3.fromRGB(135, 95, 45);
+            TextHeader = Color3.fromRGB(180, 125, 60);
+            Accent = Color3.fromRGB(255, 176, 50);
+            PropString = Color3.fromRGB(255, 210, 95);
+            PropNumber = Color3.fromRGB(255, 145, 70);
+            PropInstance = Color3.fromRGB(255, 190, 110);
+            PropEnum = Color3.fromRGB(220, 220, 120);
+            PropNil = Color3.fromRGB(135, 95, 45);
+            PropDefault = Color3.fromRGB(255, 230, 180);
+        }
+    };
+
+    {
+        Name = "Royal Navy";
+        Colors = {
+            Background = Color3.fromRGB(7, 10, 24);
+            Window = Color3.fromRGB(13, 18, 40);
+            TitleBar = Color3.fromRGB(8, 12, 30);
+            Border = Color3.fromRGB(35, 45, 82);
+            BorderSoft = Color3.fromRGB(22, 30, 58);
+            Field = Color3.fromRGB(19, 27, 52);
+            FieldHover = Color3.fromRGB(28, 39, 72);
+            Selected = Color3.fromRGB(38, 58, 105);
+            SelectionBar = Color3.fromRGB(90, 145, 255);
+            Text = Color3.fromRGB(230, 235, 255);
+            TextDim = Color3.fromRGB(160, 175, 215);
+            TextFaded = Color3.fromRGB(95, 110, 150);
+            TextHeader = Color3.fromRGB(125, 145, 190);
+            Accent = Color3.fromRGB(90, 145, 255);
+            PropString = Color3.fromRGB(140, 220, 180);
+            PropNumber = Color3.fromRGB(170, 170, 255);
+            PropInstance = Color3.fromRGB(110, 200, 255);
+            PropEnum = Color3.fromRGB(240, 210, 130);
+            PropNil = Color3.fromRGB(95, 110, 150);
+            PropDefault = Color3.fromRGB(230, 235, 255);
+        }
+    };
+
+    {
+        Name = "Graphite";
+        Colors = {
+            Background = Color3.fromRGB(12, 12, 13);
+            Window = Color3.fromRGB(22, 22, 24);
+            TitleBar = Color3.fromRGB(16, 16, 18);
+            Border = Color3.fromRGB(48, 48, 52);
+            BorderSoft = Color3.fromRGB(32, 32, 36);
+            Field = Color3.fromRGB(30, 30, 34);
+            FieldHover = Color3.fromRGB(42, 42, 47);
+            Selected = Color3.fromRGB(55, 55, 62);
+            SelectionBar = Color3.fromRGB(170, 170, 180);
+            Text = Color3.fromRGB(235, 235, 238);
+            TextDim = Color3.fromRGB(165, 165, 172);
+            TextFaded = Color3.fromRGB(105, 105, 112);
+            TextHeader = Color3.fromRGB(135, 135, 145);
+            Accent = Color3.fromRGB(170, 170, 180);
+            PropString = Color3.fromRGB(210, 210, 160);
+            PropNumber = Color3.fromRGB(160, 190, 230);
+            PropInstance = Color3.fromRGB(160, 210, 230);
+            PropEnum = Color3.fromRGB(190, 220, 170);
+            PropNil = Color3.fromRGB(105, 105, 112);
+            PropDefault = Color3.fromRGB(235, 235, 238);
+        }
+    };
+
+    {
+        Name = "Blood Moon";
+        Colors = {
+            Background = Color3.fromRGB(16, 5, 7);
+            Window = Color3.fromRGB(28, 9, 12);
+            TitleBar = Color3.fromRGB(20, 6, 8);
+            Border = Color3.fromRGB(70, 24, 28);
+            BorderSoft = Color3.fromRGB(44, 14, 17);
+            Field = Color3.fromRGB(36, 12, 15);
+            FieldHover = Color3.fromRGB(54, 18, 22);
+            Selected = Color3.fromRGB(85, 25, 32);
+            SelectionBar = Color3.fromRGB(255, 65, 75);
+            Text = Color3.fromRGB(255, 225, 225);
+            TextDim = Color3.fromRGB(205, 140, 145);
+            TextFaded = Color3.fromRGB(135, 75, 80);
+            TextHeader = Color3.fromRGB(175, 100, 105);
+            Accent = Color3.fromRGB(255, 65, 75);
+            PropString = Color3.fromRGB(255, 170, 120);
+            PropNumber = Color3.fromRGB(255, 115, 125);
+            PropInstance = Color3.fromRGB(255, 145, 155);
+            PropEnum = Color3.fromRGB(230, 195, 115);
+            PropNil = Color3.fromRGB(135, 75, 80);
+            PropDefault = Color3.fromRGB(255, 225, 225);
+        }
+    };
+
+    {
+        Name = "Glass Steel";
+        Colors = {
+            Background = Color3.fromRGB(18, 22, 26);
+            Window = Color3.fromRGB(28, 34, 40);
+            TitleBar = Color3.fromRGB(22, 27, 32);
+            Border = Color3.fromRGB(58, 70, 82);
+            BorderSoft = Color3.fromRGB(40, 48, 56);
+            Field = Color3.fromRGB(34, 42, 50);
+            FieldHover = Color3.fromRGB(45, 55, 65);
+            Selected = Color3.fromRGB(48, 68, 84);
+            SelectionBar = Color3.fromRGB(135, 200, 235);
+            Text = Color3.fromRGB(230, 240, 245);
+            TextDim = Color3.fromRGB(160, 180, 190);
+            TextFaded = Color3.fromRGB(100, 120, 130);
+            TextHeader = Color3.fromRGB(130, 155, 168);
+            Accent = Color3.fromRGB(135, 200, 235);
+            PropString = Color3.fromRGB(170, 230, 200);
+            PropNumber = Color3.fromRGB(150, 190, 240);
+            PropInstance = Color3.fromRGB(135, 215, 245);
+            PropEnum = Color3.fromRGB(220, 220, 160);
+            PropNil = Color3.fromRGB(100, 120, 130);
+            PropDefault = Color3.fromRGB(230, 240, 245);
+        }
+    };
+
+    {
+        Name = "Synthwave";
+        Colors = {
+            Background = Color3.fromRGB(20, 8, 35);
+            Window = Color3.fromRGB(32, 14, 52);
+            TitleBar = Color3.fromRGB(24, 9, 42);
+            Border = Color3.fromRGB(75, 35, 100);
+            BorderSoft = Color3.fromRGB(48, 22, 70);
+            Field = Color3.fromRGB(42, 18, 62);
+            FieldHover = Color3.fromRGB(60, 26, 86);
+            Selected = Color3.fromRGB(82, 42, 112);
+            SelectionBar = Color3.fromRGB(255, 80, 220);
+            Text = Color3.fromRGB(245, 230, 255);
+            TextDim = Color3.fromRGB(200, 150, 220);
+            TextFaded = Color3.fromRGB(135, 90, 160);
+            TextHeader = Color3.fromRGB(180, 115, 205);
+            Accent = Color3.fromRGB(255, 80, 220);
+            PropString = Color3.fromRGB(255, 220, 95);
+            PropNumber = Color3.fromRGB(255, 120, 190);
+            PropInstance = Color3.fromRGB(80, 235, 255);
+            PropEnum = Color3.fromRGB(140, 255, 170);
+            PropNil = Color3.fromRGB(135, 90, 160);
+            PropDefault = Color3.fromRGB(245, 230, 255);
+        }
+    };
+
+    {
+        Name = "Vapor Ice";
+        Colors = {
+            Background = Color3.fromRGB(12, 18, 28);
+            Window = Color3.fromRGB(22, 31, 46);
+            TitleBar = Color3.fromRGB(16, 24, 36);
+            Border = Color3.fromRGB(45, 68, 92);
+            BorderSoft = Color3.fromRGB(32, 48, 68);
+            Field = Color3.fromRGB(28, 42, 62);
+            FieldHover = Color3.fromRGB(38, 58, 82);
+            Selected = Color3.fromRGB(48, 70, 98);
+            SelectionBar = Color3.fromRGB(110, 230, 255);
+            Text = Color3.fromRGB(230, 245, 255);
+            TextDim = Color3.fromRGB(165, 200, 215);
+            TextFaded = Color3.fromRGB(100, 130, 150);
+            TextHeader = Color3.fromRGB(135, 170, 190);
+            Accent = Color3.fromRGB(110, 230, 255);
+            PropString = Color3.fromRGB(185, 255, 220);
+            PropNumber = Color3.fromRGB(160, 185, 255);
+            PropInstance = Color3.fromRGB(130, 235, 255);
+            PropEnum = Color3.fromRGB(255, 205, 250);
+            PropNil = Color3.fromRGB(100, 130, 150);
+            PropDefault = Color3.fromRGB(230, 245, 255);
+        }
+    };
+
+    {
+        Name = "Pumpkin";
+        Colors = {
+            Background = Color3.fromRGB(18, 10, 5);
+            Window = Color3.fromRGB(30, 18, 9);
+            TitleBar = Color3.fromRGB(22, 13, 6);
+            Border = Color3.fromRGB(75, 42, 18);
+            BorderSoft = Color3.fromRGB(48, 28, 13);
+            Field = Color3.fromRGB(40, 24, 12);
+            FieldHover = Color3.fromRGB(58, 34, 15);
+            Selected = Color3.fromRGB(88, 48, 16);
+            SelectionBar = Color3.fromRGB(255, 125, 35);
+            Text = Color3.fromRGB(255, 235, 215);
+            TextDim = Color3.fromRGB(220, 165, 120);
+            TextFaded = Color3.fromRGB(145, 95, 60);
+            TextHeader = Color3.fromRGB(190, 125, 80);
+            Accent = Color3.fromRGB(255, 125, 35);
+            PropString = Color3.fromRGB(255, 205, 110);
+            PropNumber = Color3.fromRGB(255, 145, 80);
+            PropInstance = Color3.fromRGB(255, 185, 125);
+            PropEnum = Color3.fromRGB(180, 230, 130);
+            PropNil = Color3.fromRGB(145, 95, 60);
+            PropDefault = Color3.fromRGB(255, 235, 215);
+        }
+    };
+
+    {
+        Name = "Aqua Matrix";
+        Colors = {
+            Background = Color3.fromRGB(3, 13, 15);
+            Window = Color3.fromRGB(8, 25, 28);
+            TitleBar = Color3.fromRGB(4, 18, 20);
+            Border = Color3.fromRGB(20, 70, 76);
+            BorderSoft = Color3.fromRGB(14, 45, 50);
+            Field = Color3.fromRGB(12, 36, 40);
+            FieldHover = Color3.fromRGB(18, 55, 60);
+            Selected = Color3.fromRGB(24, 82, 88);
+            SelectionBar = Color3.fromRGB(70, 255, 230);
+            Text = Color3.fromRGB(220, 255, 250);
+            TextDim = Color3.fromRGB(140, 215, 205);
+            TextFaded = Color3.fromRGB(75, 140, 135);
+            TextHeader = Color3.fromRGB(105, 180, 170);
+            Accent = Color3.fromRGB(70, 255, 230);
+            PropString = Color3.fromRGB(130, 255, 170);
+            PropNumber = Color3.fromRGB(95, 205, 255);
+            PropInstance = Color3.fromRGB(75, 245, 255);
+            PropEnum = Color3.fromRGB(220, 255, 140);
+            PropNil = Color3.fromRGB(75, 140, 135);
+            PropDefault = Color3.fromRGB(220, 255, 250);
+        }
+    };
 }
 
+table.sort(Presets, function(First, Second)
+    return First.Name < Second.Name
+end) -- just becoz i don't wanna follow alphabetical order myself each time i add a new preset :D
+
+local function GetDefaultPresetName()
+    return Presets[1] and Presets[1].Name or "Custom"
+end
+
 local function ApplyPreset(Preset)
+    ApplyingPreset = true
     InBatchSave = true
+
     for Key, Color in Preset.Colors do
         SetThemeColor(Key, Color)
     end
 
     InBatchSave = false
+    ApplyingPreset = false
+
+    SetThemePresetName(Preset.Name)
 
     if SaveConfigDeferred then
         pcall(SaveConfigDeferred)
@@ -2700,20 +4161,30 @@ function VexUI:CreateInstance(ClassName, Properties)
     return Object
 end
 
-function VexUI:AddCorner(Parent, Radius)
-    return self:CreateInstance("UICorner", {
-        CornerRadius = UDim.new(0, Radius or 6);
-        Parent = Parent;
-    })
-end
-
-function VexUI:AddStroke(Parent, Color, Thickness)
-    return self:CreateInstance("UIStroke", {
-        Color = Color or Theme.Border;
+function VexUI:AddStroke(Parent, ColorOrThemeKey, Thickness, Transparency)
+    local Stroke = self:CreateInstance("UIStroke", {
+        Color = Theme.Border;
         Thickness = Thickness or 1;
+        Transparency = Transparency or 0;
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
         Parent = Parent;
     })
+
+    if type(ColorOrThemeKey) == "string" then
+        local ThemeKey = ColorOrThemeKey
+
+        Stroke.Color = Theme[ThemeKey] or Theme.Border
+
+        BindTheme(ThemeKey, function(Color)
+            if Stroke and Stroke.Parent then
+                Stroke.Color = Color
+            end
+        end)
+    else
+        Stroke.Color = ColorOrThemeKey or Theme.Border
+    end
+
+    return Stroke
 end
 
 function VexUI:AddPadding(Parent, Top, Right, Bottom, Left)
@@ -2770,73 +4241,34 @@ function VexUI:CreateWindow(Config)
     local Window = self:CreateInstance("Frame", {
         Size = Size;
         Position = Position;
-        BackgroundColor3 = Theme.Window;
+        BackgroundTransparency = 1;
         BorderSizePixel = 0;
         ClipsDescendants = true;
         Parent = Parent;
     })
-    self:AddCorner(Window, 8)
-    local WindowStroke = self:AddStroke(Window, Theme.Border, 1)
-    BindTheme("Window", function(Color)
-        Window.BackgroundColor3 = Color
-    end)
-    BindTheme("Border", function(Color)
-        WindowStroke.Color = Color
-    end)
+
+    local WindowStroke = self:AddStroke(Window, "Border", 1)
 
     local TitleBarHeight = Brand and 36 or 30
-
     local TitleBar = self:CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 0, TitleBarHeight);
         BackgroundColor3 = Theme.TitleBar;
+        BackgroundTransparency = UITransparency.TitleBar;
         BorderSizePixel = 0;
         Parent = Window;
     })
-    self:AddCorner(TitleBar, 8)
+
     BindTheme("TitleBar", function(Color)
         TitleBar.BackgroundColor3 = Color
     end)
 
-    local TitleBarCover = self:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 8);
-        Position = UDim2.new(0, 0, 1, -8);
-        BackgroundColor3 = Theme.TitleBar;
-        BorderSizePixel = 0;
-        ZIndex = 2;
-        Parent = TitleBar;
-    })
-    BindTheme("TitleBar", function(Color)
-        TitleBarCover.BackgroundColor3 = Color
-    end)
-
-    local TitleDivider = self:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 1);
-        Position = UDim2.new(0, 0, 1, -1);
-        BackgroundColor3 = Theme.Border;
-        BorderSizePixel = 0;
-        ZIndex = 3;
-        Parent = TitleBar;
-    })
-    BindTheme("Border", function(Color)
-        TitleDivider.BackgroundColor3 = Color
-    end)
-
-    local AccentDot = self:CreateInstance("Frame", {
-        Size = UDim2.new(0, 8, 0, 8);
-        Position = UDim2.new(0, 14, 0.5, -4);
-        BackgroundColor3 = Theme.Accent;
-        BorderSizePixel = 0;
-        ZIndex = 4;
-        Parent = TitleBar;
-    })
-    self:AddCorner(AccentDot, 4)
-    BindTheme("Accent", function(Color)
-        AccentDot.BackgroundColor3 = Color
+    BindTransparency("TitleBar", function(Value)
+        TitleBar.BackgroundTransparency = Value
     end)
 
     local TitleLabel = self:CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -260, 1, 0);
-        Position = UDim2.new(0, 28, 0, 0);
+        Size = UDim2.new(1, -240, 1, 0);
+        Position = UDim2.new(0, 12, 0, 0);
         BackgroundTransparency = 1;
         Font = Fonts.Bold;
         Text = Brand and "" or Title:upper();
@@ -2854,28 +4286,36 @@ function VexUI:CreateWindow(Config)
 
     if Brand then
         local BrandHolder = self:CreateInstance("Frame", {
-            Size = UDim2.new(0, 240, 1, 0);
-            Position = UDim2.new(0, 28, 0, 0);
+            Size = UDim2.new(0, 260, 1, 0);
+            Position = UDim2.new(0, 12, 0, 0);
             BackgroundTransparency = 1;
             ZIndex = 4;
             Parent = TitleBar;
         })
+
         local BrandLayout = self:AddListLayout(BrandHolder, 6, Enum.FillDirection.Horizontal)
         BrandLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
-        self:CreateInstance("TextLabel", {
+        local BrandVersion = self:CreateInstance("TextLabel", {
             AutomaticSize = Enum.AutomaticSize.X;
             Size = UDim2.new(0, 0, 0, 18);
             BackgroundTransparency = 1;
             Font = Fonts.Bold;
-            Text = `VEX ｜ {Explorer:FetchVersion()}`;
+            Text = `VEX [{Explorer:FetchVersion()}]`;
             TextColor3 = Theme.Text;
             TextSize = 13;
             LayoutOrder = 1;
             ZIndex = 4;
             Parent = BrandHolder;
         })
-        self:CreateInstance("TextLabel", {
+
+        BindTheme("Text", function(Color)
+            if BrandVersion and BrandVersion.Parent then
+                BrandVersion.TextColor3 = Color
+            end
+        end)
+
+        local BrandDash = self:CreateInstance("TextLabel", {
             Size = UDim2.new(0, 8, 0, 18);
             BackgroundTransparency = 1;
             Font = Fonts.Bold;
@@ -2886,6 +4326,13 @@ function VexUI:CreateWindow(Config)
             ZIndex = 4;
             Parent = BrandHolder;
         })
+
+        BindTheme("TextFaded", function(Color)
+            if BrandDash and BrandDash.Parent then
+                BrandDash.TextColor3 = Color
+            end
+        end)
+
         local BrandAccent = self:CreateInstance("TextLabel", {
             AutomaticSize = Enum.AutomaticSize.X;
             Size = UDim2.new(0, 0, 0, 18);
@@ -2898,11 +4345,14 @@ function VexUI:CreateWindow(Config)
             ZIndex = 4;
             Parent = BrandHolder;
         })
+
         BindTheme("Accent", function(Color)
-            BrandAccent.TextColor3 = Color
+            if BrandAccent and BrandAccent.Parent then
+                BrandAccent.TextColor3 = Color
+            end
         end)
 
-        self:CreateInstance("TextLabel", {
+        local BrandBy = self:CreateInstance("TextLabel", {
             AutomaticSize = Enum.AutomaticSize.X;
             Size = UDim2.new(0, 0, 0, 18);
             BackgroundTransparency = 1;
@@ -2914,6 +4364,12 @@ function VexUI:CreateWindow(Config)
             ZIndex = 4;
             Parent = BrandHolder;
         })
+
+        BindTheme("TextFaded", function(Color)
+            if BrandBy and BrandBy.Parent then
+                BrandBy.TextColor3 = Color
+            end
+        end)
     end
 
     local ButtonRow = self:CreateInstance("Frame", {
@@ -2932,9 +4388,19 @@ function VexUI:CreateWindow(Config)
     local Body = self:CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 1, -TitleBarHeight);
         Position = UDim2.new(0, 0, 0, TitleBarHeight);
-        BackgroundTransparency = 1;
+        BackgroundColor3 = Theme.Window;
+        BackgroundTransparency = UITransparency.Window;
+        BorderSizePixel = 0;
         Parent = Window;
     })
+
+    BindTheme("Window", function(Color)
+        Body.BackgroundColor3 = Color
+    end)
+
+    BindTransparency("Window", function(Value)
+        Body.BackgroundTransparency = Value
+    end)
 
     local Dragging = false
     local Resizing = nil
@@ -3256,13 +4722,15 @@ function VexUI:CreateWindow(Config)
         TitleLabel.Text = (NewTitle or ""):upper()
     end
 
-    function Class:AddTitleButton(Text, Width, IsDanger, OnClick, IconAssetName)
+    function Class:AddTitleButton(Text, Width, IsDanger, OnClick, IconAssetName, TextSizeOverride, IconSizeOverride)
         local AssetId = IconAssetName and GetUIAssetId(IconAssetName) or nil
+        local IconSize = IconSizeOverride or 14
+        local IconHalf = IconSize / 2
 
         local Button = VexUI:CreateInstance("TextButton", {
             Size = UDim2.new(0, Width, 0, 22);
             BackgroundColor3 = IsDanger and Theme.Accent or Theme.Border;
-            BackgroundTransparency = IsDanger and 0.85 or 0;
+            BackgroundTransparency = 1;
             BorderSizePixel = 0;
             AutoButtonColor = false;
             Font = Fonts.Bold;
@@ -3273,85 +4741,174 @@ function VexUI:CreateWindow(Config)
             ZIndex = 4;
             Parent = ButtonRow;
         })
-        VexUI:AddCorner(Button, 4)
-        local Stroke = VexUI:AddStroke(Button, IsDanger and Theme.Accent or Theme.Border, 1)
+
+        local Stroke = VexUI:AddStroke(Button, IsDanger and "Accent" or "Border", 1)
 
         local Icon
         if AssetId then
             Icon = VexUI:CreateInstance("ImageLabel", {
-                Size = UDim2.fromOffset(12, 12);
-                Position = UDim2.new(0.5, -6, 0.5, -6);
+                Size = UDim2.fromOffset(IconSize, IconSize);
+                Position = UDim2.new(0.5, -IconHalf, 0.5, -IconHalf);
                 BackgroundTransparency = 1;
                 Image = AssetId;
-                ImageColor3 = IsDanger and Color3.fromRGB(245, 245, 245) or Theme.TextDim;
+                ImageColor3 = IsDanger and Theme.Text or Theme.TextDim;
+                ImageTransparency = 0;
                 ScaleType = Enum.ScaleType.Fit;
                 ZIndex = 5;
                 Parent = Button;
-        })
+            })
         end
+
+        local Hovered = false
+
+        local function GetButtonTransparency()
+            local TitleTransparency = UITransparency.TitleBar or 0
+
+            if Hovered then
+                if IsDanger then
+                    return math.clamp(TitleTransparency * 0.55, 0, 0.9)
+                end
+
+                return math.clamp(TitleTransparency * 0.65, 0, 0.92)
+            end
+
+            if IsDanger then
+                return math.clamp(math.max(0.85, TitleTransparency), 0, 0.96)
+            end
+
+            return math.clamp(TitleTransparency + 0.12, 0, 1)
+        end
+
+        local function GetButtonColor()
+            if Hovered then
+                return IsDanger and Theme.Accent or Theme.Selected
+            end
+
+            return IsDanger and Theme.Accent or Theme.Border
+        end
+
+        local function GetTextColor()
+            if Hovered and IsDanger then
+                return Theme.Red or Theme.Accent
+            end
+
+            if Hovered then
+                return Theme.Text
+            end
+
+            return Theme.TextDim
+        end
+
+        local function ApplyVisual(UseTween)
+            local TargetTransparency = GetButtonTransparency()
+            local TargetBackground = GetButtonColor()
+            local TargetText = GetTextColor()
+
+            if UseTween then
+                VexUI:Tween(Button, {
+                    BackgroundColor3 = TargetBackground;
+                    BackgroundTransparency = TargetTransparency;
+                    TextColor3 = TargetText;
+                })
+
+                if Icon then
+                    VexUI:Tween(Icon, {
+                        ImageColor3 = TargetText;
+                    })
+                end
+            else
+                Button.BackgroundColor3 = TargetBackground
+                Button.BackgroundTransparency = TargetTransparency
+                Button.TextColor3 = TargetText
+
+                if Icon then
+                    if UseTween then
+                        VexUI:Tween(Icon, {
+                            ImageColor3 = TargetText;
+                        })
+                    else
+                        Icon.ImageColor3 = TargetText
+                    end
+                end
+            end
+
+            if Stroke then
+                Stroke.Color = IsDanger and Theme.Accent or Theme.Border
+                Stroke.Transparency = math.clamp(TargetTransparency + 0.1, 0, 1)
+            end
+        end
+
+        BindTransparency("TitleBar", function()
+            if Button and Button.Parent then
+                ApplyVisual(false)
+            end
+        end)
 
         if IsDanger then
-            BindTheme("Accent", function(Color)
-                Button.BackgroundColor3 = Color
-                Stroke.Color = Color
+            BindTheme("Accent", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
+                end
             end)
 
-            Track(Button.MouseEnter:Connect(function()
-                VexUI:Tween(Button, {
-                    BackgroundTransparency = 0;
-                    TextColor3 = Color3.fromRGB(255, 255, 255);
-                })
-                if Icon then
-                    VexUI:Tween(Icon, {ImageColor3 = Color3.fromRGB(255, 255, 255)})
+            BindTheme("Text", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
                 end
-            end))
+            end)
 
-            Track(Button.MouseLeave:Connect(function()
-                VexUI:Tween(Button, {
-                    BackgroundTransparency = 0.85;
-                    TextColor3 = Color3.fromRGB(245, 245, 245);
-                })
-                if Icon then
-                    VexUI:Tween(Icon, {ImageColor3 = Color3.fromRGB(245, 245, 245)})
+            BindTheme("TextDim", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
                 end
-            end))
+            end)
+
+            BindTheme("Red", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
+                end
+            end)
         else
-            BindTheme("Border", function(Color)
-                Button.BackgroundColor3 = Color
-                Stroke.Color = Color
-            end)
-
-            BindTheme("TextDim", function(Color)
-                Button.TextColor3 = Color
-                if Icon then
-                    Icon.ImageColor3 = Color
+            BindTheme("Border", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
                 end
             end)
 
-            Track(Button.MouseEnter:Connect(function()
-                VexUI:Tween(Button, {
-                    BackgroundColor3 = Theme.Selected;
-                    TextColor3 = Theme.Text;
-                })
-                if Icon then
-                    VexUI:Tween(Icon, {ImageColor3 = Theme.Text})
+            BindTheme("TextDim", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
                 end
-            end))
+            end)
 
-            Track(Button.MouseLeave:Connect(function()
-                VexUI:Tween(Button, {
-                    BackgroundColor3 = Theme.Border;
-                    TextColor3 = Theme.TextDim;
-                })
-                if Icon then
-                    VexUI:Tween(Icon, {ImageColor3 = Theme.TextDim})
+            BindTheme("Text", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
                 end
-            end))
+            end)
+
+            BindTheme("Selected", function()
+                if Button and Button.Parent then
+                    ApplyVisual(false)
+                end
+            end)
         end
+
+        Track(Button.MouseEnter:Connect(function()
+            Hovered = true
+            ApplyVisual(true)
+        end))
+
+        Track(Button.MouseLeave:Connect(function()
+            Hovered = false
+            ApplyVisual(true)
+        end))
 
         if OnClick then
             Track(Button.MouseButton1Click:Connect(OnClick))
         end
+
+        ApplyVisual(false)
 
         return Button
     end
@@ -3393,8 +4950,7 @@ function VexUI:CreateTooltip(Parent, Text)
         ZIndex = 200;
         Parent = self.MainGui;
     })
-    self:AddCorner(Tooltip, 4)
-    self:AddStroke(Tooltip, Theme.Border, 1)
+    self:AddStroke(Tooltip, "Border", 1)
     self:AddPadding(Tooltip, 4, 8, 4, 8)
     BindTheme("TitleBar", function(Color) Tooltip.BackgroundColor3 = Color end)
 
@@ -3478,7 +5034,61 @@ local function IsScriptViewable(Instance)
     return false
 end
 
-Explorer = {
+local ClassPriority = {
+    Camera = 1;
+    Terrain = 2;
+
+    Folder = 10;
+    Model = 11;
+    Configuration = 12;
+
+    Script = 30;
+    LocalScript = 31;
+    ModuleScript = 32;
+
+    RemoteEvent = 40;
+    RemoteFunction = 41;
+    BindableEvent = 42;
+    BindableFunction = 43;
+    UnreliableRemoteEvent = 44;
+
+    Part = 60;
+    MeshPart = 61;
+    UnionOperation = 62;
+    WedgePart = 63;
+
+    Humanoid = 80;
+}
+
+local function SortExplorerChildren(Children)
+    table.sort(Children, function(Left, Right)
+        local LeftClass = Left.ClassName
+        local RightClass = Right.ClassName
+
+        local LeftPriority = ClassPriority[LeftClass] or 999
+        local RightPriority = ClassPriority[RightClass] or 999
+
+        if LeftPriority ~= RightPriority then
+            return LeftPriority < RightPriority
+        end
+
+        local LeftName = Left.Name:lower()
+        local RightName = Right.Name:lower()
+
+        if LeftName ~= RightName then
+            return LeftName < RightName
+        end
+
+        return LeftClass < RightClass
+    end)
+
+    return Children
+end
+
+local ExplorerClass = {}
+ExplorerClass.__index = ExplorerClass
+
+Explorer = setmetatable({
     LocalPlayer = LocalPlayer;
     ScreenGui = nil;
     ExplorerWindow = nil;
@@ -3613,7 +5223,10 @@ Explorer = {
     ViewConnection = nil;
     ViewSavedCFrame = nil;
     ViewSavedCameraType = nil;
-}
+
+    ThemePresetName = "Crimson (Default)";
+    ThemePresetButton = nil;
+}, ExplorerClass)
 
 function Explorer:SpawnTask(TaskName, Callback)
     Handle(function()
@@ -4047,7 +5660,6 @@ function Explorer:BeginRename(Node)
         ZIndex = (Label.ZIndex or 1) + 1;
         Parent = Label.Parent;
     })
-    VexUI:AddCorner(Box, 3)
     VexUI:AddStroke(Box, Theme.Accent, 1)
 
     task.defer(function()
@@ -4100,7 +5712,6 @@ function Explorer:CreateNodeRow(Node, RowParent)
         Text = "";
         Parent = RowParent;
     })
-    VexUI:AddCorner(Row, 4)
     BindTheme("Selected", function(Color)
         Row.BackgroundColor3 = Color
     end)
@@ -4113,7 +5724,6 @@ function Explorer:CreateNodeRow(Node, RowParent)
         Visible = false;
         Parent = Row;
     })
-    VexUI:AddCorner(SelectionAccent, 1)
     BindTheme("SelectionBar", function(Color)
         SelectionAccent.BackgroundColor3 = Color
     end)
@@ -4130,7 +5740,29 @@ function Explorer:CreateNodeRow(Node, RowParent)
         Parent = Row;
     })
 
-    local Icon = VexUI:CreateClassIcon(Node.Instance.ClassName, Row)
+    BindTheme("TextDim", function(Color)
+        if Arrow and Arrow.Parent then
+            Arrow.TextColor3 = Color
+        end
+    end)
+
+    local GoodClass, ClassName = pcall(function()
+        return Node.Instance.ClassName
+    end)
+
+    if not GoodClass or type(ClassName) ~= "string" or ClassName == "" then
+        ClassName = "Instance"
+    end
+
+    local GoodName, InstanceName = pcall(function()
+        return Node.Instance.Name
+    end)
+
+    if not GoodName or type(InstanceName) ~= "string" or InstanceName == "" then
+        InstanceName = "?"
+    end
+
+    local Icon = VexUI:CreateClassIcon(ClassName, Row)
     Icon.Position = UDim2.new(0, IndentOffset + 18, 0.5, -8)
 
     local Label = VexUI:CreateInstance("TextLabel", {
@@ -4138,7 +5770,7 @@ function Explorer:CreateNodeRow(Node, RowParent)
         Position = UDim2.new(0, IndentOffset + 40, 0, 0);
         BackgroundTransparency = 1;
         Font = Node.Depth == 0 and Fonts.SemiBold or Fonts.Medium;
-        Text = Node.Instance.Name;
+        Text = InstanceName;
         TextColor3 = Theme.Text;
         TextSize = 12;
         TextXAlignment = Enum.TextXAlignment.Left;
@@ -4146,11 +5778,45 @@ function Explorer:CreateNodeRow(Node, RowParent)
         Parent = Row;
     })
 
+    BindTheme("Text", function(Color)
+        if Label and Label.Parent then
+            Label.TextColor3 = Color
+        end
+    end)
+
     Node.Row = Row
     Node.Arrow = Arrow
     Node.Icon = Icon
     Node.Label = Label
     Node.SelectionAccent = SelectionAccent
+
+    local function RefreshNodeTheme()
+        if Arrow and Arrow.Parent then
+            Arrow.TextColor3 = Theme.TextDim
+        end
+
+        if Label and Label.Parent then
+            Label.TextColor3 = Theme.Text
+        end
+
+        if Row and Row.Parent then
+            Row.BackgroundColor3 = Theme.Selected
+        end
+
+        if SelectionAccent and SelectionAccent.Parent then
+            SelectionAccent.BackgroundColor3 = Theme.SelectionBar
+        end
+
+        if Node and Node.Instance then
+            self:UpdateNodeVisual(Node.Instance)
+        end
+    end
+
+    BindTheme("Text", RefreshNodeTheme)
+    BindTheme("TextDim", RefreshNodeTheme)
+    BindTheme("Selected", RefreshNodeTheme)
+    BindTheme("SelectionBar", RefreshNodeTheme)
+    BindTheme("Accent", RefreshNodeTheme)
 
     self:UpdateArrow(Node)
     self:UpdateNodeVisual(Node.Instance)
@@ -4230,7 +5896,7 @@ function Explorer:CreateNodeRow(Node, RowParent)
                 StartY = Input.Position.Y;
                 Started = false;
                 Source = Node.Instance;
-                SourceName = Node.Instance.Name;
+                SourceName = SafeGet(Node.Instance, "Name") or "?";
             }
         end
     end)))
@@ -4268,12 +5934,20 @@ function Explorer:CreateNodeRow(Node, RowParent)
 
     if NameSignalGood and NameSignal then
         table.insert(Node.Connections, Track(NameSignal:Connect(function()
+            local GoodNewName, NewName = pcall(function()
+                return Node.Instance.Name
+            end)
+
+            if not GoodNewName or type(NewName) ~= "string" then
+                NewName = "?"
+            end
+
             if Node.Label and Node.Label.Parent then
-                Node.Label.Text = Node.Instance.Name
+                Node.Label.Text = NewName
             end
 
             if self.SearchQuery ~= ""
-                and Node.Instance.Name:lower():find(self.SearchQuery, 1, true)
+                and NewName:lower():find(self.SearchQuery, 1, true)
             then
                 ScheduleSearchRefresh()
             end
@@ -4300,14 +5974,21 @@ function Explorer:CreateNodeRow(Node, RowParent)
                         or self.MatchSet[Child]
                         or self.SubtreeMatchSet[Child]
                     then
-                        self:CreateChildNode(Node, Child)
+                        self:CreateChildNode(Node, Child, self:GetNextChildLayoutOrder(Node))
                     end
                 end
 
-                if self.SearchQuery ~= ""
-                    and Child.Name:lower():find(self.SearchQuery, 1, true)
-                then
-                    ScheduleSearchRefresh()
+                if self.SearchQuery ~= "" then
+                    local GoodChildName, ChildName = pcall(function()
+                        return Child.Name
+                    end)
+
+                    if GoodChildName
+                        and type(ChildName) == "string"
+                        and ChildName:lower():find(self.SearchQuery, 1, true)
+                    then
+                        ScheduleSearchRefresh()
+                    end
                 end
             end)
         end)
@@ -4413,9 +6094,43 @@ function Explorer:BuildNodeContainer(ParentFrame, Order)
     return Container, RowHolder, ChildContainer
 end
 
-function Explorer:CreateChildNode(ParentNode, Object)
+function Explorer:GetNextChildLayoutOrder(ParentNode)
+    local Highest = 0
+
+    if ParentNode.Children then
+        for _, ChildNode in ParentNode.Children do
+            if ChildNode and ChildNode.NodeFrame then
+                Highest = math.max(Highest, ChildNode.NodeFrame.LayoutOrder or 0)
+            end
+        end
+    end
+
+    if ParentNode.PendingChildren then
+        for _, Pending in ParentNode.PendingChildren do
+            local Order = 0
+
+            if type(Pending) == "table" then
+                Order = Pending.Order or 0
+            end
+
+            Highest = math.max(Highest, Order)
+        end
+    end
+
+    return Highest + 1
+end
+
+function Explorer:CreateChildNode(ParentNode, Object, Order)
+    if not ParentNode or typeof(Object) ~= "Instance" then
+        return nil
+    end
+
     if self.NodesByInstance[Object] then
         return self.NodesByInstance[Object]
+    end
+
+    if Order == nil then
+        Order = self:GetNextChildLayoutOrder(ParentNode)
     end
 
     local Node = {
@@ -4426,7 +6141,7 @@ function Explorer:CreateChildNode(ParentNode, Object)
         Parent = ParentNode;
     }
 
-    local Container, RowHolder, ChildContainer = self:BuildNodeContainer(ParentNode.ChildContainer, 0)
+    local Container, RowHolder, ChildContainer = self:BuildNodeContainer(ParentNode.ChildContainer, Order)
     Node.NodeFrame = Container
     Node.ChildContainer = ChildContainer
 
@@ -4527,10 +6242,12 @@ function Explorer:ExpandNode(Node)
     end
 
     local Children = WeakGetChildren(Node.Instance)
+    SortExplorerChildren(Children)
 
     Node.PendingChildren = Node.PendingChildren or {}
     local Searching = self.SearchQuery ~= ""
-    for _, Child in Children do
+
+    for Index, Child in Children do
         if self.NodesByInstance[Child] then
             continue
         end
@@ -4541,7 +6258,10 @@ function Explorer:ExpandNode(Node)
             continue
         end
 
-        table.insert(Node.PendingChildren, Child)
+        table.insert(Node.PendingChildren, {
+            Instance = Child;
+            Order = Index;
+        })
     end
 
     if #Node.PendingChildren > 0 then
@@ -4552,6 +6272,18 @@ function Explorer:ExpandNode(Node)
     self:ScheduleNodeRealiser()
 end
 
+function Explorer:CancelPendingNodeRealiser()
+    self.NodeRealiserToken = (self.NodeRealiserToken or 0) + 1
+    self.NodeRealiserRunning = false
+    self.PendingNodesSet = {}
+
+    for _, Node in self.NodesByInstance do
+        if Node then
+            Node.PendingChildren = nil
+        end
+    end
+end
+
 function Explorer:ScheduleNodeRealiser()
     if self.NodeRealiserRunning then
         return
@@ -4560,9 +6292,12 @@ function Explorer:ScheduleNodeRealiser()
     self.NodeRealiserRunning = true
     self.PendingNodesSet = self.PendingNodesSet or {}
 
+    local RealiserToken = self.NodeRealiserToken or 0
+
     task.spawn(function()
-        while not KillScript do
-            local Budget = 8
+        while not KillScript and RealiserToken == (self.NodeRealiserToken or 0) do
+            local Budgets = self:GetSearchBudgets(self.SearchQuery)
+            local Budget = self.SearchQuery ~= "" and Budgets.RealiserBudget or 8
             local Created = 0
 
             local ScrollFrame = self.ExplorerColumn and self.ExplorerColumn.Content
@@ -4573,7 +6308,7 @@ function Explorer:ScheduleNodeRealiser()
             local ViewTop = ScrollFrame.CanvasPosition.Y
             local ViewBottom = ViewTop + ScrollFrame.AbsoluteSize.Y
             local ScrollAbsTop = ScrollFrame.AbsolutePosition.Y
-            local Overscan = 250
+            local Overscan = self.SearchQuery ~= "" and Budgets.Overscan or 250
 
             local ToProcess = {}
             for Node in self.PendingNodesSet do
@@ -4606,9 +6341,23 @@ function Explorer:ScheduleNodeRealiser()
                 end
 
                 while #Pending > 0 and Created < Budget do
-                    local Child = table.remove(Pending, 1)
+                    local PendingEntry = table.remove(Pending, 1)
+                    local Child = PendingEntry
+                    local Order = 0
+
+                    if type(PendingEntry) == "table" then
+                        Child = PendingEntry.Instance
+                        Order = PendingEntry.Order or 0
+                    end
+
                     if Child and not self.NodesByInstance[Child] then
-                        self:CreateChildNode(Node, Child)
+                        if self.SearchQuery ~= ""
+                            and not (self.MatchSet[Child] or self.SubtreeMatchSet[Child])
+                        then
+                            continue
+                        end
+
+                        self:CreateChildNode(Node, Child, Order)
 
                         if self.SearchQuery ~= "" then
                             local NewNode = self.NodesByInstance[Child]
@@ -4628,17 +6377,26 @@ function Explorer:ScheduleNodeRealiser()
             end
 
             if Created == 0 then
-                if next(self.PendingNodesSet) == nil then
-                    break
+                if self.SearchQuery ~= ""
+                    and self.SearchExpansionQueue
+                    and #self.SearchExpansionQueue > 0
+                then
+                    self:ProcessSearchExpansionQueue(self.SearchToken, 1)
                 end
 
-                task.wait(0.05)
+                break
             else
                 task.wait()
+
+                if RealiserToken ~= (self.NodeRealiserToken or 0) then
+                    break
+                end
             end
         end
 
-        self.NodeRealiserRunning = false
+        if RealiserToken == (self.NodeRealiserToken or 0) then
+            self.NodeRealiserRunning = false
+        end
     end)
 end
 
@@ -5595,39 +7353,12 @@ function Explorer:ToggleNilContainerFilter()
 end
 
 function Explorer:BuildMatchSets(Query, Token)
-    local Matches = setmetatable({}, {__mode = "k"})
-    local Subtree = setmetatable({}, {__mode = "k"})
+    local Matches = {}
+    local Subtree = {}
     local Count = 0
     local LowerQuery = Query
     local Filters = self.ActiveClassFilters
     local FilterActive = next(Filters) ~= nil
-
-    local function PropertyFiltersPass(Object)
-        local Filters = self.PropertyFilters
-        if not Filters or next(Filters) == nil then
-            return true
-        end
-
-        for Name, Entry in Filters do
-            local Good, Value = pcall(function()
-                return Object[Name]
-            end)
-
-            if not Good then
-                return false
-            end
-
-            if typeof(Value) ~= Entry.Type then
-                return false
-            end
-
-            if Value ~= Entry.Value then
-                return false
-            end
-        end
-
-        return true
-    end
 
     local NodesWalked = 0
     local function Walk(Object)
@@ -5635,7 +7366,9 @@ function Explorer:BuildMatchSets(Query, Token)
         local Good, Children = pcall(WeakGetChildren, Object)
         if Good and type(Children) == "table" then
             for Index = 1, #Children do
-                if Walk(Children[Index]) then
+                local Child = ClonerefInstance(Children[Index])
+
+                if Child and Walk(Child) then
                     HasMatchInside = true
                 end
             end
@@ -5676,33 +7409,78 @@ function Explorer:BuildMatchSets(Query, Token)
     return Matches, Subtree, Count
 end
 
+function Explorer:StartProgressiveSearch(Query)
+    self.SearchToken = (self.SearchToken or 0) + 1
+    local Token = self.SearchToken
+
+    self.MatchSet = {}
+    self.SubtreeMatchSet = {}
+    self.ForcedExpanded = {}
+
+    for _, Node in self.NodesByInstance do
+        self:ApplySearchFilterToNode(Node)
+    end
+
+    task.spawn(function()
+        self:RunProgressiveSearch(Query, Token)
+    end)
+end
+
 function Explorer:ApplySearchFilterToNode(Node)
-    if not Node
-        or not Node.Row
-    then
+    if not Node then
         return
     end
 
-    local Query = self.SearchQuery
+    local Query = self.SearchQuery or ""
+
+    if Query == "" then
+        local Visible = true
+
+        if Node.IsNilContainer then
+            Visible = not self.HideNilContainer
+        end
+
+        if Node.NodeFrame then
+            Node.NodeFrame.Visible = Visible
+        end
+
+        if Node.Row then
+            Node.Row.Visible = Visible
+
+            local Holder = Node.Row.Parent
+            if Holder then
+                Holder.Visible = Visible
+            end
+        end
+
+        if Node.ChildContainer then
+            Node.ChildContainer.Visible = Visible and Node.Expanded == true
+        end
+
+        if Node.Label and Node.Label.TextColor3 ~= Theme.Text then
+            Node.Label.TextColor3 = Theme.Text
+        end
+
+        return
+    end
+
+    if not Node.Row then
+        return
+    end
+
     local Visible
     local NewColor
 
     if Node.IsNilContainer then
-        if Query == "" then
-            Visible = not self.HideNilContainer
-            NewColor = Theme.Text
-        else
-            local IncludeNil = self.SearchIncludesNil ~= false
-            local Filtered = Node.NilFilteredItems
-            local HasResults = Filtered and #Filtered > 0
-            Visible = IncludeNil and HasResults == true
-            NewColor = Theme.Accent
-        end
-    elseif Query == "" then
-        Visible = true
-        NewColor = Theme.Text
+        local IncludeNil = self.SearchIncludesNil ~= false
+        local Filtered = Node.NilFilteredItems
+        local HasResults = Filtered and #Filtered > 0
+
+        Visible = IncludeNil and HasResults == true
+        NewColor = Theme.Accent
     else
         local Object = Node.Instance
+
         if self.MatchSet[Object] then
             Visible = true
             NewColor = Theme.Accent
@@ -5725,6 +7503,11 @@ function Explorer:ApplySearchFilterToNode(Node)
     end
 
     Node.Row.Visible = Visible
+
+    if Node.ChildContainer then
+        Node.ChildContainer.Visible = Visible and Node.Expanded == true
+    end
+
     if Node.Label and Node.Label.TextColor3 ~= NewColor then
         Node.Label.TextColor3 = NewColor
     end
@@ -5752,12 +7535,21 @@ function Explorer:EnsureNodeRealised(Object)
 
     if ParentNode.PendingChildren then
         for Index, Pending in ParentNode.PendingChildren do
-            if Pending == Object then
+            local PendingObject = Pending
+            local PendingOrder = 0
+
+            if type(Pending) == "table" then
+                PendingObject = Pending.Instance
+                PendingOrder = Pending.Order or 0
+            end
+
+            if PendingObject == Object then
                 table.remove(ParentNode.PendingChildren, Index)
-                self:CreateChildNode(ParentNode, Object)
+                self:CreateChildNode(ParentNode, Object, PendingOrder)
 
                 if #ParentNode.PendingChildren == 0 then
                     ParentNode.PendingChildren = nil
+
                     if self.PendingNodesSet then
                         self.PendingNodesSet[ParentNode] = nil
                     end
@@ -5775,7 +7567,7 @@ function Explorer:ExpandAncestorsOf(Object)
     local Chain = {}
 
     local Cursor = ClonerefInstance(Object)
-    while Cursor and Cursor.Parent ~= nil do
+    while Cursor and Cursor.Parent ~= nil and Cursor ~= game do
         table.insert(Chain, 1, Cursor)
         Cursor = ClonerefInstance(Cursor.Parent)
     end
@@ -5784,12 +7576,8 @@ function Explorer:ExpandAncestorsOf(Object)
         return false
     end
 
-    if self.NodesByInstance[Chain[#Chain]] then
-        return false
-    end
-
-    local PreviousNode
-    local CreatedAny = false
+    local PreviousNode = nil
+    local DidWork = false
 
     for Index, Ancestor in Chain do
         local IsLeaf = Index == #Chain
@@ -5799,60 +7587,313 @@ function Explorer:ExpandAncestorsOf(Object)
             if not PreviousNode.Expanded then
                 self.ForcedExpanded[PreviousNode.Instance] = true
                 self:ExpandNode(PreviousNode)
+                DidWork = true
             end
+
+            local PendingOrder = 0
 
             if PreviousNode.PendingChildren then
                 for I, Pending in PreviousNode.PendingChildren do
-                    if Pending == Ancestor then
-                        table.remove(PreviousNode.PendingChildren, I)
+                    local PendingObject = Pending
+                    local Order = 0
 
+                    if type(Pending) == "table" then
+                        PendingObject = Pending.Instance
+                        Order = Pending.Order or 0
+                    end
+
+                    if PendingObject == Ancestor then
+                        PendingOrder = Order
+                        table.remove(PreviousNode.PendingChildren, I)
                         break
                     end
                 end
 
                 if #PreviousNode.PendingChildren == 0 then
                     PreviousNode.PendingChildren = nil
+
                     if self.PendingNodesSet then
                         self.PendingNodesSet[PreviousNode] = nil
                     end
                 end
             end
 
-            Node = self:CreateChildNode(PreviousNode, Ancestor)
-            CreatedAny = true
+            Node = self:CreateChildNode(PreviousNode, Ancestor, PendingOrder)
+            DidWork = true
         end
 
         if not Node then
-            return CreatedAny
+            return DidWork
         end
 
         if not IsLeaf and not Node.Expanded then
             self.ForcedExpanded[Ancestor] = true
             self:ExpandNode(Node)
+            DidWork = true
         end
 
         PreviousNode = Node
     end
 
-    return CreatedAny
+    return DidWork
+end
+
+function Explorer:ClearSearchVisualState()
+    self.SearchQuery = ""
+    self.MatchSet = {}
+    self.SubtreeMatchSet = {}
+
+    self.SearchExpansionQueue = {}
+    self.SearchExpansionQueued = {}
+    self._SearchExpansionQueueIndex = 1
+
+    self.SearchToken = (self.SearchToken or 0) + 1
+    self.NodeRealiserToken = (self.NodeRealiserToken or 0) + 1
+    self.NodeRealiserRunning = false
+
+    self._RefreshDebounceToken = (self._RefreshDebounceToken or 0) + 1
+    self._SearchTextToken = (self._SearchTextToken or 0) + 1
+    self._LastAppliedSearchQuery = ""
+
+    for _, Node in self.NodesByInstance do
+        if Node.NodeFrame then
+            Node.NodeFrame.Visible = true
+        end
+
+        if Node.Row then
+            Node.Row.Visible = true
+        end
+
+        if Node.ChildContainer then
+            Node.ChildContainer.Visible = Node.Expanded == true
+        end
+    end
+
+    for _, Root in self.RootNodes or {} do
+        if Root.NodeFrame then
+            Root.NodeFrame.Visible = true
+        end
+
+        if Root.Row then
+            Root.Row.Visible = true
+        end
+
+        if Root.ChildContainer then
+            Root.ChildContainer.Visible = Root.Expanded == true
+        end
+    end
+end
+
+function Explorer:ClearSearchExpansionState()
+    local ToCollapse = {}
+
+    for Object in self.ForcedExpanded or {} do
+        local Node = self.NodesByInstance[Object]
+        if Node and Node.Expanded then
+            table.insert(ToCollapse, Node)
+        end
+    end
+
+    self.ForcedExpanded = {}
+
+    table.sort(ToCollapse, function(A, B)
+        return (A.Depth or 0) > (B.Depth or 0)
+    end)
+
+    for _, Node in ToCollapse do
+        if Node and Node.Row and Node.Expanded then
+            self:CollapseNode(Node)
+        end
+    end
+end
+
+function Explorer:QueueSearchExpansion(Object)
+    if not Object then
+        return
+    end
+
+    self.SearchExpansionQueue = self.SearchExpansionQueue or {}
+    self.SearchExpansionQueued = self.SearchExpansionQueued or {}
+
+    if self.SearchExpansionQueued[Object] then
+        return
+    end
+
+    local Budgets = self:GetSearchBudgets(self.SearchQuery)
+    local MaxQueued = Budgets.MaxQueuedMatches or 300
+
+    if #self.SearchExpansionQueue >= MaxQueued then
+        return
+    end
+
+    self.SearchExpansionQueued[Object] = true
+    table.insert(self.SearchExpansionQueue, Object)
+end
+
+function Explorer:IsNodeNearExplorerViewport(Node, Overscan)
+    if not Node or not Node.NodeFrame or not Node.NodeFrame.Parent then
+        return false
+    end
+
+    local ScrollFrame = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not ScrollFrame then
+        return true
+    end
+
+    Overscan = Overscan or 300
+
+    local ViewTop = ScrollFrame.AbsolutePosition.Y
+    local ViewBottom = ViewTop + ScrollFrame.AbsoluteSize.Y
+
+    local NodeTop = Node.NodeFrame.AbsolutePosition.Y
+    local NodeBottom = NodeTop + Node.NodeFrame.AbsoluteSize.Y
+
+    return NodeBottom >= ViewTop - Overscan and NodeTop <= ViewBottom + Overscan
+end
+
+function Explorer:GetBestExistingAncestorNode(Object)
+    local BestNode = nil
+    local Cursor = ClonerefInstance(Object)
+
+    while Cursor and Cursor ~= game do
+        local Node = self.NodesByInstance[Cursor]
+        if Node then
+            BestNode = Node
+            break
+        end
+
+        Cursor = ClonerefInstance(Cursor.Parent)
+    end
+
+    return BestNode
+end
+
+function Explorer:ProcessSearchExpansionQueue(Token, Budget)
+    if Token ~= self.SearchToken or KillScript then
+        return
+    end
+
+    local Queue = self.SearchExpansionQueue
+    if not Queue or #Queue == 0 then
+        return
+    end
+
+    Budget = Budget or 2
+
+    local DidExpand = false
+    local Processed = 0
+    local Checked = 0
+    local MaxChecks = math.max(20, Budget * 20)
+
+    local Index = self._SearchExpansionQueueIndex or 1
+    if Index > #Queue then
+        Index = 1
+    end
+
+    while #Queue > 0 and Processed < Budget and Checked < MaxChecks do
+        if Token ~= self.SearchToken or KillScript then
+            return
+        end
+
+        if Index > #Queue then
+            Index = 1
+        end
+
+        local Object = Queue[Index]
+        Checked += 1
+
+        if not Object
+            or not self.MatchSet
+            or not self.MatchSet[Object]
+        then
+            if Object and self.SearchExpansionQueued then
+                self.SearchExpansionQueued[Object] = nil
+            end
+
+            table.remove(Queue, Index)
+        else
+            local AnchorNode = self:GetBestExistingAncestorNode(Object)
+
+            if AnchorNode and self:IsNodeNearExplorerViewport(AnchorNode, 350) then
+                self:ExpandAncestorsOf(Object)
+                DidExpand = true
+
+                if self.SearchExpansionQueued then
+                    self.SearchExpansionQueued[Object] = nil
+                end
+
+                table.remove(Queue, Index)
+                Processed += 1
+            else
+                Index += 1
+            end
+        end
+    end
+
+    self._SearchExpansionQueueIndex = Index
+
+    if DidExpand then
+        self:ScheduleNodeRealiser()
+    end
+end
+
+function Explorer:GetSearchBudgets(Query)
+    local Length = #(Query or "")
+
+    if Length <= 1 then
+        return {
+            ProcessBatchSize = 50;
+            VisualFlushDelay = 0.35;
+            QueueBudget = 1;
+            RealiserBudget = 1;
+            Overscan = 10;
+            MaxQueuedMatches = 60;
+        }
+    elseif Length == 2 then
+        return {
+            ProcessBatchSize = 80;
+            VisualFlushDelay = 0.3;
+            QueueBudget = 1;
+            RealiserBudget = 1;
+            Overscan = 20;
+            MaxQueuedMatches = 120;
+        }
+    elseif Length == 3 then
+        return {
+            ProcessBatchSize = 150;
+            VisualFlushDelay = 0.22;
+            QueueBudget = 2;
+            RealiserBudget = 2;
+            Overscan = 45;
+            MaxQueuedMatches = 300;
+        }
+    else
+        return {
+            ProcessBatchSize = 300;
+            VisualFlushDelay = 0.15;
+            QueueBudget = 4;
+            RealiserBudget = 3;
+            Overscan = 80;
+            MaxQueuedMatches = 800;
+        }
+    end
 end
 
 function Explorer:RefreshAllSearchFilters()
     local Query = self.SearchQuery
-    self.SearchToken = (self.SearchToken or 0) + 1
-    local Token = self.SearchToken
 
-    if Query == "" then
-        self.MatchSet = setmetatable({}, {__mode = "k"})
-        self.SubtreeMatchSet = setmetatable({}, {__mode = "k"})
-        for Object in self.ForcedExpanded do
-            local Node = self.NodesByInstance[Object]
-            if Node and Node.Expanded then
-                self:CollapseNode(Node)
-            end
-        end
+    if Query ~= "" and #Query < 1 then
+        self.SearchToken = (self.SearchToken or 0) + 1
 
-        self.ForcedExpanded = {}
+        self:CancelPendingNodeRealiser()
+        self:ClearSearchExpansionState()
+
+        self.MatchSet = {}
+        self.SubtreeMatchSet = {}
+        self._SearchExpansionQueueIndex = 1
+        self.SearchExpansionQueue = {}
+        self.SearchExpansionQueued = {}
+
         for _, Node in self.NodesByInstance do
             self:ApplySearchFilterToNode(Node)
         end
@@ -5860,216 +7901,531 @@ function Explorer:RefreshAllSearchFilters()
         return
     end
 
-    local Result1, Result2 = self:BuildMatchSets(Query, Token)
-    if Result1 == nil then
+    self.SearchToken = (self.SearchToken or 0) + 1
+    local Token = self.SearchToken
+
+    self:CancelPendingNodeRealiser()
+    self:ClearSearchExpansionState()
+
+    if Query == "" then
+        self.MatchSet = {}
+        self.SubtreeMatchSet = {}
+
+        for _, Node in self.NodesByInstance do
+            self:ApplySearchFilterToNode(Node)
+        end
+
         return
     end
 
-    if Token ~= self.SearchToken then
-        return
-    end
-
-    self.MatchSet = Result1
-    self.SubtreeMatchSet = Result2
-
-    local OrderedMatches = {}
-    for Object in Result1 do
-        table.insert(OrderedMatches, Object)
-    end
-
-    local SortKey = {}
-    for _, Object in OrderedMatches do
-        local Cursor = ClonerefInstance(Object)
-        local Depth = 0
-        local Last = Cursor
-        while Cursor and Cursor.Parent ~= nil do
-            Last = Cursor
-            Cursor = ClonerefInstance(Cursor.Parent)
-            Depth += 1
-        end
-
-        local Name = Last and Last.Name or ""
-        SortKey[Object] = {
-            Rank = PinnedRank[Name] or (#PinnedServices + 1);
-            RootName = Name;
-            Depth = Depth;
-        }
-    end
-
-    table.sort(OrderedMatches, function(Left, Right)
-        local L = SortKey[Left]
-        local R = SortKey[Right]
-        if L.Rank ~= R.Rank then
-            return L.Rank < R.Rank
-        end
-        if L.RootName ~= R.RootName then
-            return L.RootName < R.RootName
-        end
-        return L.Depth < R.Depth
-    end)
+    self.MatchSet = {}
+    self.SubtreeMatchSet = {}
+    self.ForcedExpanded = {}
+    self.SearchExpansionQueue = {}
+    self.SearchExpansionQueued = {}
 
     for _, Node in self.NodesByInstance do
         self:ApplySearchFilterToNode(Node)
     end
 
-    local Expanded = 0
-    local Cap = 1500
-    local FastBatch = 40 
-    local SinceYield = 0
-    local YieldEvery = 16
+    task.spawn(function()
+        self:RunProgressiveSearch(Query, Token)
+    end)
+end
 
-    for _, Object in OrderedMatches do
-        if Token ~= self.SearchToken then
+function Explorer:RunProgressiveSearch(Query, Token)
+    local LowerQuery = Query:lower()
+    local Filters = self.ActiveClassFilters or {}
+    local FilterActive = next(Filters) ~= nil
+
+    local Queue = {}
+    local QueueRead = 1
+    local QueueWrite = 0
+
+    local function PushQueue(Object)
+        if not Object then
             return
         end
 
-        if Expanded >= Cap then
-            break
+        QueueWrite += 1
+        Queue[QueueWrite] = Object
+    end
+
+    local Root = ClonerefInstance(game)
+
+    local Good, Children = pcall(WeakGetChildren, Root)
+    if Good and type(Children) == "table" then
+        for _, Child in Children do
+            PushQueue(ClonerefInstance(Child))
+        end
+    end
+
+    local Budgets = self:GetSearchBudgets(Query)
+    local ProcessBatchSize = Budgets.ProcessBatchSize
+    local VisualFlushDelay = Budgets.VisualFlushDelay
+    local MaxQueuedMatches = Budgets.MaxQueuedMatches
+    local QueueBudget = Budgets.QueueBudget
+
+    local Processed = 0
+    local MatchesFound = 0
+    local LastVisualFlush = os.clock()
+
+    local function MarkAncestors(Object)
+        local Cursor = ClonerefInstance(Object)
+
+        while Cursor and Cursor ~= game do
+            self.SubtreeMatchSet[Cursor] = true
+            Cursor = ClonerefInstance(Cursor.Parent)
+        end
+    end
+
+    local function PassesClassFilter(Object)
+        if not FilterActive then
+            return true
         end
 
-        if self:ExpandAncestorsOf(Object) then
-            Expanded += 1
+        local GoodClass, ClassName = pcall(function()
+            return Object.ClassName
+        end)
 
-            if Expanded > FastBatch then
-                SinceYield += 1
-                if SinceYield >= YieldEvery then
-                    SinceYield = 0
-                    task.wait()
+        return GoodClass and Filters[ClassName] == true
+    end
 
-                    if Token ~= self.SearchToken then
-                        return
-                    end
+    local function AddChildren(Object)
+        local GoodChildren, Children = pcall(WeakGetChildren, Object)
+        if not GoodChildren or type(Children) ~= "table" then
+            return
+        end
+
+        for _, Child in Children do
+            PushQueue(ClonerefInstance(Child))
+        end
+    end
+
+    while QueueRead <= QueueWrite do
+        if Token ~= self.SearchToken or KillScript then
+            return
+        end
+
+        local Object = Queue[QueueRead]
+        Queue[QueueRead] = nil
+        QueueRead += 1
+
+        if Object and Object ~= game then
+            AddChildren(Object)
+
+            local GoodName, Name = pcall(function()
+                return Object.Name
+            end)
+
+            if GoodName
+                and type(Name) == "string"
+                and Name:lower():find(LowerQuery, 1, true)
+                and PassesClassFilter(Object)
+            then
+                self.MatchSet[Object] = true
+                MarkAncestors(Object)
+
+                MatchesFound += 1
+
+                if MatchesFound <= MaxQueuedMatches then
+                    self:QueueSearchExpansion(Object)
+                end
+
+                if MatchesFound <= 12 then
+                    self:ProcessSearchExpansionQueue(Token, QueueBudget)
                 end
             end
         end
+
+        Processed += 1
+
+        if Processed % ProcessBatchSize == 0 then
+            for _, Node in self.NodesByInstance do
+                self:ApplySearchFilterToNode(Node)
+            end
+
+            self:ProcessSearchExpansionQueue(Token, QueueBudget)
+            self:ScheduleNodeRealiser()
+
+            task.wait()
+
+            if Token ~= self.SearchToken or KillScript then
+                return
+            end
+        elseif os.clock() - LastVisualFlush > VisualFlushDelay then
+            LastVisualFlush = os.clock()
+
+            for _, Node in self.NodesByInstance do
+                self:ApplySearchFilterToNode(Node)
+            end
+
+            self:ProcessSearchExpansionQueue(Token, QueueBudget)
+            self:ScheduleNodeRealiser()
+        end
+    end
+
+    if Token ~= self.SearchToken or KillScript then
+        return
     end
 
     for _, Node in self.NodesByInstance do
         self:ApplySearchFilterToNode(Node)
     end
 
-    if self.NilContainerNode then
-        local IncludeNil = self.SearchIncludesNil ~= false
-        local Placeholder = self.NilContainerPlaceholder
+    self:ProcessSearchExpansionQueue(Token, QueueBudget)
+    self:ScheduleNodeRealiser()
+end
 
-        if self.SearchQuery ~= "" and IncludeNil and Placeholder then
-            self.SubtreeMatchSet[Placeholder] = true
+function Explorer:CollapseAllExceptJumpPath(Target)
+    if typeof(Target) ~= "Instance" then
+        return
+    end
+
+    local PathSet = setmetatable({}, {__mode = "k"})
+    local ExpandSet = setmetatable({}, {__mode = "k"})
+
+    local Cursor = ClonerefInstance(Target)
+
+    while Cursor and Cursor ~= game do
+        PathSet[Cursor] = true
+
+        local Parent = ClonerefInstance(Cursor.Parent)
+        if Parent and Parent ~= game then
+            ExpandSet[Parent] = true
         end
 
-        if self.SearchQuery ~= "" and not IncludeNil then
-            if self.NilContainerNode.Expanded then
-                self:CollapseNode(self.NilContainerNode)
-            end
-            if self.NilContainerNode.NodeFrame then
-                self.NilContainerNode.NodeFrame.Visible = false
-            end
-        else
-            if self.SearchQuery ~= "" and IncludeNil and not self.NilContainerNode.Expanded then
-                self:ExpandNode(self.NilContainerNode)
-            end
+        Cursor = Parent
+    end
 
-            if self.NilContainerNode.Expanded and IncludeNil then
-                self:RefreshNilVirtualList()
+    for _, Node in self.NodesByInstance do
+        if not Node or not Node.Instance then
+            continue
+        end
+
+        local Object = Node.Instance
+        local ShouldExpand = ExpandSet[Object] == true
+
+        if Node.IsNilContainer then
+            ShouldExpand = false
+        end
+
+        Node.Expanded = ShouldExpand
+
+        if self.ExpandedInstances then
+            if ShouldExpand then
+                self.ExpandedInstances[Object] = true
             else
-                local _, Total = self:CollectNilInstances("", self.NilFilterClass)
-                if self.NilContainerNode.Label and self.NilContainerNode.Label.Parent then
-                    self.NilContainerNode.Label.Text = `Nil Instances ({Total})`
-                end
+                self.ExpandedInstances[Object] = nil
             end
+        end
 
-            if self.NilContainerNode.NodeFrame then
-                if self.SearchQuery ~= "" then
-                    local Filtered = self.NilContainerNode.NilFilteredItems
-                    local HasResults = Filtered and #Filtered > 0
-                    self.NilContainerNode.NodeFrame.Visible = HasResults == true
-                else
-                    self.NilContainerNode.NodeFrame.Visible = not self.HideNilContainer
-                end
+        if self.ForcedExpanded then
+            if ShouldExpand then
+                self.ForcedExpanded[Object] = true
+            else
+                self.ForcedExpanded[Object] = nil
             end
+        end
+
+        if Node.NodeFrame then
+            Node.NodeFrame.Visible = true
+        end
+
+        if Node.Row then
+            Node.Row.Visible = true
+
+            local Holder = Node.Row.Parent
+            if Holder then
+                Holder.Visible = true
+            end
+        end
+
+        if Node.ChildContainer then
+            Node.ChildContainer.Visible = ShouldExpand
+        end
+
+        self:UpdateArrow(Node)
+    end
+end
+
+function Explorer:ClearSearchStateWithoutRebuild()
+    self.SearchQuery = ""
+
+    self.MatchSet = {}
+    self.SubtreeMatchSet = {}
+
+    self.SearchExpansionQueue = {}
+    self.SearchExpansionQueued = {}
+    self._SearchExpansionQueueIndex = 1
+
+    self.SearchToken = (self.SearchToken or 0) + 1
+    self.NodeRealiserToken = (self.NodeRealiserToken or 0) + 1
+    self.NodeRealiserRunning = false
+
+    self._RefreshDebounceToken = (self._RefreshDebounceToken or 0) + 1
+    self._SearchTextToken = (self._SearchTextToken or 0) + 1
+    self._LastAppliedSearchQuery = ""
+
+    for _, Node in self.NodesByInstance do
+        self:ApplySearchFilterToNode(Node)
+
+        if Node.NodeFrame then
+            Node.NodeFrame.Visible = true
+        end
+
+        if Node.Row then
+            Node.Row.Visible = true
+
+            local Holder = Node.Row.Parent
+            if Holder then
+                Holder.Visible = true
+            end
+        end
+
+        if Node.ChildContainer then
+            Node.ChildContainer.Visible = Node.Expanded == true
+        end
+
+        if Node.Label then
+            Node.Label.TextColor3 = Theme.Text
+        end
+    end
+
+    for _, Root in self.RootNodes or {} do
+        if Root.NodeFrame then
+            Root.NodeFrame.Visible = true
+        end
+
+        if Root.Row then
+            Root.Row.Visible = true
+
+            local Holder = Root.Row.Parent
+            if Holder then
+                Holder.Visible = true
+            end
+        end
+
+        if Root.ChildContainer then
+            Root.ChildContainer.Visible = Root.Expanded == true
+        end
+
+        if Root.Label then
+            Root.Label.TextColor3 = Theme.Text
         end
     end
 end
 
 function Explorer:ClearSearchAndJumpTo()
     local Target = self.SelectedInstance
-    if not Target then
+    if typeof(Target) ~= "Instance" then
         return
     end
 
-    self.SearchQuery = ""
+    self._SearchTextToken = (self._SearchTextToken or 0) + 1
+    self._SuppressSearchBoxChanged = true
+
     if self.SearchBox then
         self.SearchBox.Text = ""
     end
-    self:RefreshAllSearchFilters()
 
-    local Chain = {}
-    local Cursor = Target
-    while Cursor and Cursor ~= game do
-        table.insert(Chain, 1, Cursor)
-        Cursor = Cursor.Parent
-    end
+    self._SuppressSearchBoxChanged = false
+    self._SearchTextToken += 1
+    self._LastAppliedSearchQuery = ""
 
-    for _, Ancestor in Chain do
-        local Node = self.NodesByInstance[Ancestor]
-
-        if not Node then
-            local Parent = Ancestor.Parent
-            local ParentNode = Parent and self.NodesByInstance[Parent]
-            if not ParentNode then
-                break
-            end
-
-            if not ParentNode.Expanded then
-                self:ExpandNode(ParentNode)
-            end
-
-            if ParentNode.PendingChildren then
-                for Index, Pending in ParentNode.PendingChildren do
-                    if Pending == Ancestor then
-                        table.remove(ParentNode.PendingChildren, Index)
-                        self:CreateChildNode(ParentNode, Ancestor)
-
-                        break
-                    end
-                end
-
-                if ParentNode.PendingChildren and #ParentNode.PendingChildren == 0 then
-                    ParentNode.PendingChildren = nil
-                    if self.PendingNodesSet then
-                        self.PendingNodesSet[ParentNode] = nil
-                    end
-                end
-            end
-
-            Node = self.NodesByInstance[Ancestor]
-        end
-
-        if Node and Ancestor ~= Target and not Node.Expanded then
-            self:ExpandNode(Node)
-        end
-    end
-
-    self:SetSelection({Target})
-
-    local ScrollFrame = self.ExplorerColumn and self.ExplorerColumn.Content
-    if not ScrollFrame or not ScrollFrame:IsA("ScrollingFrame") then
-        return
-    end
+    self:ClearSearchStateWithoutRebuild()
 
     task.defer(function()
         if KillScript then
             return
         end
 
-        for _ = 1, 4 do
+        local function UnpackPending(Pending)
+            if type(Pending) == "table" then
+                return Pending.Instance, Pending.Order or 0
+            end
+
+            return Pending, 0
+        end
+
+        local function GetChildOrder(ParentObject, ChildObject)
+            local Good, Children = pcall(WeakGetChildren, ParentObject)
+            if not Good or type(Children) ~= "table" then
+                return 0
+            end
+
+            SortExplorerChildren(Children)
+
+            for Index, Child in Children do
+                if Child == ChildObject then
+                    return Index
+                end
+            end
+
+            return 0
+        end
+
+        local function ForceExpandNode(Node)
+            if not Node or Node.IsNilContainer then
+                return
+            end
+
+            if Node.NodeFrame then
+                Node.NodeFrame.Visible = true
+            end
+
+            if Node.Row then
+                Node.Row.Visible = true
+
+                local Holder = Node.Row.Parent
+                if Holder then
+                    Holder.Visible = true
+                end
+            end
+
+            self.ForcedExpanded[Node.Instance] = true
+
+            if not Node.Expanded then
+                self:ExpandNode(Node)
+            end
+
+            Node.Expanded = true
+
+            if Node.ChildContainer then
+                Node.ChildContainer.Visible = true
+            end
+
+            self:UpdateArrow(Node)
+        end
+
+        local function RealiseDirectChild(ParentNode, ChildObject)
+            if typeof(ChildObject) ~= "Instance" then
+                return nil
+            end
+
+            if self.NodesByInstance[ChildObject] then
+                return self.NodesByInstance[ChildObject]
+            end
+
+            ForceExpandNode(ParentNode)
+
+            local PendingOrder = nil
+
+            if ParentNode.PendingChildren then
+                for Index, Pending in ParentNode.PendingChildren do
+                    local PendingObject, Order = UnpackPending(Pending)
+
+                    if PendingObject == ChildObject then
+                        PendingOrder = Order
+                        table.remove(ParentNode.PendingChildren, Index)
+                        break
+                    end
+                end
+
+                if #ParentNode.PendingChildren == 0 then
+                    ParentNode.PendingChildren = nil
+
+                    if self.PendingNodesSet then
+                        self.PendingNodesSet[ParentNode] = nil
+                    end
+                end
+            end
+
+            if not self.NodesByInstance[ChildObject] then
+                local Order = PendingOrder or GetChildOrder(ParentNode.Instance, ChildObject)
+                return self:CreateChildNode(ParentNode, ChildObject, Order)
+            end
+
+            return self.NodesByInstance[ChildObject]
+        end
+
+        local Chain = {}
+        local Cursor = ClonerefInstance(Target)
+
+        while Cursor and Cursor ~= game do
+            table.insert(Chain, 1, Cursor)
+            Cursor = ClonerefInstance(Cursor.Parent)
+        end
+
+        if #Chain == 0 then
+            return
+        end
+
+        for Index, Ancestor in Chain do
+            local Node = self.NodesByInstance[Ancestor]
+
+            if not Node then
+                local Parent = ClonerefInstance(Ancestor.Parent)
+                local ParentNode = Parent and self.NodesByInstance[Parent]
+
+                if not ParentNode then
+                    break
+                end
+
+                Node = RealiseDirectChild(ParentNode, Ancestor)
+            end
+
+            if not Node then
+                break
+            end
+
+            if Index < #Chain then
+                ForceExpandNode(Node)
+            end
+        end
+
+        self:CollapseAllExceptJumpPath(Target)
+
+        for Index, Ancestor in Chain do
+            local Node = self.NodesByInstance[Ancestor]
+
+            if Node and Index < #Chain then
+                ForceExpandNode(Node)
+            end
+        end
+
+        self:SetSelection({Target})
+
+        local ScrollFrame = self.ExplorerColumn and self.ExplorerColumn.Content
+        if not ScrollFrame or not ScrollFrame:IsA("ScrollingFrame") then
+            return
+        end
+
+        for Attempt = 1, 12 do
             task.wait()
+
             local Node = self.NodesByInstance[Target]
+
+            if not Node then
+                for Index, Ancestor in Chain do
+                    local ExistingNode = self.NodesByInstance[Ancestor]
+
+                    if ExistingNode and Index < #Chain then
+                        ForceExpandNode(ExistingNode)
+                    elseif not ExistingNode then
+                        local Parent = ClonerefInstance(Ancestor.Parent)
+                        local ParentNode = Parent and self.NodesByInstance[Parent]
+
+                        if ParentNode then
+                            RealiseDirectChild(ParentNode, Ancestor)
+                        end
+                    end
+                end
+
+                Node = self.NodesByInstance[Target]
+            end
+
             if Node and Node.Row and Node.Row.Parent and Node.Row.AbsoluteSize.Y > 0 then
                 local RowAbsY = Node.Row.AbsolutePosition.Y
                 local FrameAbsY = ScrollFrame.AbsolutePosition.Y
                 local Offset = (RowAbsY - FrameAbsY) + ScrollFrame.CanvasPosition.Y
                 local TargetY = math.max(0, Offset - ScrollFrame.AbsoluteSize.Y / 2 + 11)
+
                 ScrollFrame.CanvasPosition = Vector2.new(0, TargetY)
+
+                if self.UpdateStickyHeader then
+                    self.UpdateStickyHeader()
+                end
 
                 return
             end
@@ -6083,33 +8439,20 @@ function Explorer:HandleSearchSubmit()
         return
     end
 
-    local function FindFirstMatch(Object)
-        local Good, Children = pcall(function()
-            return WeakGetChildren(Object)
-        end)
+    local Now = os.clock()
 
-        if not Good then
-            return nil 
-        end
-
-        for _, Child in Children do
-            if Child.Name:lower():find(Query, 1, true) then
-                return Child
-            end
-
-            local Found = FindFirstMatch(Child)
-            if Found then
-                return Found
-            end
-        end
-
-        return nil
+    if self._LastSearchSubmitQuery == Query
+        and self._LastSearchSubmitTime
+        and Now - self._LastSearchSubmitTime < 0.4
+    then
+        return
     end
 
-    local Match = FindFirstMatch(game)
-    if Match then
-        self:SetSelection({Match})
-    end
+    self._LastSearchSubmitQuery = Query
+    self._LastSearchSubmitTime = Now
+
+    self:ProcessSearchExpansionQueue(self.SearchToken, 1)
+    self:ScheduleNodeRealiser()
 end
 
 function Explorer:UpdateNodeVisual(Object)
@@ -6303,7 +8646,7 @@ function Explorer:ClearPropertiesContent()
 end
 
 function Explorer:AddPropertiesLabel(Text)
-    return VexUI:CreateInstance("TextLabel", {
+    local Label = VexUI:CreateInstance("TextLabel", {
         Size = UDim2.new(1, 0, 0, 24);
         BackgroundTransparency = 1;
         Font = Fonts.Medium;
@@ -6313,6 +8656,14 @@ function Explorer:AddPropertiesLabel(Text)
         TextXAlignment = Enum.TextXAlignment.Left;
         Parent = self.PropertiesContent;
     })
+
+    BindTheme("TextDim", function(Color)
+        if Label and Label.Parent then
+            Label.TextColor3 = Color
+        end
+    end)
+
+    return Label
 end
 
 function Explorer:ClearPropertyConnections()
@@ -6435,8 +8786,8 @@ function Explorer:CreateBooleanRow(Object, PropertyName, Value, Parent)
         TextSize = 11;
         Parent = Row;
     })
-    VexUI:AddCorner(Toggle, 4)
-    VexUI:AddStroke(Toggle, Theme.Border, 1)
+
+    VexUI:AddStroke(Toggle, "Border", 1)
 
     local function ApplyVisual(NewValue)
         Toggle.BackgroundColor3 = NewValue and Theme.Accent or Theme.ToggleOff
@@ -6459,6 +8810,72 @@ function Explorer:CreateBooleanRow(Object, PropertyName, Value, Parent)
             ApplyVisual(NewValue == true)
         end;
     }
+end
+
+function Explorer:CreateBooleanAttributeRow(Object, AttributeName, Value, Parent)
+    local Row = self:CreatePropertyRow(Parent)
+    self:CreatePropertyLabel(Row, AttributeName)
+
+    local Toggle = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(0, 56, 0, 18);
+        Position = UDim2.new(1, -64, 0.5, -9);
+        BackgroundColor3 = Value and Theme.Accent or Theme.ToggleOff;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Font = Fonts.SemiBold;
+        Text = Value and "true" or "false";
+        TextColor3 = Color3.fromRGB(255, 255, 255);
+        TextSize = 11;
+        Parent = Row;
+    })
+
+    VexUI:AddStroke(Toggle, "Border", 1)
+
+    local function ApplyVisual(NewValue)
+        local BoolValue = NewValue == true
+        Toggle.BackgroundColor3 = BoolValue and Theme.Accent or Theme.ToggleOff
+        Toggle.Text = BoolValue and "true" or "false"
+    end
+
+    Toggle.MouseButton1Click:Connect(function()
+        local Current = false
+
+        pcall(function()
+            Current = Object:GetAttribute(AttributeName) == true
+        end)
+
+        local NewValue = not Current
+
+        for _, Obj in self:GetSelectionList() do
+            pcall(function()
+                Obj:SetAttribute(AttributeName, NewValue)
+            end)
+        end
+
+        ApplyVisual(NewValue)
+    end)
+
+    self.PropertyRows[`@{AttributeName}`] = {
+        Update = function(NewValue)
+            ApplyVisual(NewValue == true)
+        end;
+    }
+
+    return Row
+end
+
+function VexUI:BindThemeColor(Object, PropertyName, ThemeKey)
+    if not Object or not PropertyName or not ThemeKey then
+        return
+    end
+
+    Object[PropertyName] = Theme[ThemeKey] or Object[PropertyName]
+
+    BindTheme(ThemeKey, function(Color)
+        if Object and Object.Parent then
+            Object[PropertyName] = Color
+        end
+    end)
 end
 
 function Explorer:CreateColorRow(Object, PropertyName, Value, Parent)
@@ -6492,8 +8909,7 @@ function Explorer:CreateColorRow(Object, PropertyName, Value, Parent)
         Text = "";
         Parent = Container;
     })
-    VexUI:AddCorner(Swatch, 4)
-    VexUI:AddStroke(Swatch, Theme.Border, 1)
+    VexUI:AddStroke(Swatch, "Border", 1)
 
     Swatch.MouseButton1Click:Connect(function()
         local Current = SafeGet(Object, PropertyName)
@@ -6527,14 +8943,13 @@ function Explorer:CreateEnumRow(Object, PropertyName, Value, Parent)
         BorderSizePixel = 0;
         AutoButtonColor = false;
         Font = Fonts.Mono;
-        Text = `{Value.Name}  ▾`;
+        Text = `{Value.Name}`;
         TextColor3 = Theme.PropEnum;
         TextSize = 11;
         TextXAlignment = Enum.TextXAlignment.Left;
         Parent = Row;
     })
-    VexUI:AddCorner(Button, 4)
-    VexUI:AddStroke(Button, Theme.Border, 1)
+    VexUI:AddStroke(Button, "Border", 1)
     VexUI:AddPadding(Button, 0, 8, 0, 8)
 
     Button.MouseButton1Click:Connect(function()
@@ -6561,7 +8976,7 @@ function Explorer:CreateEnumRow(Object, PropertyName, Value, Parent)
     self.PropertyRows[PropertyName] = {
         Update = function(NewValue)
             if typeof(NewValue) == "EnumItem" then
-                Button.Text = `{NewValue.Name}  ▾`
+                Button.Text = `{NewValue.Name}`
             end
         end;
     }
@@ -6715,8 +9130,7 @@ function Explorer:RenderTagsSection(Object, Parent, OrderStart)
             TextSize = 10;
             Parent = Row;
         })
-        VexUI:AddCorner(RemoveButton, 4)
-        VexUI:AddStroke(RemoveButton, Theme.Border, 1)
+        VexUI:AddStroke(RemoveButton, "Border", 1)
 
         RemoveButton.MouseButton1Click:Connect(function()
             pcall(function()
@@ -6797,6 +9211,7 @@ function Explorer:RenderProperties(Object)
                 BackgroundTransparency = 1;
                 Parent = self.PropertiesContent;
             })
+
             VexUI:AddListLayout(GroupHolder, 1, Enum.FillDirection.Vertical)
 
             for _, PropertyName in Buckets[Category] do
@@ -6894,12 +9309,76 @@ function Explorer:RenderProperties(Object)
                     local Value = Entry.Value
                     local ValueType = typeof(Value)
 
-                    if ValueType == "boolean" then
-                        self:CreateBooleanRow(Object, `@{Name}`, Value, AttributeHolder)
-                        local RowState = self.PropertyRows[`@{Name}`]
-                        if RowState then
-                            RowState.IsAttribute = true
+                    local StringValue = ValueType == "string" and Value:lower() or nil
+                    local IsBooleanLikeAttribute = ValueType == "boolean"
+                        or StringValue == "true"
+                        or StringValue == "false"
+
+                    local InitialBoolValue = Value == true or StringValue == "true"
+
+                    if IsBooleanLikeAttribute then
+                        local Row = self:CreatePropertyRow(AttributeHolder)
+                        self:CreatePropertyLabel(Row, Name)
+
+                        for _, Child in Row:GetChildren() do
+                            if Child:IsA("TextLabel") and Child.Text == Name then
+                                Child.TextColor3 = Theme.PropEnum
+                            end
                         end
+
+                        local Toggle = VexUI:CreateInstance("TextButton", {
+                            Size = UDim2.new(0, 56, 0, 18);
+                            Position = UDim2.new(1, -64, 0.5, -9);
+                            BackgroundColor3 = InitialBoolValue and Theme.Accent or Theme.Field;
+                            BorderSizePixel = 0;
+                            AutoButtonColor = false;
+                            Font = Fonts.SemiBold;
+                            Text = InitialBoolValue and "true" or "false";
+                            TextColor3 = Theme.Text;
+                            TextSize = 11;
+                            ZIndex = 203;
+                            Parent = Row;
+                        })
+
+                        VexUI:AddStroke(Toggle, InitialBoolValue and Theme.Accent or "Border", 1)
+
+                        local function ApplyAttributeToggleVisual(NewValue)
+                            local NewType = typeof(NewValue)
+                            local NewString = NewType == "string" and NewValue:lower() or nil
+                            local BoolValue = NewValue == true or NewString == "true"
+
+                            Toggle.BackgroundColor3 = BoolValue and Theme.Accent or Theme.Field
+                            Toggle.Text = BoolValue and "true" or "false"
+
+                            local Stroke = Toggle:FindFirstChildOfClass("UIStroke")
+                            if Stroke then
+                                Stroke.Color = BoolValue and Theme.Accent or Theme.Border
+                            end
+                        end
+
+                        Toggle.MouseButton1Click:Connect(function()
+                            local CurrentValue = Object:GetAttribute(Name)
+                            local CurrentType = typeof(CurrentValue)
+                            local CurrentString = CurrentType == "string" and CurrentValue:lower() or nil
+                            local CurrentBool = CurrentValue == true or CurrentString == "true"
+
+                            local NewValue = not CurrentBool
+
+                            for _, Obj in self:GetSelectionList() do
+                                pcall(function()
+                                    Obj:SetAttribute(Name, NewValue)
+                                end)
+                            end
+
+                            ApplyAttributeToggleVisual(NewValue)
+                        end)
+
+                        self.PropertyRows[`@{Name}`] = {
+                            Update = function(NewValue)
+                                ApplyAttributeToggleVisual(NewValue)
+                            end;
+                        }
+
                     elseif ValueType == "Color3" or ValueType == "BrickColor" then
                         self:CreateColorRow(Object, `@{Name}`, Value, AttributeHolder)
                     else
@@ -6962,8 +9441,7 @@ function Explorer:RenderProperties(Object)
                     Parent = AttributeButtonRow;
                 })
 
-                VexUI:AddCorner(Button, 4)
-                VexUI:AddStroke(Button, Theme.Border, 1)
+                VexUI:AddStroke(Button, "Border", 1)
 
                 Button.MouseButton1Click:Connect(Callback)
 
@@ -7056,8 +9534,7 @@ function Explorer:RenderProperties(Object)
                 Parent = TagButtonRow;
             })
 
-            VexUI:AddCorner(Button, 4)
-            VexUI:AddStroke(Button, Theme.Border, 1)
+            VexUI:AddStroke(Button, "Border", 1)
 
             Button.MouseButton1Click:Connect(Callback)
 
@@ -7094,54 +9571,86 @@ function Explorer:CloseModal()
     end
 end
 
-function Explorer:CreateModalWindow(Title, Width, Height)
-    self:CloseModal()
+function Explorer:CreateModalWindow(Title, Width, Height, Options)
+    Options = Options or {}
 
-    local Blocker = VexUI:CreateInstance("TextButton", {
-        Size = UDim2.fromScale(1, 1);
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0);
-        BackgroundTransparency = 0.5;
-        BorderSizePixel = 0;
-        AutoButtonColor = false;
-        Text = "";
-        Modal = true;
-        ZIndex = 200;
-        Parent = self.ScreenGui;
-    })
+    if not Options.KeepExisting then
+        self:CloseModal()
+    end
+
+    local Blocker = nil
+
+    if not Options.Floating then
+        Blocker = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.fromScale(1, 1);
+            BackgroundColor3 = Color3.fromRGB(0, 0, 0);
+            BackgroundTransparency = UITransparency.ModalOverlay;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Text = "";
+            Modal = true;
+            ZIndex = 200;
+            Parent = self.ScreenGui;
+        })
+
+        BindTransparency("ModalOverlay", function(Value)
+            if Blocker and Blocker.Parent then
+                Blocker.BackgroundTransparency = Value
+            end
+        end)
+    end
 
     local Window = VexUI:CreateInstance("Frame", {
         Size = UDim2.fromOffset(Width, Height);
         Position = UDim2.new(0.5, -Width / 2, 0.5, -Height / 2);
-        BackgroundColor3 = Theme.Window;
+        BackgroundTransparency = 1;
         BorderSizePixel = 0;
         ClipsDescendants = true;
         ZIndex = 201;
         Parent = self.ScreenGui;
     })
-    VexUI:AddCorner(Window, 8)
-    local WindowStroke = VexUI:AddStroke(Window, Theme.Border, 1)
+
+    if Options.Position then
+        Window.Position = Options.Position
+    end
+
+    local WindowStroke = VexUI:AddStroke(Window, "Border", 1)
     BindTheme("Window", function(Color) Window.BackgroundColor3 = Color end)
     BindTheme("Border", function(Color) WindowStroke.Color = Color end)
 
     local TitleBar = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 0, 32);
         BackgroundColor3 = Theme.TitleBar;
+        BackgroundTransparency = UITransparency.TitleBar;
         BorderSizePixel = 0;
         ZIndex = 202;
         Parent = Window;
     })
-    VexUI:AddCorner(TitleBar, 8)
+
+    BindTransparency("TitleBar", function(Value)
+        if TitleBar and TitleBar.Parent then
+            TitleBar.BackgroundTransparency = Value
+        end
+    end)
     BindTheme("TitleBar", function(Color) TitleBar.BackgroundColor3 = Color end)
 
-    local TitleBarCover = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 8);
-        Position = UDim2.new(0, 0, 1, -8);
-        BackgroundColor3 = Theme.TitleBar;
+    local ModalBodyBackground = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 1, -32);
+        Position = UDim2.new(0, 0, 0, 32);
+        BackgroundColor3 = Theme.Window;
+        BackgroundTransparency = UITransparency.Window;
         BorderSizePixel = 0;
-        ZIndex = 203;
-        Parent = TitleBar;
+        ZIndex = 201;
+        Parent = Window;
     })
-    BindTheme("TitleBar", function(Color) TitleBarCover.BackgroundColor3 = Color end)
+
+    BindTheme("Window", function(Color)
+        ModalBodyBackground.BackgroundColor3 = Color
+    end)
+
+    BindTransparency("Window", function(Value)
+        ModalBodyBackground.BackgroundTransparency = Value
+    end)
 
     VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 0, 1);
@@ -7152,22 +9661,9 @@ function Explorer:CreateModalWindow(Title, Width, Height)
         Parent = TitleBar;
     })
 
-    local AccentDot = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(0, 8, 0, 8);
-        Position = UDim2.new(0, 12, 0.5, -4);
-        BackgroundColor3 = Theme.Accent;
-        BorderSizePixel = 0;
-        ZIndex = 203;
-        Parent = TitleBar;
-    })
-    VexUI:AddCorner(AccentDot, 4)
-    BindTheme("Accent", function(Color)
-        AccentDot.BackgroundColor3 = Color
-    end)
-
     VexUI:CreateInstance("TextLabel", {
         Size = UDim2.new(1, -80, 1, 0);
-        Position = UDim2.new(0, 26, 0, 0);
+        Position = UDim2.new(0, 12, 0, 0);
         BackgroundTransparency = 1;
         Font = Fonts.Bold;
         Text = Title:upper();
@@ -7183,6 +9679,7 @@ function Explorer:CreateModalWindow(Title, Width, Height)
         Size = UDim2.new(0, 24, 0, 20);
         Position = UDim2.new(1, -32, 0.5, -10);
         BackgroundColor3 = Theme.Border;
+        BackgroundTransparency = 1;
         BorderSizePixel = 0;
         AutoButtonColor = false;
         Font = Fonts.Bold;
@@ -7192,11 +9689,11 @@ function Explorer:CreateModalWindow(Title, Width, Height)
         ZIndex = 203;
         Parent = TitleBar;
     })
-    VexUI:AddCorner(CloseButton, 4)
-    VexUI:AddStroke(CloseButton, Theme.Border, 1)
+    VexUI:AddStroke(CloseButton, "Border", 1)
 
+    local CloseIcon
     if CloseAssetId then
-        VexUI:CreateInstance("ImageLabel", {
+        CloseIcon = VexUI:CreateInstance("ImageLabel", {
             Size = UDim2.fromOffset(12, 12);
             Position = UDim2.new(0.5, -6, 0.5, -6);
             BackgroundTransparency = 1;
@@ -7209,8 +9706,67 @@ function Explorer:CreateModalWindow(Title, Width, Height)
     end
 
     CloseButton.MouseButton1Click:Connect(function()
-        self:CloseModal()
+        if Options.Floating then
+            Window:Destroy()
+        else
+            self:CloseModal()
+        end
     end)
+
+    local CloseHovered = false
+    local function ApplyCloseButtonVisual(UseTween)
+        local TitleTransparency = UITransparency.TitleBar or 0
+        local TargetTransparency
+
+        if CloseHovered then
+            TargetTransparency = math.clamp(TitleTransparency * 0.55, 0, 0.9)
+        else
+            TargetTransparency = math.clamp(TitleTransparency + 0.05, 0, 0.96)
+        end
+
+        local TargetBackground = CloseHovered and Theme.Selected or Theme.Border
+        local TargetColor = CloseHovered and Theme.Text or Theme.TextDim
+
+        if UseTween then
+            VexUI:Tween(CloseButton, {
+                BackgroundColor3 = TargetBackground;
+                BackgroundTransparency = TargetTransparency;
+                TextColor3 = TargetColor;
+            })
+        else
+            CloseButton.BackgroundColor3 = TargetBackground
+            CloseButton.BackgroundTransparency = TargetTransparency
+            CloseButton.TextColor3 = TargetColor
+        end
+
+        if CloseIcon then
+            if UseTween then
+                VexUI:Tween(CloseIcon, {
+                    ImageColor3 = TargetColor;
+                })
+            else
+                CloseIcon.ImageColor3 = TargetColor
+            end
+        end
+    end
+
+    BindTransparency("TitleBar", function()
+        if CloseButton and CloseButton.Parent then
+            ApplyCloseButtonVisual(false)
+        end
+    end)
+
+    CloseButton.MouseEnter:Connect(function()
+        CloseHovered = true
+        ApplyCloseButtonVisual(true)
+    end)
+
+    CloseButton.MouseLeave:Connect(function()
+        CloseHovered = false
+        ApplyCloseButtonVisual(true)
+    end)
+
+    ApplyCloseButtonVisual(false)
 
     local Body = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, -20, 1, -44);
@@ -7252,14 +9808,54 @@ function Explorer:CreateModalWindow(Title, Width, Height)
         end
     end))
 
-    self.ModalWindow = Window
-    self.ModalBlocker = Blocker
+    if not Options.Floating then
+        self.ModalWindow = Window
+        self.ModalBlocker = Blocker
+    end
 
     return Window, Body
 end
 
-function Explorer:OpenColorPicker(InitialColor, OnApply)
-    local Window, Body = self:CreateModalWindow("Color Picker", 320, 420)
+function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
+    Options = Options or {}
+
+    local InitialColor = CurrentColor or Color3.fromRGB(255, 255, 255)
+    local OnApply = Callback or function() end
+
+    local PickerWidth = 320
+    local PickerHeight = 420
+    local WindowPosition = nil
+
+    if Options.Floating and Options.AnchorWindow and Options.AnchorWindow.Parent then
+        local Camera = workspace.CurrentCamera
+        local Viewport = Camera and Camera.ViewportSize or Vector2.new(1366, 768)
+
+        local AnchorPosition = Options.AnchorWindow.AbsolutePosition
+        local AnchorSize = Options.AnchorWindow.AbsoluteSize
+
+        local X = AnchorPosition.X + AnchorSize.X + 8
+        local Y = AnchorPosition.Y
+
+        if X + PickerWidth > Viewport.X then
+            X = AnchorPosition.X - PickerWidth - 8
+        end
+
+        if Y + PickerHeight > Viewport.Y then
+            Y = math.max(0, Viewport.Y - PickerHeight)
+        end
+
+        X = math.max(0, X)
+        Y = math.max(0, Y)
+
+        WindowPosition = UDim2.fromOffset(X, Y)
+    end
+    
+    local Window, Body = self:CreateModalWindow("Color Picker", PickerWidth, PickerHeight, {
+        KeepExisting = Options.Floating == true;
+        Floating = Options.Floating == true;
+        Position = WindowPosition;
+    })
+
     VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
 
     local H, S, V = Color3.toHSV(InitialColor)
@@ -7276,8 +9872,7 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(Preview, 6)
-    VexUI:AddStroke(Preview, Theme.Border, 1)
+    VexUI:AddStroke(Preview, "Border", 1)
 
     local SVBox = VexUI:CreateInstance("ImageButton", {
         Size = UDim2.new(1, 0, 0, 140);
@@ -7289,7 +9884,6 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(SVBox, 4)
 
     local WhiteOverlay = VexUI:CreateInstance("Frame", {
         Size = UDim2.fromScale(1, 1);
@@ -7298,7 +9892,6 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
         ZIndex = 203;
         Parent = SVBox;
     })
-    VexUI:AddCorner(WhiteOverlay, 4)
     VexUI:CreateInstance("UIGradient", {
         Color = ColorSequence.new(Color3.new(1,1,1));
         Transparency = NumberSequence.new({
@@ -7315,7 +9908,6 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
         ZIndex = 204;
         Parent = SVBox;
     })
-    VexUI:AddCorner(BlackOverlay, 4)
     VexUI:CreateInstance("UIGradient", {
         Color = ColorSequence.new(Color3.new(0,0,0));
         Transparency = NumberSequence.new({
@@ -7334,7 +9926,6 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
         ZIndex = 205;
         Parent = SVBox;
     })
-    VexUI:AddCorner(SVCursor, 8)
     VexUI:AddStroke(SVCursor, Color3.new(1,1,1), 2)
 
     local HueStrip = VexUI:CreateInstance("ImageButton", {
@@ -7347,7 +9938,6 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(HueStrip, 4)
     VexUI:CreateInstance("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Color3.fromHSV(0,1, 1)),
@@ -7498,7 +10088,6 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
             Parent = Holder;
         })
 
-        VexUI:AddCorner(Tk, 3)
         local Fill = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(GetVal()/255, 0, 1, 0);
             BackgroundColor3 = ChannelColor;
@@ -7507,7 +10096,6 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
             Parent = Tk;
         })
 
-        VexUI:AddCorner(Fill, 3)
         local Hit = VexUI:CreateInstance("TextButton", {
             Size = UDim2.new(1, 0, 0, 22);
             Position = UDim2.new(0, 0, 0, 12);
@@ -7589,8 +10177,42 @@ function Explorer:OpenColorPicker(InitialColor, OnApply)
     )
 end
 
-function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSearch, ItemHeight, ItemIconFunction)
-    local Window, Body = self:CreateModalWindow(Title, 360, 440)
+function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSearch, ItemHeight, ItemIconFunction, Options)
+    Options = Options or {}
+
+    local ListWidth = Options.Width or 360
+    local ListHeight = Options.Height or 440
+    local WindowPosition = nil
+
+    if Options.Floating and Options.AnchorWindow and Options.AnchorWindow.Parent then
+        local Camera = workspace.CurrentCamera
+        local Viewport = Camera and Camera.ViewportSize or Vector2.new(1366, 768)
+
+        local AnchorPosition = Options.AnchorWindow.AbsolutePosition
+        local AnchorSize = Options.AnchorWindow.AbsoluteSize
+
+        local X = AnchorPosition.X + AnchorSize.X + 8
+        local Y = AnchorPosition.Y
+
+        if X + ListWidth > Viewport.X then
+            X = AnchorPosition.X - ListWidth - 8
+        end
+
+        if Y + ListHeight > Viewport.Y then
+            Y = math.max(0, Viewport.Y - ListHeight)
+        end
+
+        X = math.max(0, X)
+        Y = math.max(0, Y)
+
+        WindowPosition = UDim2.fromOffset(X, Y)
+    end
+
+    local Window, Body = self:CreateModalWindow(Title, ListWidth, ListHeight, {
+        KeepExisting = Options.Floating == true;
+        Floating = Options.Floating == true;
+        Position = WindowPosition;
+    })
 
     local Layout = VexUI:AddListLayout(Body, 6, Enum.FillDirection.Vertical)
     local Filter = ""
@@ -7613,9 +10235,27 @@ function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSear
             ZIndex = 202;
             Parent = Body;
         })
-        VexUI:AddCorner(SearchBox, 4)
-        VexUI:AddStroke(SearchBox, Theme.Border, 1)
+        
+        VexUI:AddStroke(SearchBox, "Border", 1)
         VexUI:AddPadding(SearchBox, 0, 8, 0, 8)
+
+        BindTheme("Field", function(Color)
+            if SearchBox and SearchBox.Parent then
+                SearchBox.BackgroundColor3 = Color
+            end
+        end)
+
+        BindTheme("Text", function(Color)
+            if SearchBox and SearchBox.Parent then
+                SearchBox.TextColor3 = Color
+            end
+        end)
+
+        BindTheme("TextFaded", function(Color)
+            if SearchBox and SearchBox.Parent then
+                SearchBox.PlaceholderColor3 = Color
+            end
+        end)
     end
 
     local Scroll = VexUI:CreateInstance("ScrollingFrame", {
@@ -7631,6 +10271,9 @@ function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSear
         ZIndex = 202;
         Parent = Body;
     })
+
+    VexUI:BindThemeColor(Scroll, "ScrollBarImageColor3", "Border")
+
     local ListLayout = VexUI:AddListLayout(Scroll, 2, Enum.FillDirection.Vertical)
 
     local ButtonHeight = ItemHeight or 24
@@ -7667,7 +10310,7 @@ function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSear
                     ZIndex = 203;
                     Parent = Scroll;
                 })
-                VexUI:AddCorner(Button, 4)
+                
                 VexUI:AddPadding(Button, Multiline and 4 or 0, 8, Multiline and 4 or 0, LeftPad)
 
                 if IconAssetName then
@@ -7695,6 +10338,14 @@ function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSear
                 end)
 
                 Button.MouseButton1Click:Connect(function()
+                    if Options.Floating then
+                        if Window and Window.Parent then
+                            Window:Destroy()
+                        end
+                    else
+                        self:CloseModal()
+                    end
+
                     OnPick(Item)
                 end)
             end
@@ -7797,11 +10448,14 @@ end
 
 function Explorer:SelectChildrenOfSelection()
     local Sources = {}
+
     if self.SelectedOrder and #self.SelectedOrder > 0 then
         for _, Item in self.SelectedOrder do
-            table.insert(Sources, Item)
+            if typeof(Item) == "Instance" then
+                table.insert(Sources, Item)
+            end
         end
-    elseif self.SelectedInstance then
+    elseif typeof(self.SelectedInstance) == "Instance" then
         table.insert(Sources, self.SelectedInstance)
     end
 
@@ -7810,7 +10464,15 @@ function Explorer:SelectChildrenOfSelection()
     end
 
     local Collected = {}
-    local Seen = {}
+    local Seen = setmetatable({}, {__mode = "k"})
+
+    local function UnpackPending(Pending)
+        if type(Pending) == "table" then
+            return Pending.Instance, Pending.Order or 0
+        end
+
+        return Pending, 0
+    end
 
     for _, Parent in Sources do
         if typeof(Parent) ~= "Instance" then
@@ -7818,19 +10480,25 @@ function Explorer:SelectChildrenOfSelection()
         end
 
         local ParentNode = self.NodesByInstance[Parent]
+
         if ParentNode then
             if not ParentNode.Expanded then
                 self:ExpandNode(ParentNode)
             end
 
             if ParentNode.PendingChildren then
-                for _, Child in {table.unpack(ParentNode.PendingChildren)} do
-                    if Child and not self.NodesByInstance[Child] then
-                        self:CreateChildNode(ParentNode, Child)
+                local PendingCopy = {table.unpack(ParentNode.PendingChildren)}
+
+                for _, Pending in PendingCopy do
+                    local Child, Order = UnpackPending(Pending)
+
+                    if typeof(Child) == "Instance" and not self.NodesByInstance[Child] then
+                        self:CreateChildNode(ParentNode, Child, Order)
                     end
                 end
 
                 ParentNode.PendingChildren = nil
+
                 if self.PendingNodesSet then
                     self.PendingNodesSet[ParentNode] = nil
                 end
@@ -7845,8 +10513,10 @@ function Explorer:SelectChildrenOfSelection()
             continue
         end
 
+        SortExplorerChildren(Children)
+
         for _, Child in Children do
-            if not Seen[Child] then
+            if typeof(Child) == "Instance" and not Seen[Child] then
                 Seen[Child] = true
                 table.insert(Collected, Child)
             end
@@ -8270,7 +10940,7 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
         return
     end
 
-    local Window, Body = self:CreateModalWindow(Title or "Attribute", 320, 220)
+    local Window, Body = self:CreateModalWindow(Title or "Attribute", 320, 175)
     VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
 
     local function MakeFieldRow(LabelText, Order)
@@ -8312,8 +10982,8 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
         ZIndex = 203;
         Parent = NameRow;
     })
-    VexUI:AddCorner(NameBox, 4)
-    VexUI:AddStroke(NameBox, Theme.Border, 1)
+    
+    VexUI:AddStroke(NameBox, "Border", 1)
     VexUI:AddPadding(NameBox, 0, 6, 0, 6)
 
     local TypeRow = MakeFieldRow("Type", 2)
@@ -8336,33 +11006,100 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
         BorderSizePixel = 0;
         AutoButtonColor = false;
         Font = Fonts.Mono;
-        Text = `{CurrentType}  ▾`;
+        Text = `{CurrentType}`;
         TextColor3 = Theme.PropEnum;
         TextSize = 12;
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 203;
         Parent = TypeRow;
     })
-    VexUI:AddCorner(TypeBtn, 4)
-    VexUI:AddStroke(TypeBtn, Theme.Border, 1)
+    
+    VexUI:AddStroke(TypeBtn, "Border", 1)
     VexUI:AddPadding(TypeBtn, 0, 8, 0, 8)
 
+    local DropdownLayer = VexUI:CreateInstance("Frame", {
+        Size = UDim2.fromScale(1, 1);
+        Position = UDim2.fromOffset(0, 0);
+        BackgroundTransparency = 1;
+        ClipsDescendants = false;
+        ZIndex = 999;
+        Parent = self.ScreenGui;
+    })
+
     local TypeDropdown = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, -56, 0, #AttributeTypes * 22);
-        Position = UDim2.new(0, 56, 1, 4);
+        Size = UDim2.fromOffset(180, #AttributeTypes * 22);
+        Position = UDim2.fromOffset(0, 0);
         BackgroundColor3 = Theme.Window;
         BorderSizePixel = 0;
         Visible = false;
-        ZIndex = 220;
-        Parent = TypeRow;
+        ClipsDescendants = true;
+        Active = true;
+        ZIndex = 1000;
+        Parent = DropdownLayer;
     })
-    VexUI:AddCorner(TypeDropdown, 4)
-    VexUI:AddStroke(TypeDropdown, Theme.Border, 1)
-    VexUI:AddListLayout(TypeDropdown, 0, Enum.FillDirection.Vertical)
 
-    for _, Type in AttributeTypes do
+    VexUI:AddStroke(TypeDropdown, "Border", 1)
+
+    VexUI:CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical;
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Padding = UDim.new(0, 0);
+        Parent = TypeDropdown;
+    })
+
+    local DropdownFollowConnection = nil
+    local PositionTypeDropdown
+
+    PositionTypeDropdown = function()
+        if not TypeBtn
+            or not TypeBtn.Parent
+            or not TypeDropdown
+            or not TypeDropdown.Parent
+            or not DropdownLayer
+            or not DropdownLayer.Parent
+        then
+            return
+        end
+
+        local ButtonPosition = TypeBtn.AbsolutePosition
+        local ButtonSize = TypeBtn.AbsoluteSize
+        local LayerPosition = DropdownLayer.AbsolutePosition
+
+        TypeDropdown.Position = UDim2.fromOffset(
+            ButtonPosition.X - LayerPosition.X,
+            ButtonPosition.Y - LayerPosition.Y + ButtonSize.Y + 2
+        )
+
+        TypeDropdown.Size = UDim2.fromOffset(
+            ButtonSize.X,
+            #AttributeTypes * 22
+        )
+    end
+
+    local function StartDropdownFollow()
+        if DropdownFollowConnection then
+            DropdownFollowConnection:Disconnect()
+            DropdownFollowConnection = nil
+        end
+
+        DropdownFollowConnection = Services.RunService.RenderStepped:Connect(function()
+            if TypeDropdown and TypeDropdown.Parent and TypeDropdown.Visible then
+                PositionTypeDropdown()
+            end
+        end)
+    end
+
+    local function StopDropdownFollow()
+        if DropdownFollowConnection then
+            DropdownFollowConnection:Disconnect()
+            DropdownFollowConnection = nil
+        end
+    end
+
+    for Index, Type in AttributeTypes do
         local Item = VexUI:CreateInstance("TextButton", {
             Size = UDim2.new(1, 0, 0, 22);
+            BackgroundColor3 = Theme.Field;
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
             AutoButtonColor = false;
@@ -8371,19 +11108,36 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
             TextColor3 = Theme.Text;
             TextSize = 11;
             TextXAlignment = Enum.TextXAlignment.Left;
-            ZIndex = 221;
+            LayoutOrder = Index;
+            ZIndex = 1001;
             Parent = TypeDropdown;
         })
-        Item.MouseEnter:Connect(function() Item.BackgroundTransparency = 0.5 end)
-        Item.MouseLeave:Connect(function() Item.BackgroundTransparency = 1 end)
+
+        Item.MouseEnter:Connect(function()
+            Item.BackgroundTransparency = 0.4
+        end)
+
+        Item.MouseLeave:Connect(function()
+            Item.BackgroundTransparency = 1
+        end)
+
         Item.MouseButton1Click:Connect(function()
             CurrentType = Type
-            TypeBtn.Text = `{Type}  ▾`
+            TypeBtn.Text = `{Type}`
             TypeDropdown.Visible = false
+            StopDropdownFollow()
         end)
     end
+
     TypeBtn.MouseButton1Click:Connect(function()
         TypeDropdown.Visible = not TypeDropdown.Visible
+
+        if TypeDropdown.Visible then
+            PositionTypeDropdown()
+            StartDropdownFollow()
+        else
+            StopDropdownFollow()
+        end
     end)
 
     local ValueRow = MakeFieldRow("Value", 3)
@@ -8403,8 +11157,8 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
         ZIndex = 203;
         Parent = ValueRow;
     })
-    VexUI:AddCorner(ValueBox, 4)
-    VexUI:AddStroke(ValueBox, Theme.Border, 1)
+    
+    VexUI:AddStroke(ValueBox, "Border", 1)
     VexUI:AddPadding(ValueBox, 0, 6, 0, 6)
 
     local BtnRow = VexUI:CreateInstance("Frame", {
@@ -8431,15 +11185,59 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
             ZIndex = 203;
             Parent = BtnRow;
         })
-        VexUI:AddCorner(B, 4)
-        VexUI:AddStroke(B, Accent and Theme.Accent or Theme.Border, 1)
+        
+        VexUI:AddStroke(B, Accent and Theme.Accent or "Border", 1)
         return B
     end
+
+    local AttributeModalClosed = false
+
+    local function CleanupAttributeDropdown()
+        if AttributeModalClosed then
+            return
+        end
+
+        AttributeModalClosed = true
+
+        StopDropdownFollow()
+
+        if TypeDropdown and TypeDropdown.Parent then
+            TypeDropdown:Destroy()
+        end
+
+        if DropdownLayer and DropdownLayer.Parent then
+            DropdownLayer:Destroy()
+        end
+    end
+
+    local function CloseAttributeModal()
+        CleanupAttributeDropdown()
+        self:CloseModal()
+    end
+
+    Window.Destroying:Connect(function()
+        CleanupAttributeDropdown()
+    end)
+
+    Window.AncestryChanged:Connect(function(_, Parent)
+        if Parent == nil then
+            CleanupAttributeDropdown()
+        end
+    end)
+
+    Window:GetPropertyChangedSignal("Visible"):Connect(function()
+        if Window.Visible == false then
+            CleanupAttributeDropdown()
+        end
+    end)
 
     local SaveBtn = MakeBtn("Save", true)
     local CancelBtn = MakeBtn("Cancel", false)
 
-    CancelBtn.MouseButton1Click:Connect(function() self:CloseModal() end)
+    CancelBtn.MouseButton1Click:Connect(function()
+        CloseAttributeModal()
+    end)
+
     SaveBtn.MouseButton1Click:Connect(function()
         local NewName = (NameBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
         if NewName == "" then
@@ -8468,7 +11266,7 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
             end)
         end
 
-        self:CloseModal()
+        CloseAttributeModal()
         if self.SelectedInstance then
             self:RenderProperties(self.SelectedInstance)
         end
@@ -8489,7 +11287,9 @@ function Explorer:OpenRemoveAttributeModal()
     end
 
     self:OpenListModal("Remove Attribute", Items,
-        function(e) return `{e.Name}  ({typeof(e.Value)})` end,
+        function(e)
+            return `{e.Name}  ({typeof(e.Value)})`
+        end,
         function(e)
             for _, Obj in self:GetSelectionList() do
                 pcall(function()
@@ -8523,7 +11323,6 @@ function Explorer:OpenEditAttributeModal()
             return `{e.Name}  ({typeof(e.Value)})`
         end,
         function(e)
-            self:CloseModal()
             self:OpenAttributeModal(`Edit Attribute {e.Name}`, e.Name, e.Value)
         end,
     true)
@@ -8535,7 +11334,7 @@ function Explorer:OpenAddTagModal()
         return
     end
 
-    local Window, Body = self:CreateModalWindow("Add Tag", 280, 130)
+    local Window, Body = self:CreateModalWindow("Add Tag", 280, 105)
     VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
 
     local Box = VexUI:CreateInstance("TextBox", {
@@ -8554,8 +11353,8 @@ function Explorer:OpenAddTagModal()
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(Box, 4)
-    VexUI:AddStroke(Box, Theme.Border, 1)
+    
+    VexUI:AddStroke(Box, "Border", 1)
     VexUI:AddPadding(Box, 0, 8, 0, 8)
 
     local BtnRow = VexUI:CreateInstance("Frame", {
@@ -8582,8 +11381,8 @@ function Explorer:OpenAddTagModal()
             ZIndex = 203;
             Parent = BtnRow;
         })
-        VexUI:AddCorner(B, 4)
-        VexUI:AddStroke(B, Accent and Theme.Accent or Theme.Border, 1)
+        
+        VexUI:AddStroke(B, Accent and Theme.Accent or "Border", 1)
         return B
     end
 
@@ -8685,7 +11484,7 @@ function Explorer:Open3DPreview(Instance)
         Parent = WindowBody;
     })
 
-    VexUI:AddCorner(ViewportContainer, 6)
+    
 
     local ViewportFrame = VexUI:CreateInstance("ViewportFrame", {
         Size = UDim2.fromScale(1, 1);
@@ -8785,7 +11584,6 @@ function Explorer:Open3DPreview(Instance)
             or Input.UserInputType == Enum.UserInputType.Touch
         then
             IsDragging = true
-            --AutoRotate = false
             LastMouseX, LastMouseY = Input.Position.X, Input.Position.Y
         end
     end)
@@ -8915,8 +11713,8 @@ function Explorer:OpenMethodCaller(Method)
             ZIndex = 203;
             Parent = Row;
         })
-        VexUI:AddCorner(Box, 4)
-        VexUI:AddStroke(Box, Theme.Border, 1)
+        
+        VexUI:AddStroke(Box, "Border", 1)
         VexUI:AddPadding(Box, 0, 8, 0, 8)
         table.insert(InputBoxes, {Box = Box; Type = SpecType})
     end
@@ -8945,6 +11743,10 @@ function Explorer:OpenMethodCaller(Method)
             end
 
             return nil
+        end
+
+        if ArgType == "BasePart" or ArgType == "Instance" then
+            return ResolveInstanceText(Text)
         end
 
         if ArgType == "Vector3" then
@@ -8987,7 +11789,7 @@ function Explorer:OpenMethodCaller(Method)
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(ResultLabel, 4)
+    
     VexUI:AddPadding(ResultLabel, 6, 8, 6, 8)
 
     local CallButton = VexUI:CreateInstance("TextButton", {
@@ -9004,7 +11806,7 @@ function Explorer:OpenMethodCaller(Method)
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(CallButton, 4)
+    
     VexUI:AddStroke(CallButton, Theme.Accent, 1)
 
     CallButton.MouseButton1Click:Connect(function()
@@ -9014,6 +11816,15 @@ function Explorer:OpenMethodCaller(Method)
         end
 
         local Good, Result = pcall(function()
+            if Method[4] == "global" then
+                local Fn = GetGlobalCallable(Method[1])
+                if not Fn then
+                    error(`Global function not available: {Method[1]}`)
+                end
+
+                return Fn(Object, table.unpack(Args, 1, #InputBoxes))
+            end
+
             return Object[Method[1]](Object, table.unpack(Args, 1, #InputBoxes))
         end)
 
@@ -9099,8 +11910,8 @@ function Explorer:OpenCallRemote()
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(Box, 4)
-    VexUI:AddStroke(Box, Theme.Border, 1)
+    
+    VexUI:AddStroke(Box, "Border", 1)
     VexUI:AddPadding(Box, 6, 8, 6, 8)
 
     local ResultLabel = VexUI:CreateInstance("TextLabel", {
@@ -9118,7 +11929,7 @@ function Explorer:OpenCallRemote()
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(ResultLabel, 4)
+    
     VexUI:AddPadding(ResultLabel, 6, 8, 6, 8)
 
     local FireButton = VexUI:CreateInstance("TextButton", {
@@ -9135,7 +11946,7 @@ function Explorer:OpenCallRemote()
         ZIndex = 202;
         Parent = Body;
     })
-    VexUI:AddCorner(FireButton, 4)
+    
     VexUI:AddStroke(FireButton, Theme.Accent, 1)
 
     FireButton.MouseButton1Click:Connect(function()
@@ -9474,13 +12285,14 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         Size = UDim2.fromOffset(720, 480);
         Position = UDim2.new(0.5, -360 + OffsetX, 0.5, -240 + OffsetY);
         BackgroundColor3 = Theme.Window;
+        BackgroundTransparency = 1;
         BorderSizePixel = 0;
         ClipsDescendants = true;
         ZIndex = 50;
         Parent = self.ScreenGui;
     })
-    VexUI:AddCorner(Window, 8)
-    local WindowStroke = VexUI:AddStroke(Window, Theme.Border, 1)
+    
+    local WindowStroke = VexUI:AddStroke(Window, "Border", 1)
     BindTheme("Window", function(Color)
         Window.BackgroundColor3 = Color
     end)
@@ -9499,21 +12311,9 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         ZIndex = 51;
         Parent = Window;
     })
-    VexUI:AddCorner(TitleBar, 8)
+    
     BindTheme("TitleBar", function(Color)
         TitleBar.BackgroundColor3 = Color
-    end)
-
-    local TitleBarCover = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 8);
-        Position = UDim2.new(0, 0, 1, -8);
-        BackgroundColor3 = Theme.TitleBar;
-        BorderSizePixel = 0;
-        ZIndex = 52;
-        Parent = TitleBar;
-    })
-    BindTheme("TitleBar", function(Color)
-        TitleBarCover.BackgroundColor3 = Color
     end)
 
     VexUI:CreateInstance("Frame", {
@@ -9525,22 +12325,9 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         Parent = TitleBar;
     })
 
-    local AccentDot = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(0, 8, 0, 8);
-        Position = UDim2.new(0, 12, 0.5, -4);
-        BackgroundColor3 = Theme.Accent;
-        BorderSizePixel = 0;
-        ZIndex = 52;
-        Parent = TitleBar;
-    })
-    VexUI:AddCorner(AccentDot, 4)
-    BindTheme("Accent", function(Color)
-        AccentDot.BackgroundColor3 = Color
-    end)
-
     VexUI:CreateInstance("TextLabel", {
         Size = UDim2.new(1, -180, 1, 0);
-        Position = UDim2.new(0, 26, 0, 0);
+        Position = UDim2.new(0, 12, 0, 0);
         BackgroundTransparency = 1;
         Font = Fonts.Bold;
         Text = `SCRIPT VIEW  -  ({ScriptObject.ClassName}) {ScriptObject.Parent} -> {ScriptObject.Name}`;
@@ -9566,8 +12353,8 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         ZIndex = 52;
         Parent = TitleBar;
     })
-    VexUI:AddCorner(CopyButton, 4)
-    VexUI:AddStroke(CopyButton, Theme.Border, 1)
+    
+    VexUI:AddStroke(CopyButton, "Border", 1)
 
     CopyButton.MouseButton1Click:Connect(function()
         local Good = pcall(setclipboard, Source)
@@ -9595,7 +12382,7 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         ZIndex = 52;
         Parent = TitleBar;
     })
-    VexUI:AddCorner(CloseButton, 4)
+    
     local CloseStroke = VexUI:AddStroke(CloseButton, Theme.Accent, 1)
 
     local CloseIcon
@@ -9641,7 +12428,7 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         ZIndex = 51;
         Parent = Window;
     })
-    VexUI:AddCorner(Body, 6)
+    
     VexUI:AddStroke(Body, Theme.BorderSoft, 1)
     BindTheme("Background", function(Color)
         Body.BackgroundColor3 = Color
@@ -9987,8 +12774,8 @@ function Explorer:OpenConsole()
             Parent = TopBar;
         })
 
-        VexUI:AddCorner(Button, 4)
-        VexUI:AddStroke(Button, Theme.Border, 1)
+        
+        VexUI:AddStroke(Button, "Border", 1)
         VexUI:AddPadding(Button, 0, 8, 0, 8)
 
         Button.MouseButton1Click:Connect(Callback)
@@ -10065,7 +12852,7 @@ function Explorer:OpenConsole()
         Parent = WindowBody;
     })
 
-    VexUI:AddCorner(LogScrollFrame, 4)
+    
     VexUI:AddPadding(LogScrollFrame, 4, 6, 4, 6)
     VexUI:AddListLayout(LogScrollFrame, 1, Enum.FillDirection.Vertical)
 
@@ -10161,8 +12948,8 @@ function Explorer:OpenConsole()
         Parent = CommandRow;
     })
 
-    VexUI:AddCorner(CommandBox, 4)
-    VexUI:AddStroke(CommandBox, Theme.Border, 1)
+    
+    VexUI:AddStroke(CommandBox, "Border", 1)
     VexUI:AddPadding(CommandBox, 0, 8, 0, 8)
 
     local RunButton = VexUI:CreateInstance("TextButton", {
@@ -10178,7 +12965,7 @@ function Explorer:OpenConsole()
         Parent = CommandRow;
     })
 
-    VexUI:AddCorner(RunButton, 4)
+    
     VexUI:AddStroke(RunButton, Theme.Accent, 1)
 
     local function FormatArgument(Value)
@@ -10295,7 +13082,7 @@ function Explorer:OpenConsole()
 
                 for Index = 2, Results.n do
                     OutputParts[#OutputParts + 1] =
-                        FormatArg(Results[Index])
+                        FormatArgument(Results[Index])
                 end
 
                 AppendLog(table.concat(OutputParts, "  "), Theme.Green)
@@ -10313,8 +13100,17 @@ function Explorer:OpenConsole()
     end)
 end
 
+function Explorer:SetThemePresetName(Name)
+    self.ThemePresetName = Name or GetDefaultPresetName()
+
+    if self.ThemePresetButton and self.ThemePresetButton.Parent then
+        self.ThemePresetButton.Text = `{self.ThemePresetName}`
+    end
+end
+
 function Explorer:OpenSettings()
     local Window, Body = self:CreateModalWindow("Settings", 460, 540)
+    self.SettingsWindow = Window
 
     local Scroll = VexUI:CreateInstance("ScrollingFrame", {
         Size = UDim2.new(1, 0, 1, 0);
@@ -10327,6 +13123,8 @@ function Explorer:OpenSettings()
         ZIndex = 202;
         Parent = Body;
     })
+
+    VexUI:BindThemeColor(Scroll, "ScrollBarImageColor3", "Border")
     VexUI:AddPadding(Scroll, 8, 16, 8, 12)
     VexUI:AddListLayout(Scroll, 6, Enum.FillDirection.Vertical)
 
@@ -10379,8 +13177,8 @@ function Explorer:OpenSettings()
             ZIndex = 203;
             Parent = Row;
         })
-        VexUI:AddCorner(Switch, 8)
-        VexUI:AddStroke(Switch, Theme.Border, 1)
+        
+        VexUI:AddStroke(Switch, "Border", 1)
 
         local Knob = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(0, 12, 0, 12);
@@ -10390,7 +13188,7 @@ function Explorer:OpenSettings()
             ZIndex = 204;
             Parent = Switch;
         })
-        VexUI:AddCorner(Knob, 6)
+        
 
         local State = InitialState
         Switch.MouseButton1Click:Connect(function()
@@ -10401,7 +13199,15 @@ function Explorer:OpenSettings()
         end)
     end
 
-    local function CreateSlider(LabelText, MinValue, MaxValue, Step, InitialValue, OrderIndex, OnChange)
+    local function CreateSlider(LabelText, MinValue, MaxValue, Step, InitialValue, OrderIndex, OnChange, FormatValueText)
+        local function FormatSliderValue(Value)
+            if FormatValueText then
+                return FormatValueText(Value)
+            end
+
+            return string.format("%.1fs", Value)
+        end
+
         local Row = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 36);
             BackgroundTransparency = 1;
@@ -10426,7 +13232,7 @@ function Explorer:OpenSettings()
             Position = UDim2.new(1, -52, 0, 0);
             BackgroundTransparency = 1;
             Font = Fonts.Mono;
-            Text = string.format("%.1fs", InitialValue);
+            Text = FormatSliderValue(InitialValue);
             TextColor3 = Theme.Accent;
             TextSize = 11;
             TextXAlignment = Enum.TextXAlignment.Right;
@@ -10442,7 +13248,7 @@ function Explorer:OpenSettings()
             ZIndex = 203;
             Parent = Row;
         })
-        VexUI:AddCorner(TrackFrame, 3)
+        
 
         local Fraction = (InitialValue - MinValue) / (MaxValue - MinValue)
         local Fill = VexUI:CreateInstance("Frame", {
@@ -10452,7 +13258,7 @@ function Explorer:OpenSettings()
             ZIndex = 204;
             Parent = TrackFrame;
         })
-        VexUI:AddCorner(Fill, 3)
+        
 
         local HitArea = VexUI:CreateInstance("TextButton", {
             Size = UDim2.new(1, 0, 1, 0);
@@ -10474,7 +13280,7 @@ function Explorer:OpenSettings()
             Snapped = math.clamp(Snapped, MinValue, MaxValue)
             local SnappedFraction = (Snapped - MinValue) / (MaxValue - MinValue)
             Fill.Size = UDim2.new(SnappedFraction, 0, 1, 0)
-            ValueLabel.Text = string.format("%.1fs", Snapped)
+            ValueLabel.Text = FormatSliderValue(Snapped)
             OnChange(Snapped)
         end
 
@@ -10519,8 +13325,8 @@ function Explorer:OpenSettings()
             ZIndex = 203;
             Parent = Row;
         })
-        VexUI:AddCorner(Swatch, 4)
-        VexUI:AddStroke(Swatch, Theme.Border, 1)
+        
+        VexUI:AddStroke(Swatch, "Border", 1)
         BindTheme(ThemeKey, function(Color)
             Swatch.BackgroundColor3 = Color
         end)
@@ -10529,7 +13335,14 @@ function Explorer:OpenSettings()
             self:OpenColorPicker(Theme[ThemeKey], function(NewColor)
                 SetThemeColor(ThemeKey, NewColor)
                 self:RefreshAllNodeVisuals()
-            end)
+
+                if self.SelectedInstance then
+                    self:RenderProperties(self.SelectedInstance)
+                end
+            end, {
+                Floating = true;
+                AnchorWindow = self.SettingsWindow;
+            })
         end)
     end
 
@@ -10560,8 +13373,8 @@ function Explorer:OpenSettings()
         ZIndex = 203;
         Parent = KeyRow;
     })
-    VexUI:AddCorner(KeyButton, 4)
-    VexUI:AddStroke(KeyButton, Theme.Border, 1)
+    
+    VexUI:AddStroke(KeyButton, "Border", 1)
 
     local Listening = false
     KeyButton.MouseButton1Click:Connect(function()
@@ -10630,16 +13443,18 @@ function Explorer:OpenSettings()
         BorderSizePixel = 0;
         AutoButtonColor = false;
         Font = Fonts.Mono;
-        Text = `{Presets[1].Name}  ▾`;
+        Text = `{self.ThemePresetName or Presets[1].Name}`;
         TextColor3 = Theme.Accent;
         TextSize = 11;
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 203;
         Parent = PresetRow;
     })
-    VexUI:AddCorner(PresetButton, 4)
-    VexUI:AddStroke(PresetButton, Theme.Border, 1)
+    
+    self.ThemePresetButton = PresetButton
+    VexUI:AddStroke(PresetButton, "Border", 1)
     VexUI:AddPadding(PresetButton, 0, 8, 0, 8)
+
     PresetButton.MouseButton1Click:Connect(function()
         self:OpenListModal("UI Presets", Presets,
             function(Preset)
@@ -10647,17 +13462,69 @@ function Explorer:OpenSettings()
             end,
             function(Preset)
                 ApplyPreset(Preset)
-                self:RefreshAllNodeVisuals()
-                PresetButton.Text = `{Preset.Name}  ▾`
                 self:CloseModal()
+                self:OpenSettings()
+
+                self.ThemePresetName = Preset.Name
+
+                if self.ThemePresetButton and self.ThemePresetButton.Parent then
+                    self.ThemePresetButton.Text = `{Preset.Name}`
+                end
+
+                PresetButton.Text = `{Preset.Name}`
+
+                self:RefreshAllNodeVisuals()
+
+                if self.SaveConfig then
+                    self:SaveConfig()
+                end
 
                 if self.SelectedInstance then
                     self:RenderProperties(self.SelectedInstance)
                 end
             end,
-            false
+            false,
+            nil,
+            nil,
+            {
+                Floating = true;
+                AnchorWindow = self.SettingsWindow;
+                Width = 320;
+                Height = 360;
+            }
         )
     end)
+
+    CreateHeader("UI Transparency", 7)
+
+    local function Percent(Value)
+        return `{math.floor(Value * 100 + 0.5)}%`
+    end
+
+    CreateSlider("Window Transparency", 0, 0.85, 0.05, UITransparency.Window, 8, function(Value)
+        SetUITransparency("Window", Value)
+        self:SaveConfig()
+    end, Percent)
+
+    CreateSlider("Title Bar Transparency", 0, 0.85, 0.05, UITransparency.TitleBar, 8.1, function(Value)
+        SetUITransparency("TitleBar", Value)
+        self:SaveConfig()
+    end, Percent)
+
+    CreateSlider("Field Transparency", 0, 0.85, 0.05, UITransparency.Field, 8.2, function(Value)
+        SetUITransparency("Field", Value)
+        self:SaveConfig()
+    end, Percent)
+
+    CreateSlider("Background Transparency", 0, 0.85, 0.05, UITransparency.Background, 8.3, function(Value)
+        SetUITransparency("Background", Value)
+        self:SaveConfig()
+    end, Percent)
+
+    CreateSlider("Modal Overlay", 0, 0.95, 0.05, UITransparency.ModalOverlay, 8.4, function(Value)
+        SetUITransparency("ModalOverlay", Value)
+        self:SaveConfig()
+    end, Percent)
 
     CreateHeader("Theme Colors", 10)
     CreateColorRow("Accent", "Accent", 11)
@@ -10754,6 +13621,7 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
     local Window = VexUI:CreateWindow({
         Parent = self.ScreenGui;
         Title = "Filters";
+        BackgroundTransparency = 1;
         Size = UDim2.fromOffset(Width, Height);
         Position = UDim2.fromOffset(AnchorX, AnchorY);
     })
@@ -10872,7 +13740,7 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             ZIndex = 152;
             Parent = Parent;
         })
-        VexUI:AddCorner(Row, 3)
+        
         VexUI:AddPadding(Row, 0, 6, 0, 6)
 
         local Check = VexUI:CreateInstance("Frame", {
@@ -10883,7 +13751,7 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             ZIndex = 153;
             Parent = Row;
         })
-        VexUI:AddCorner(Check, 2)
+        
 
         local LabelOffsetX = 18
         if IconClassName then
@@ -10980,8 +13848,8 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             ZIndex = 153;
             Parent = Inner;
         })
-        VexUI:AddCorner(ClassBox, 4)
-        VexUI:AddStroke(ClassBox, Theme.Border, 1)
+        
+        VexUI:AddStroke(ClassBox, "Border", 1)
         VexUI:AddPadding(ClassBox, 0, 6, 0, 6)
         self.FiltersClassFilterBox = ClassBox
 
@@ -11120,15 +13988,27 @@ function Explorer:CreateSearchBar()
         ClearTextOnFocus = false;
         Parent = Holder;
     })
-    VexUI:AddCorner(SearchBox, 4)
-    VexUI:AddStroke(SearchBox, Theme.Border, 1)
+    
+    VexUI:AddStroke(SearchBox, "Border", 1)
     VexUI:AddPadding(SearchBox, 0, RightPad, 0, LeftPad)
     BindTheme("Field", function(Color)
         SearchBox.BackgroundColor3 = Color
     end)
 
+    BindTheme("Text", function(Color)
+        if SearchBox and SearchBox.Parent then
+            SearchBox.TextColor3 = Color
+        end
+    end)
+
+    BindTheme("TextFaded", function(Color)
+        if SearchBox and SearchBox.Parent then
+            SearchBox.PlaceholderColor3 = Color
+        end
+    end)
+
     if SearchIconAsset then
-        VexUI:CreateInstance("ImageLabel", {
+        local SearchIcon = VexUI:CreateInstance("ImageLabel", {
             Size = UDim2.new(0, 14, 0, 14);
             Position = UDim2.new(0, 7 - LeftPad, 0.5, -7);
             BackgroundTransparency = 1;
@@ -11138,6 +14018,12 @@ function Explorer:CreateSearchBar()
             Active = false;
             Parent = SearchBox;
         })
+
+        BindTheme("TextFaded", function(Color)
+            if SearchIcon and SearchIcon.Parent then
+                SearchIcon.ImageColor3 = Color
+            end
+        end)
     end
 
     local FiltersButton = VexUI:CreateInstance("TextButton", {
@@ -11153,8 +14039,8 @@ function Explorer:CreateSearchBar()
         ZIndex = 3;
         Parent = Holder;
     })
-    VexUI:AddCorner(FiltersButton, 4)
-    VexUI:AddStroke(FiltersButton, Theme.Border, 1)
+    
+    VexUI:AddStroke(FiltersButton, "Border", 1)
     BindTheme("Border", function(Color)
         FiltersButton.BackgroundColor3 = Color
     end)
@@ -11174,22 +14060,63 @@ function Explorer:CreateSearchBar()
     self.SearchBox = SearchBox
     self.FiltersButton = FiltersButton
 
-    local PendingToken = 0
-    SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-        self.SearchQuery = SearchBox.Text:lower()
-        PendingToken += 1
-        local MyToken = PendingToken
+    self._SearchTextToken = self._SearchTextToken or 0
+    self._LastAppliedSearchQuery = self.SearchQuery or ""
 
-        task.delay(0.25, function()
-            if MyToken ~= PendingToken or KillScript then
+    local function RequestSearchRefresh(Immediate)
+        if self._SuppressSearchBoxChanged then
+            return
+        end
+
+        self._SearchTextToken += 1
+        local MyToken = self._SearchTextToken
+
+        local NewQuery = (SearchBox.Text or ""):lower()
+        self.SearchQuery = NewQuery
+
+        local function Apply()
+            if MyToken ~= self._SearchTextToken or KillScript then
                 return
             end
 
+            if self._SuppressSearchBoxChanged then
+                return
+            end
+
+            if self._LastAppliedSearchQuery == NewQuery then
+                return
+            end
+
+            self._LastAppliedSearchQuery = NewQuery
             self:RefreshAllSearchFilters()
-        end)
+        end
+
+        if Immediate then
+            Apply()
+        else
+            task.delay(0.18, Apply)
+        end
+    end
+
+    SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        RequestSearchRefresh(false)
     end)
 
     SearchBox.FocusLost:Connect(function(EnterPressed)
+        if self._SuppressSearchBoxChanged then
+            return
+        end
+
+        self._SearchTextToken += 1
+
+        local NewQuery = (SearchBox.Text or ""):lower()
+        self.SearchQuery = NewQuery
+
+        if self._LastAppliedSearchQuery ~= NewQuery then
+            self._LastAppliedSearchQuery = NewQuery
+            self:RefreshAllSearchFilters()
+        end
+
         if EnterPressed then
             self:HandleSearchSubmit()
         end
@@ -11208,6 +14135,7 @@ function Explorer:CreateSearchBar()
 
             return
         end
+
         self:OpenFiltersDropdown(FiltersButton)
     end)
 end
@@ -11233,12 +14161,29 @@ function Explorer:CreatePropertyFilterBar()
         ClearTextOnFocus = false;
         Parent = Holder;
     })
-    VexUI:AddCorner(FilterBox, 4)
-    VexUI:AddStroke(FilterBox, Theme.Border, 1)
+    
+    VexUI:AddStroke(FilterBox, "Border", 1)
     VexUI:AddPadding(FilterBox, 0, 8, 0, 8)
+
     BindTheme("Field", function(Color)
-        FilterBox.BackgroundColor3 = Color
+        if FilterBox and FilterBox.Parent then
+            FilterBox.BackgroundColor3 = Color
+        end
     end)
+
+    BindTheme("Text", function(Color)
+        if FilterBox and FilterBox.Parent then
+            FilterBox.TextColor3 = Color
+        end
+    end)
+
+    BindTheme("TextFaded", function(Color)
+        if FilterBox and FilterBox.Parent then
+            FilterBox.PlaceholderColor3 = Color
+        end
+    end)
+
+    self.PropertiesFilterBox = FilterBox
 
     FilterBox:GetPropertyChangedSignal("Text"):Connect(function()
         self.PropertyFilter = FilterBox.Text
@@ -11258,6 +14203,7 @@ function Explorer:BuildExplorerWindow()
     local Window = VexUI:CreateWindow({
         Parent = self.ScreenGui;
         Title = "Explorer";
+        BackgroundTransparency = 1;
         Brand = true;
         Size = UDim2.fromOffset(Width, Height);
         Position = UDim2.fromOffset(Viewport.X - Width, 0);
@@ -11266,15 +14212,15 @@ function Explorer:BuildExplorerWindow()
 
     Window:AddTitleButton("C", 26, false, function()
         self:ToggleConsole()
-    end)
+    end, "ConsoleIcon", nil, 16)
 
     Window:AddTitleButton("...", 26, false, function()
         self:OpenSettings()
-    end, "SettingsIcon")
+    end, "SettingsIcon", nil, 14)
 
     Window:AddTitleButton("X", 26, true, function()
         self:Kill()
-    end, "CloseIcon")
+    end, "CloseIcon", nil, 14)
 
     local ActionStrip = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, -16, 0, 26);
@@ -11301,23 +14247,49 @@ function Explorer:BuildExplorerWindow()
             Parent = ActionStrip;
         })
 
-        VexUI:AddCorner(Button, 4)
-        VexUI:AddStroke(Button, Theme.Border, 1)
+        VexUI:AddStroke(Button, "Border", 1)
         VexUI:AddPadding(Button, 0, 10, 0, 10)
-        BindTheme("Field", function(Color) Button.BackgroundColor3 = Color end)
+
+        local IsHovering = false
+
+        local function ApplyActionVisual(UseTween)
+            local Target = {
+                BackgroundColor3 = IsHovering and Theme.FieldHover or Theme.Field;
+                TextColor3 = IsHovering and Theme.Text or Theme.TextDim;
+            }
+
+            if UseTween then
+                VexUI:Tween(Button, Target)
+            else
+                Button.BackgroundColor3 = Target.BackgroundColor3
+                Button.TextColor3 = Target.TextColor3
+            end
+        end
+
+        BindTheme("Field", function()
+            ApplyActionVisual(false)
+        end)
+
+        BindTheme("FieldHover", function()
+            ApplyActionVisual(false)
+        end)
+
+        BindTheme("Text", function()
+            ApplyActionVisual(false)
+        end)
+
+        BindTheme("TextDim", function()
+            ApplyActionVisual(false)
+        end)
 
         Track(Button.MouseEnter:Connect(function()
-            VexUI:Tween(Button, {
-                BackgroundColor3 = Theme.FieldHover;
-                TextColor3 = Theme.Text;
-            })
+            IsHovering = true
+            ApplyActionVisual(true)
         end))
 
         Track(Button.MouseLeave:Connect(function()
-            VexUI:Tween(Button, {
-                BackgroundColor3 = Theme.Field;
-                TextColor3 = Theme.TextDim;
-            })
+            IsHovering = false
+            ApplyActionVisual(true)
         end))
 
         Track(Button.MouseButton1Click:Connect(Callback))
@@ -11369,6 +14341,7 @@ function Explorer:BuildExplorerWindow()
         Parent = TreeHolder;
     })
 
+    VexUI:BindThemeColor(Tree, "ScrollBarImageColor3", "Border")
     VexUI:AddPadding(Tree, 4, 8, 8, 8)
     VexUI:AddListLayout(Tree, 1, Enum.FillDirection.Vertical)
 
@@ -11376,14 +14349,19 @@ function Explorer:BuildExplorerWindow()
         Size = UDim2.new(1, -8, 0, 22);
         Position = UDim2.new(0, 4, 0, 0);
         BackgroundColor3 = Theme.Window;
+        BackgroundTransparency = UITransparency.Window;
         BorderSizePixel = 0;
         Visible = false;
         ZIndex = 10;
         Parent = TreeHolder;
     })
-    VexUI:AddCorner(StickyHeader, 4)
+
     BindTheme("Window", function(Color)
         StickyHeader.BackgroundColor3 = Color
+    end)
+
+    BindTransparency("Window", function(Value)
+        StickyHeader.BackgroundTransparency = Value
     end)
 
     local StickyDivider = VexUI:CreateInstance("Frame", {
@@ -11400,16 +14378,17 @@ function Explorer:BuildExplorerWindow()
 
     local StickyIcon = VexUI:CreateInstance("ImageLabel", {
         Size = UDim2.new(0, 16, 0, 16);
-        Position = UDim2.new(0, 6, 0.5, -8);
+        Position = UDim2.new(0, 8, 0.5, -8);
         BackgroundTransparency = 1;
         Image = "";
-        ZIndex = 11;
+        ScaleType = Enum.ScaleType.Fit;
+        ZIndex = 12;
         Parent = StickyHeader;
     })
 
     local StickyLabel = VexUI:CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -30, 1, 0);
-        Position = UDim2.new(0, 26, 0, 0);
+        Size = UDim2.new(1, -40, 1, 0);
+        Position = UDim2.new(0, 32, 0, 0);
         BackgroundTransparency = 1;
         Font = Fonts.SemiBold;
         Text = "";
@@ -11483,7 +14462,7 @@ function Explorer:BuildExplorerWindow()
             end
         end;
         AddLabel = function(_, Text)
-            return VexUI:CreateInstance("TextLabel", {
+            local Label = VexUI:CreateInstance("TextLabel", {
                 Size = UDim2.new(1, 0, 0, 22);
                 BackgroundTransparency = 1;
                 Font = Fonts.Medium;
@@ -11493,6 +14472,10 @@ function Explorer:BuildExplorerWindow()
                 TextXAlignment = Enum.TextXAlignment.Left;
                 Parent = Tree;
             })
+
+            VexUI:BindThemeColor(Label, "TextColor3", "TextDim")
+
+            return Label
         end;
     }
 
@@ -11511,10 +14494,30 @@ function Explorer:BuildExplorerWindow()
         Parent = Window.Body;
     })
 
-    VexUI:AddCorner(self.ReparentIndicator, 4)
+    VexUI:BindThemeColor(self.ReparentIndicator, "BackgroundColor3", "Accent")
 
     Track(Tree:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-        self:ScheduleNodeRealiser()
+        if self.SearchQuery ~= "" then
+            if not self._SearchScrollWorkQueued then
+                self._SearchScrollWorkQueued = true
+
+                task.delay(0.08, function()
+                    self._SearchScrollWorkQueued = false
+
+                    if KillScript then
+                        return
+                    end
+
+                    if self.SearchQuery ~= "" then
+                        self:ProcessSearchExpansionQueue(self.SearchToken, 1)
+                        self:ScheduleNodeRealiser()
+                    end
+                end)
+            end
+        else
+            self:ScheduleNodeRealiser()
+        end
+
         if self.UpdateStickyHeader then
             self.UpdateStickyHeader()
         end
@@ -11560,7 +14563,7 @@ function Explorer:SetupDragHandlers()
                 Parent = self.ScreenGui;
             })
 
-            VexUI:AddCorner(DragOperation.GhostLabel, 4)
+            
             VexUI:AddStroke(DragOperation.GhostLabel, Theme.Accent, 1)
         end
 
@@ -11675,6 +14678,7 @@ function Explorer:BuildPropertiesWindow()
     local Window = VexUI:CreateWindow({
         Parent = self.ScreenGui;
         Title = "Properties";
+        BackgroundTransparency = 1;
         Size = UDim2.fromOffset(Width, Height);
         Position = UDim2.fromOffset(Viewport.X - Width, TopY);
     })
@@ -11729,6 +14733,8 @@ function Explorer:BuildPropertiesWindow()
         ScrollingDirection = Enum.ScrollingDirection.Y;
         Parent = ContentHolder;
     })
+
+    VexUI:BindThemeColor(Content, "ScrollBarImageColor3", "Border")
     VexUI:AddPadding(Content, 4, 8, 8, 8)
     VexUI:AddListLayout(Content, 0, Enum.FillDirection.Vertical)
     self.PropertiesContent = Content
@@ -11794,8 +14800,8 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
         ZIndex = 201;
         Parent = self.ScreenGui;
     })
-    VexUI:AddCorner(Menu, 6)
-    VexUI:AddStroke(Menu, Theme.Border, 1)
+    
+    VexUI:AddStroke(Menu, "Border", 1)
     VexUI:AddPadding(Menu, 6, 6, 6, 6)
     VexUI:AddListLayout(Menu, 2, Enum.FillDirection.Vertical)
     BindTheme("Window", function(Color)
@@ -11849,7 +14855,7 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
             ZIndex = 202;
             Parent = Menu;
         })
-        VexUI:AddCorner(Item, 4)
+        
         VexUI:AddPadding(Item, 0, 10, 0, 10)
         if Disabled then
             return Item
@@ -12107,7 +15113,7 @@ function Explorer:ShowNotification(Title, Message, Variant)
         ZIndex = 300;
         Parent = self.NotificationHolder;
     })
-    VexUI:AddCorner(Card, 6)
+    
     local CardStroke = VexUI:AddStroke(Card, AccentColor, 1)
     CardStroke.Transparency = 1
     VexUI:AddPadding(Card, 9, 12, 9, 12)
@@ -12211,6 +15217,11 @@ function Explorer:BuildConfigData()
         table.insert(HiddenServiceList, HiddenService)
     end
 
+    local TransparencyData = {}
+    for Key, Value in UITransparency do
+        TransparencyData[Key] = Value
+    end
+
     return {
         Version = self.Version;
         ToggleKey = self.ToggleKey.Name;
@@ -12222,7 +15233,9 @@ function Explorer:BuildConfigData()
         HiddenServices = HiddenServiceList;
         HideNilContainer = self.HideNilContainer;
         SearchIncludesNil = self.SearchIncludesNil ~= false;
+        ThemePresetName = self.ThemePresetName or "Custom";
         Theme = ThemeData;
+        UITransparency = TransparencyData;
     }
 end
 
@@ -12289,6 +15302,24 @@ function Explorer:ApplyConfigData(Data)
             local Color = self:DeserializeColor(Encoded)
             if Color then
                 SetThemeColor(Key, Color)
+            end
+        end
+
+        InBatchSave = false
+    end
+
+    if typeof(Data.ThemePresetName) == "string" then
+        self.ThemePresetName = Data.ThemePresetName
+    else
+        self.ThemePresetName = "Custom"
+    end
+
+    if typeof(Data.UITransparency) == "table" then
+        InBatchSave = true
+
+        for Key, Value in Data.UITransparency do
+            if UITransparency[Key] ~= nil and typeof(Value) == "number" then
+                SetUITransparency(Key, Value)
             end
         end
 
@@ -12462,14 +15493,14 @@ function Explorer:SetWindowsVisible(Visible)
     end
 end
 
-function Explorer:Create()
+function ExplorerClass:Create()
     Handle(function()
         self:InitConfig()
         self.ScreenGui = VexUI:CreateScreenGui()
 
         self.NodesByInstance = setmetatable({}, {__mode = "k"})
-        self.MatchSet = setmetatable({}, {__mode = "k"})
-        self.SubtreeMatchSet = setmetatable({}, {__mode = "k"})
+        self.MatchSet = {}
+        self.SubtreeMatchSet = {}
         self.ForcedExpanded = setmetatable({}, {__mode = "k"})
         self.SelectedSet = setmetatable({}, {__mode = "k"})
 
@@ -12497,6 +15528,12 @@ end
 Explorer:Create()
 
 Track(Services.UserInputService.InputBegan:Connect(function(Input, GameProcessed)
+    local Focused = Services.UserInputService:GetFocusedTextBox()
+
+    if Focused then
+        return
+    end
+
     if Input.KeyCode == Enum.KeyCode.LeftControl
         or Input.KeyCode == Enum.KeyCode.RightControl
     then
@@ -12527,16 +15564,17 @@ Track(Services.UserInputService.InputBegan:Connect(function(Input, GameProcessed
         return
     end
 
-    local Focused = Services.UserInputService:GetFocusedTextBox()
-    if Focused then
-        return
-    end
-
     Explorer.WindowVisible = not Explorer.WindowVisible
     Explorer:SetWindowsVisible(Explorer.WindowVisible)
 end))
 
 Track(Services.UserInputService.InputEnded:Connect(function(Input)
+    local Focused = Services.UserInputService:GetFocusedTextBox()
+
+    if Focused then
+        return
+    end
+
     if Input.KeyCode == Enum.KeyCode.LeftControl
         or Input.KeyCode == Enum.KeyCode.RightControl
     then
