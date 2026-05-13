@@ -14333,7 +14333,7 @@ function Explorer:BuildExplorerWindow()
         Size = UDim2.new(1, 0, 1, 0);
         BackgroundTransparency = 1;
         BorderSizePixel = 0;
-        ScrollBarThickness = 3;
+        ScrollBarThickness = 6;
         ScrollBarImageColor3 = Theme.Border;
         CanvasSize = UDim2.new(0, 0, 0, 0);
         AutomaticCanvasSize = Enum.AutomaticSize.Y;
