@@ -14406,6 +14406,10 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
     CreateSection("Freeze Search", 2, function(Container)
         self:InitFreezeState()
 
+        if self.FreezeSearchMatchClass == nil then
+            self.FreezeSearchMatchClass = false
+        end
+
         local Inner = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 0);
             AutomaticSize = Enum.AutomaticSize.Y;
@@ -14419,7 +14423,7 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             Size = UDim2.new(1, 0, 0, 28);
             BackgroundTransparency = 1;
             Font = Fonts.Medium;
-            Text = "Freezes the explorer when a descendant whose name matches this term is added.";
+            Text = "Freezes the explorer when a descendant whose name (or ClassName) matches this term is added.";
             TextColor3 = Theme.TextFaded;
             TextSize = 10;
             TextXAlignment = Enum.TextXAlignment.Left;
@@ -14438,7 +14442,9 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             BackgroundColor3 = Theme.Field;
             BorderSizePixel = 0;
             Font = Fonts.Mono;
-            PlaceholderText = "e.g. SkibidiPartMesh";
+            PlaceholderText = self.FreezeSearchMatchClass
+                and "e.g. MeshPart"
+                or  "e.g. SkibidiPartMesh";
             PlaceholderColor3 = Theme.TextFaded;
             Text = self.FreezeSearchTerm or "";
             TextColor3 = Theme.Text;
@@ -14461,10 +14467,36 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             self:SetFreezeSearchTerm(Box.Text)
         end)
 
+        CreateToggleRow(Inner, "Match by ClassName (instead of Name)", true, 3, nil,
+            function()
+                return self.FreezeSearchMatchClass == true
+            end,
+            function()
+                self.FreezeSearchMatchClass = not self.FreezeSearchMatchClass
+
+                if self.FreezeSearchBox and self.FreezeSearchBox.Parent then
+                    self.FreezeSearchBox.PlaceholderText = self.FreezeSearchMatchClass
+                        and "e.g. MeshPart"
+                        or  "e.g. SkibidiPartMesh"
+                end
+
+                if self.FreezeSearchTerm and self.FreezeSearchTerm ~= "" then
+                    if self._StopFreezeSearchWatcher then
+                        pcall(function() self:_StopFreezeSearchWatcher() end)
+                    end
+                    if self._StartFreezeSearchWatcher then
+                        pcall(function() self:_StartFreezeSearchWatcher() end)
+                    end
+                end
+
+                pcall(function() self:SaveConfig() end)
+            end
+        )
+
         local Row = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 24);
             BackgroundTransparency = 1;
-            LayoutOrder = 3;
+            LayoutOrder = 4;
             ZIndex = 152;
             Parent = Inner;
         })
@@ -14618,6 +14650,7 @@ function Explorer:InitFreezeState()
 
     self.ExplorerFrozen = false
     self.FreezeSearchTerm = ""
+    self.FreezeSearchByClassName = false
     self.FrozenPendingAdds = setmetatable({}, {__mode = "k"})
     self.FrozenPendingRemoves = setmetatable({}, {__mode = "k"})
     self._FreezeUiRefreshers = self._FreezeUiRefreshers or {}
@@ -14720,24 +14753,36 @@ end
 function Explorer:_StartFreezeSearchWatcher()
     self:_StopFreezeSearchWatcher()
 
-    self:InitFreezeState()
-
     local Good, Conn = pcall(function()
-        return game.DescendantAdded:Connect(function(Descendant)
-            if typeof(Descendant) ~= "Instance" then return end
+        return game.DescendantAdded:Connect(function(RawDescendant)
+            if typeof(RawDescendant) ~= "Instance" then return end
             if self.ExplorerFrozen then return end
 
             local Term = self.FreezeSearchTerm
             if not Term or Term == "" then return end
 
-            local GoodName, Name = pcall(function() return Descendant.Name end)
-            if not GoodName or type(Name) ~= "string" then return end
+            local MatchByClass = self.FreezeSearchByClassName == true
 
-            if not string.find(string.lower(Name), string.lower(Term), 1, true) then
+            local TargetField
+            if MatchByClass then
+                local GoodClass, ClassName = pcall(function()
+                    return RawDescendant.ClassName
+                end)
+                if not GoodClass or type(ClassName) ~= "string" then return end
+                TargetField = ClassName
+            else
+                local GoodName, Name = pcall(function()
+                    return RawDescendant.Name
+                end)
+                if not GoodName or type(Name) ~= "string" then return end
+                TargetField = Name
+            end
+
+            if not string.find(string.lower(TargetField), string.lower(Term), 1, true) then
                 return
             end
 
-            local Cloned = ClonerefInstance(Descendant)
+            local Cloned = ClonerefInstance(RawDescendant)
 
             pcall(function()
                 self:ExpandAncestorsOf(Cloned)
@@ -14760,7 +14805,11 @@ function Explorer:_StartFreezeSearchWatcher()
                 if KillScript then return end
                 if self.ExplorerFrozen then return end
 
-                self:SetExplorerFrozen(true, `matched "{Name}"`)
+                local Reason = MatchByClass
+                    and `matched class "{TargetField}"`
+                    or  `matched "{TargetField}"`
+
+                self:SetExplorerFrozen(true, Reason)
 
                 pcall(function()
                     self:JumpToInstance(Cloned)
