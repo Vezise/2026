@@ -711,7 +711,9 @@ local AvailableAssets = {
     ColorCorrectionEffect = true; ConeHandleAdornment = true; Configuration = true;
     ConsoleIcon = true;
     CoreGui = true; CylinderHandleAdornment = true; Explosion = true; Fire = true;
-    Flag = true; FlagStand = true; Folder = true; Frame = true; Highlight = true;
+    Flag = true; FlagStand = true; Folder = true; Frame = true;
+    FreezeIcon = true;
+    Highlight = true;
     HingeConstraint = true; Humanoid = true; ImageButton = true; ImageFrame = true;
     ImageHandleAdornment = true; ImageLabel = true; InsertService = true;
     JointsService = true; Lighting = true; LineHandleAdornment = true;
@@ -963,6 +965,7 @@ local function PrefetchAssets()
         end
 
         pcall(DownloadAsset, "CloseIcon")
+        pcall(DownloadAsset, "FreezeIcon")
         pcall(DownloadAsset, "Console Icon")
         pcall(DownloadAsset, "SearchIcon")
         pcall(DownloadAsset, "SettingsIcon")
@@ -4377,6 +4380,266 @@ local Presets = {
             PropDefault = Color3.fromRGB(220, 255, 250);
         }
     };
+
+    {
+        Name = "Deep Space";
+        Colors = {
+            Background = Color3.fromRGB(6, 6, 14);
+            Window = Color3.fromRGB(11, 11, 22);
+            TitleBar = Color3.fromRGB(4, 4, 11);
+            Border = Color3.fromRGB(28, 28, 52);
+            BorderSoft = Color3.fromRGB(16, 16, 32);
+            Field = Color3.fromRGB(14, 14, 28);
+            FieldHover = Color3.fromRGB(22, 22, 42);
+            Selected = Color3.fromRGB(34, 28, 78);
+            SelectionBar = Color3.fromRGB(120, 90, 255);
+            Text = Color3.fromRGB(225, 225, 245);
+            TextDim = Color3.fromRGB(155, 155, 190);
+            TextFaded = Color3.fromRGB(95, 95, 130);
+            TextHeader = Color3.fromRGB(130, 130, 170);
+            Accent = Color3.fromRGB(120, 90, 255);
+            PropString = Color3.fromRGB(190, 150, 255);
+            PropNumber = Color3.fromRGB(140, 170, 255);
+            PropInstance = Color3.fromRGB(170, 200, 255);
+            PropEnum = Color3.fromRGB(220, 180, 255);
+            PropNil = Color3.fromRGB(95, 95, 130);
+            PropDefault = Color3.fromRGB(225, 225, 245);
+        }
+    };
+
+    {
+        Name = "Galaxy";
+        Colors = {
+            Background = Color3.fromRGB(10, 8, 30);
+            Window = Color3.fromRGB(18, 14, 46);
+            TitleBar = Color3.fromRGB(8, 6, 24);
+            Border = Color3.fromRGB(58, 42, 110);
+            BorderSoft = Color3.fromRGB(32, 24, 70);
+            Field = Color3.fromRGB(26, 20, 60);
+            FieldHover = Color3.fromRGB(40, 30, 88);
+            Selected = Color3.fromRGB(72, 38, 130);
+            SelectionBar = Color3.fromRGB(220, 130, 255);
+            Text = Color3.fromRGB(238, 230, 255);
+            TextDim = Color3.fromRGB(190, 170, 230);
+            TextFaded = Color3.fromRGB(120, 105, 165);
+            TextHeader = Color3.fromRGB(165, 140, 210);
+            Accent = Color3.fromRGB(220, 130, 255);
+            PropString = Color3.fromRGB(255, 175, 220);
+            PropNumber = Color3.fromRGB(155, 180, 255);
+            PropInstance = Color3.fromRGB(180, 220, 255);
+            PropEnum = Color3.fromRGB(255, 220, 150);
+            PropNil = Color3.fromRGB(120, 105, 165);
+            PropDefault = Color3.fromRGB(238, 230, 255);
+        }
+    };
+
+    {
+        Name = "Nebula";
+        Colors = {
+            Background = Color3.fromRGB(14, 10, 24);
+            Window = Color3.fromRGB(26, 18, 42);
+            TitleBar = Color3.fromRGB(12, 8, 22);
+            Border = Color3.fromRGB(82, 40, 95);
+            BorderSoft = Color3.fromRGB(46, 24, 56);
+            Field = Color3.fromRGB(38, 22, 50);
+            FieldHover = Color3.fromRGB(55, 32, 72);
+            Selected = Color3.fromRGB(120, 45, 110);
+            SelectionBar = Color3.fromRGB(255, 105, 200);
+            Text = Color3.fromRGB(248, 232, 255);
+            TextDim = Color3.fromRGB(200, 160, 215);
+            TextFaded = Color3.fromRGB(140, 100, 155);
+            TextHeader = Color3.fromRGB(180, 130, 200);
+            Accent = Color3.fromRGB(255, 105, 200);
+            PropString = Color3.fromRGB(255, 180, 230);
+            PropNumber = Color3.fromRGB(180, 140, 255);
+            PropInstance = Color3.fromRGB(140, 200, 255);
+            PropEnum = Color3.fromRGB(255, 200, 140);
+            PropNil = Color3.fromRGB(140, 100, 155);
+            PropDefault = Color3.fromRGB(248, 232, 255);
+        }
+    };
+
+    {
+        Name = "Pitch Black";
+        Colors = {
+            Background = Color3.fromRGB(0, 0, 0);
+            Window = Color3.fromRGB(8, 8, 8);
+            TitleBar = Color3.fromRGB(0, 0, 0);
+            Border = Color3.fromRGB(30, 30, 30);
+            BorderSoft = Color3.fromRGB(18, 18, 18);
+            Field = Color3.fromRGB(14, 14, 14);
+            FieldHover = Color3.fromRGB(24, 24, 24);
+            Selected = Color3.fromRGB(40, 40, 40);
+            SelectionBar = Color3.fromRGB(220, 220, 220);
+            Text = Color3.fromRGB(240, 240, 240);
+            TextDim = Color3.fromRGB(160, 160, 160);
+            TextFaded = Color3.fromRGB(95, 95, 95);
+            TextHeader = Color3.fromRGB(130, 130, 130);
+            Accent = Color3.fromRGB(220, 220, 220);
+            PropString = Color3.fromRGB(220, 220, 180);
+            PropNumber = Color3.fromRGB(180, 200, 240);
+            PropInstance = Color3.fromRGB(170, 220, 240);
+            PropEnum = Color3.fromRGB(200, 230, 180);
+            PropNil = Color3.fromRGB(95, 95, 95);
+            PropDefault = Color3.fromRGB(240, 240, 240);
+        }
+    };
+
+    {
+        Name = "Aurora";
+        Colors = {
+            Background = Color3.fromRGB(8, 16, 26);
+            Window = Color3.fromRGB(14, 26, 40);
+            TitleBar = Color3.fromRGB(6, 14, 24);
+            Border = Color3.fromRGB(40, 80, 90);
+            BorderSoft = Color3.fromRGB(22, 44, 56);
+            Field = Color3.fromRGB(20, 38, 52);
+            FieldHover = Color3.fromRGB(30, 56, 72);
+            Selected = Color3.fromRGB(38, 92, 110);
+            SelectionBar = Color3.fromRGB(120, 255, 200);
+            Text = Color3.fromRGB(225, 250, 240);
+            TextDim = Color3.fromRGB(150, 200, 195);
+            TextFaded = Color3.fromRGB(90, 135, 140);
+            TextHeader = Color3.fromRGB(120, 175, 175);
+            Accent = Color3.fromRGB(120, 255, 200);
+            PropString = Color3.fromRGB(180, 255, 200);
+            PropNumber = Color3.fromRGB(150, 200, 255);
+            PropInstance = Color3.fromRGB(180, 230, 255);
+            PropEnum = Color3.fromRGB(255, 220, 170);
+            PropNil = Color3.fromRGB(90, 135, 140);
+            PropDefault = Color3.fromRGB(225, 250, 240);
+        }
+    };
+
+    {
+        Name = "Lava";
+        Colors = {
+            Background = Color3.fromRGB(14, 6, 4);
+            Window = Color3.fromRGB(26, 10, 6);
+            TitleBar = Color3.fromRGB(18, 7, 4);
+            Border = Color3.fromRGB(90, 30, 12);
+            BorderSoft = Color3.fromRGB(50, 18, 10);
+            Field = Color3.fromRGB(40, 14, 8);
+            FieldHover = Color3.fromRGB(60, 22, 12);
+            Selected = Color3.fromRGB(110, 38, 16);
+            SelectionBar = Color3.fromRGB(255, 110, 30);
+            Text = Color3.fromRGB(255, 230, 210);
+            TextDim = Color3.fromRGB(220, 160, 120);
+            TextFaded = Color3.fromRGB(140, 90, 60);
+            TextHeader = Color3.fromRGB(190, 120, 80);
+            Accent = Color3.fromRGB(255, 110, 30);
+            PropString = Color3.fromRGB(255, 200, 90);
+            PropNumber = Color3.fromRGB(255, 130, 70);
+            PropInstance = Color3.fromRGB(255, 170, 110);
+            PropEnum = Color3.fromRGB(255, 220, 100);
+            PropNil = Color3.fromRGB(140, 90, 60);
+            PropDefault = Color3.fromRGB(255, 230, 210);
+        }
+    };
+
+    {
+        Name = "Cyberpunk";
+        Colors = {
+            Background = Color3.fromRGB(8, 4, 20);
+            Window = Color3.fromRGB(16, 8, 36);
+            TitleBar = Color3.fromRGB(6, 2, 16);
+            Border = Color3.fromRGB(255, 30, 130);
+            BorderSoft = Color3.fromRGB(40, 16, 70);
+            Field = Color3.fromRGB(24, 12, 50);
+            FieldHover = Color3.fromRGB(40, 20, 80);
+            Selected = Color3.fromRGB(80, 20, 90);
+            SelectionBar = Color3.fromRGB(0, 255, 240);
+            Text = Color3.fromRGB(240, 240, 255);
+            TextDim = Color3.fromRGB(200, 140, 230);
+            TextFaded = Color3.fromRGB(120, 80, 150);
+            TextHeader = Color3.fromRGB(255, 60, 180);
+            Accent = Color3.fromRGB(0, 255, 240);
+            PropString = Color3.fromRGB(255, 240, 90);
+            PropNumber = Color3.fromRGB(255, 80, 200);
+            PropInstance = Color3.fromRGB(0, 230, 255);
+            PropEnum = Color3.fromRGB(150, 255, 130);
+            PropNil = Color3.fromRGB(120, 80, 150);
+            PropDefault = Color3.fromRGB(240, 240, 255);
+        }
+    };
+
+    {
+        Name = "Carbon";
+        Colors = {
+            Background = Color3.fromRGB(18, 18, 20);
+            Window = Color3.fromRGB(26, 26, 30);
+            TitleBar = Color3.fromRGB(14, 14, 16);
+            Border = Color3.fromRGB(60, 60, 66);
+            BorderSoft = Color3.fromRGB(38, 38, 42);
+            Field = Color3.fromRGB(32, 32, 36);
+            FieldHover = Color3.fromRGB(46, 46, 52);
+            Selected = Color3.fromRGB(62, 62, 72);
+            SelectionBar = Color3.fromRGB(255, 90, 60);
+            Text = Color3.fromRGB(230, 230, 232);
+            TextDim = Color3.fromRGB(165, 165, 170);
+            TextFaded = Color3.fromRGB(110, 110, 115);
+            TextHeader = Color3.fromRGB(140, 140, 145);
+            Accent = Color3.fromRGB(255, 90, 60);
+            PropString = Color3.fromRGB(255, 180, 130);
+            PropNumber = Color3.fromRGB(170, 200, 240);
+            PropInstance = Color3.fromRGB(160, 220, 240);
+            PropEnum = Color3.fromRGB(200, 230, 160);
+            PropNil = Color3.fromRGB(110, 110, 115);
+            PropDefault = Color3.fromRGB(230, 230, 232);
+        }
+    };
+
+    {
+        Name = "Toxic";
+        Colors = {
+            Background = Color3.fromRGB(10, 14, 6);
+            Window = Color3.fromRGB(18, 24, 10);
+            TitleBar = Color3.fromRGB(8, 12, 5);
+            Border = Color3.fromRGB(70, 100, 20);
+            BorderSoft = Color3.fromRGB(36, 50, 14);
+            Field = Color3.fromRGB(28, 38, 12);
+            FieldHover = Color3.fromRGB(44, 60, 18);
+            Selected = Color3.fromRGB(70, 100, 24);
+            SelectionBar = Color3.fromRGB(190, 255, 40);
+            Text = Color3.fromRGB(235, 255, 210);
+            TextDim = Color3.fromRGB(180, 210, 130);
+            TextFaded = Color3.fromRGB(110, 140, 70);
+            TextHeader = Color3.fromRGB(150, 185, 95);
+            Accent = Color3.fromRGB(190, 255, 40);
+            PropString = Color3.fromRGB(220, 255, 110);
+            PropNumber = Color3.fromRGB(160, 220, 90);
+            PropInstance = Color3.fromRGB(180, 240, 120);
+            PropEnum = Color3.fromRGB(240, 255, 140);
+            PropNil = Color3.fromRGB(110, 140, 70);
+            PropDefault = Color3.fromRGB(235, 255, 210);
+        }
+    };
+
+    {
+        Name = "Void";
+        Colors = {
+            Background = Color3.fromRGB(4, 4, 8);
+            Window = Color3.fromRGB(10, 10, 16);
+            TitleBar = Color3.fromRGB(2, 2, 6);
+            Border = Color3.fromRGB(40, 30, 80);
+            BorderSoft = Color3.fromRGB(20, 16, 40);
+            Field = Color3.fromRGB(14, 12, 26);
+            FieldHover = Color3.fromRGB(26, 22, 50);
+            Selected = Color3.fromRGB(48, 30, 100);
+            SelectionBar = Color3.fromRGB(140, 80, 255);
+            Text = Color3.fromRGB(220, 215, 240);
+            TextDim = Color3.fromRGB(150, 140, 185);
+            TextFaded = Color3.fromRGB(90, 80, 125);
+            TextHeader = Color3.fromRGB(125, 110, 165);
+            Accent = Color3.fromRGB(140, 80, 255);
+            PropString = Color3.fromRGB(210, 160, 255);
+            PropNumber = Color3.fromRGB(150, 130, 240);
+            PropInstance = Color3.fromRGB(180, 160, 255);
+            PropEnum = Color3.fromRGB(180, 200, 255);
+            PropNil = Color3.fromRGB(90, 80, 125);
+            PropDefault = Color3.fromRGB(220, 215, 240);
+        }
+    };
 }
 
 table.sort(Presets, function(First, Second)
@@ -6233,11 +6496,13 @@ function Explorer:CreateNodeRow(Node, RowParent)
 
         local Good, Connection = pcall(function()
             return Node.Instance.ChildAdded:Connect(function(RawChild)
-                if typeof(RawChild) ~= "Instance" then
+                if typeof(RawChild) ~= "Instance" then return end
+                local Child = ClonerefInstance(RawChild)
+
+                if self.ExplorerFrozen then
+                    self.FrozenPendingAdds[Child] = true
                     return
                 end
-
-                local Child = ClonerefInstance(RawChild)
 
                 self:UpdateArrow(Node)
 
@@ -6272,14 +6537,15 @@ function Explorer:CreateNodeRow(Node, RowParent)
         
         local Good2, Connection2 = pcall(function()
             return Node.Instance.ChildRemoved:Connect(function(RawChild)
-                if typeof(RawChild) ~= "Instance" then
+                if typeof(RawChild) ~= "Instance" then return end
+                local Child = ClonerefInstance(RawChild)
+
+                if self.ExplorerFrozen then
+                    self.FrozenPendingRemoves[Child] = true
                     return
                 end
 
-                local Child = ClonerefInstance(RawChild)
-
                 self:UpdateArrow(Node)
-
                 local ChildNode = self.NodesByInstance[Child]
                 if ChildNode and ChildNode.Parent == Node then
                     self:DestroyNode(ChildNode)
@@ -6309,6 +6575,25 @@ function Explorer:CreateNodeRow(Node, RowParent)
             Node._ChildRemovedConn = nil
         end
     end
+
+    local function HookArrowSignal(SignalName)
+        local Good, Conn = pcall(function()
+            return Node.Instance[SignalName]:Connect(function(RawChild)
+                if typeof(RawChild) ~= "Instance" then
+                    return
+                end
+
+                self:UpdateArrow(Node)
+            end)
+        end)
+
+        if Good and Conn then
+            table.insert(Node.Connections, Track(Conn))
+        end
+    end
+
+    HookArrowSignal("ChildAdded")
+    HookArrowSignal("ChildRemoved")
 end
 
 function Explorer:UpdateArrow(Node)
@@ -7527,6 +7812,29 @@ function Explorer:UnmountNilVirtualList()
     Container.ChildContainer.Size = UDim2.new(1, 0, 0, 0)
 end
 
+function Explorer:_CheckFreezeSearchMatch(Child)
+    if self.ExplorerFrozen then
+        return
+    end
+
+    local Term = self.FreezeSearchTerm
+    if not Term or Term == "" then
+        return
+    end
+
+    local GoodName, Name = pcall(function()
+        return Child.Name
+    end)
+
+    if not GoodName or type(Name) ~= "string" then
+        return
+    end
+
+    if Name:lower():find(Term:lower(), 1, true) then
+        self:SetExplorerFrozen(true, `matched "{Name}"`)
+    end
+end
+
 function Explorer:RebuildExplorer()
     Handle(function()
         for _, Node in {table.unpack(self.RootNodes)} do
@@ -7605,11 +7913,11 @@ function Explorer:RebuildExplorer()
         end
 
         Track(game.ChildAdded:Connect(function(Child)
-            if typeof(Child) ~= "Instance" then
-                return
-            end
+            if typeof(Child) ~= "Instance" then return end
+            if self.HiddenServices[Child.Name] then return end
 
-            if self.HiddenServices[Child.Name] then
+            if self.ExplorerFrozen then
+                self.FrozenPendingAdds[ClonerefInstance(Child)] = true
                 return
             end
 
@@ -7617,21 +7925,20 @@ function Explorer:RebuildExplorer()
         end))
 
         Track(game.ChildRemoved:Connect(function(Child)
-            if typeof(Child) ~= "Instance" then
+            if typeof(Child) ~= "Instance" then return end
+
+            if self.ExplorerFrozen then
+                self.FrozenPendingRemoves[ClonerefInstance(Child)] = true
                 return
             end
 
             local Node = self.NodesByInstance[Child]
-            if not Node then
-                return
-            end
+            if not Node then return end
 
             self:DestroyNode(Node)
-
             for Index, Root in self.RootNodes do
                 if Root == Node then
                     table.remove(self.RootNodes, Index)
-
                     break
                 end
             end
@@ -8468,7 +8775,6 @@ function Explorer:CollapseAllExceptPath(Target)
         return
     end
 
-    -- Build the ancestor set (every node on the path from Target up to game)
     local PathSet = setmetatable({}, {__mode = "k"})
     local Cursor = ClonerefInstance(Target)
     while Cursor and Cursor.Parent ~= nil and Cursor ~= game do
@@ -8817,6 +9123,41 @@ function Explorer:CreatePropertyLabel(Row, PropertyName)
     })
 end
 
+function Explorer:AttachPropertyCopyHandler(Row, Object, PropertyName, DisplayName)
+    if not Row or not Row.Parent or typeof(Object) ~= "Instance" then
+        return
+    end
+
+    DisplayName = DisplayName or PropertyName
+
+    local ClickCatcher = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(1, 0, 1, 0);
+        BackgroundTransparency = 1;
+        AutoButtonColor = false;
+        Text = "";
+        ZIndex = 199;
+        Parent = Row;
+    })
+
+    ClickCatcher.MouseButton2Click:Connect(function()
+        local ReadGood, CurrentValue = pcall(function()
+            return Object[PropertyName]
+        end)
+
+        if not ReadGood then
+            self:Notify(`Couldn't read {DisplayName}`)
+            return
+        end
+
+        local PathExpr = BuildLuaPath(Object)
+        local Code = `{PathExpr}.{DisplayName} = {SerializeValue(CurrentValue)}`
+        pcall(setclipboard, Code)
+        self:Notify(`Copied property "{DisplayName}"`)
+    end)
+
+    return ClickCatcher
+end
+
 function Explorer:CreateTextRow(Object, PropertyName, Value, Editable, Parent)
     local Row = self:CreatePropertyRow(Parent)
     self:CreatePropertyLabel(Row, PropertyName)
@@ -8884,6 +9225,7 @@ function Explorer:CreateTextRow(Object, PropertyName, Value, Editable, Parent)
     end
 
     self.PropertyRows[PropertyName] = RowState
+    self:AttachPropertyCopyHandler(Row, Object, PropertyName)
 end
 
 function Explorer:CreateBooleanRow(Object, PropertyName, Value, Parent)
@@ -8926,6 +9268,7 @@ function Explorer:CreateBooleanRow(Object, PropertyName, Value, Parent)
             ApplyVisual(NewValue == true)
         end;
     }
+    self:AttachPropertyCopyHandler(Row, Object, PropertyName)
 end
 
 function Explorer:CreateBooleanAttributeRow(Object, AttributeName, Value, Parent)
@@ -9043,6 +9386,7 @@ function Explorer:CreateColorRow(Object, PropertyName, Value, Parent)
             Swatch.BackgroundColor3 = (typeof(NewValue) == "BrickColor") and NewValue.Color or NewValue
         end;
     }
+    self:AttachPropertyCopyHandler(Row, Object, PropertyName)
 end
 
 function Explorer:CreateEnumRow(Object, PropertyName, Value, Parent)
@@ -9096,6 +9440,7 @@ function Explorer:CreateEnumRow(Object, PropertyName, Value, Parent)
             end
         end;
     }
+    self:AttachPropertyCopyHandler(Row, Object, PropertyName)
 end
 
 function Explorer:RefreshPropertyValues()
@@ -14058,7 +14403,116 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
         end)
     end)
 
-    CreateSection("Search - ClassName Filter", 2, function(Container)
+    CreateSection("Freeze Search", 2, function(Container)
+        self:InitFreezeState()
+
+        local Inner = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 0);
+            AutomaticSize = Enum.AutomaticSize.Y;
+            BackgroundTransparency = 1;
+            ZIndex = 152;
+            Parent = Container;
+        })
+        VexUI:AddListLayout(Inner, 4, Enum.FillDirection.Vertical)
+
+        local Hint = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 28);
+            BackgroundTransparency = 1;
+            Font = Fonts.Medium;
+            Text = "Freezes the explorer when a descendant whose name matches this term is added.";
+            TextColor3 = Theme.TextFaded;
+            TextSize = 10;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextYAlignment = Enum.TextYAlignment.Top;
+            TextWrapped = true;
+            LayoutOrder = 1;
+            ZIndex = 153;
+            Parent = Inner;
+        })
+        BindTheme("TextFaded", function(Color)
+            if Hint and Hint.Parent then Hint.TextColor3 = Color end
+        end)
+
+        local Box = VexUI:CreateInstance("TextBox", {
+            Size = UDim2.new(1, 0, 0, 22);
+            BackgroundColor3 = Theme.Field;
+            BorderSizePixel = 0;
+            Font = Fonts.Mono;
+            PlaceholderText = "e.g. SkibidiPartMesh";
+            PlaceholderColor3 = Theme.TextFaded;
+            Text = self.FreezeSearchTerm or "";
+            TextColor3 = Theme.Text;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ClearTextOnFocus = false;
+            LayoutOrder = 2;
+            ZIndex = 153;
+            Parent = Inner;
+        })
+        VexUI:AddStroke(Box, "Border", 1)
+        VexUI:AddPadding(Box, 0, 6, 0, 6)
+        BindTheme("Field", function(C) if Box.Parent then Box.BackgroundColor3 = C end end)
+        BindTheme("Text",  function(C) if Box.Parent then Box.TextColor3 = C end end)
+        BindTheme("TextFaded", function(C) if Box.Parent then Box.PlaceholderColor3 = C end end)
+
+        self.FreezeSearchBox = Box
+
+        Box.FocusLost:Connect(function()
+            self:SetFreezeSearchTerm(Box.Text)
+        end)
+
+        local Row = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 24);
+            BackgroundTransparency = 1;
+            LayoutOrder = 3;
+            ZIndex = 152;
+            Parent = Inner;
+        })
+
+        local Status = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, -120, 1, 0);
+            BackgroundTransparency = 1;
+            Font = Fonts.SemiBold;
+            Text = self.ExplorerFrozen and "Status: FROZEN" or "Status: live";
+            TextColor3 = self.ExplorerFrozen and Theme.Accent or Theme.TextDim;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ZIndex = 153;
+            Parent = Row;
+        })
+
+        local Toggle = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.new(0, 110, 1, 0);
+            Position = UDim2.new(1, -110, 0, 0);
+            BackgroundColor3 = Theme.Field;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.SemiBold;
+            Text = self.ExplorerFrozen and "Unfreeze" or "Freeze Now";
+            TextColor3 = Theme.Text;
+            TextSize = 11;
+            ZIndex = 153;
+            Parent = Row;
+        })
+        VexUI:AddStroke(Toggle, "Border", 1)
+
+        local function Refresh()
+            if not Status.Parent then return end
+            Status.Text = self.ExplorerFrozen and "Status: FROZEN" or "Status: live"
+            Status.TextColor3 = self.ExplorerFrozen and Theme.Accent or Theme.TextDim
+            Toggle.Text = self.ExplorerFrozen and "Unfreeze" or "Freeze Now"
+        end
+
+        Toggle.MouseButton1Click:Connect(function()
+            self:ToggleExplorerFreeze()
+            Refresh()
+        end)
+
+        self._FreezeUiRefreshers = self._FreezeUiRefreshers or {}
+        table.insert(self._FreezeUiRefreshers, Refresh)
+    end)
+
+    CreateSection("Search - ClassName Filter", 3, function(Container)
         local Grid = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 0);
             AutomaticSize = Enum.AutomaticSize.Y;
@@ -14084,7 +14538,7 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
         end
     end)
 
-    CreateSection("Hidden Services", 3, function(Container)
+    CreateSection("Hidden Services", 4, function(Container)
         local Inner = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 0);
             AutomaticSize = Enum.AutomaticSize.Y;
@@ -14156,6 +14610,220 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
 
     self.FiltersDropdown = Dropdown
     self.FiltersBlocker = Blocker
+end
+
+function Explorer:InitFreezeState()
+    if self._FreezeInitialized then return end
+    self._FreezeInitialized = true
+
+    self.ExplorerFrozen = false
+    self.FreezeSearchTerm = ""
+    self.FrozenPendingAdds = setmetatable({}, {__mode = "k"})
+    self.FrozenPendingRemoves = setmetatable({}, {__mode = "k"})
+    self._FreezeUiRefreshers = self._FreezeUiRefreshers or {}
+end
+
+function Explorer:_FireFreezeUiRefreshers()
+    if not self._FreezeUiRefreshers then
+        return
+    end
+
+    for _, Refresh in self._FreezeUiRefreshers do
+        pcall(Refresh)
+    end
+
+    if self._UpdateFreezeButtonVisual then
+        self:_UpdateFreezeButtonVisual()
+    end
+end
+
+function Explorer:SetExplorerFrozen(Frozen, Reason)
+    self:InitFreezeState()
+
+    if self.ExplorerFrozen == Frozen then
+        return
+    end
+
+    self.ExplorerFrozen = Frozen
+
+    if not Frozen then
+        local Adds = self.FrozenPendingAdds
+        local Removes = self.FrozenPendingRemoves
+        self.FrozenPendingAdds = {}
+        self.FrozenPendingRemoves = {}
+
+        for Object in Removes do
+            local Node = self.NodesByInstance[Object]
+            if Node then
+                self:DestroyNode(Node)
+            end
+        end
+
+        for Object in Adds do
+            if typeof(Object) == "Instance" and Object.Parent then
+                local ParentNode = self.NodesByInstance[ClonerefInstance(Object.Parent)]
+                if ParentNode and ParentNode.Expanded then
+                    pcall(function()
+                        self:CreateChildNode(ParentNode, Object)
+                    end)
+                end
+            end
+        end
+
+        self:Notify("Explorer unfrozen")
+    else
+        local Suffix = Reason and ` ({Reason})` or ""
+        self:Notify(`Explorer frozen{Suffix}`)
+    end
+
+    self:_UpdateFreezeButtonVisual()
+
+    task.defer(function()
+        if self.FreezeButton and self.FreezeButton.Parent then
+            self:_UpdateFreezeButtonVisual()
+        end
+    end)
+
+    self:_FireFreezeUiRefreshers()
+end
+
+function Explorer:ToggleExplorerFreeze()
+    self:InitFreezeState()
+    self:SetExplorerFrozen(not self.ExplorerFrozen)
+end
+
+function Explorer:_UpdateFreezeButtonVisual()
+    local Button = self.FreezeButton
+    if not Button or not Button.Parent then return end
+
+    local Frozen = self.ExplorerFrozen == true
+    local Icon = Button:FindFirstChildOfClass("ImageLabel")
+    local Stroke = Button:FindFirstChildOfClass("UIStroke")
+
+    if Frozen then
+        Button.BackgroundColor3 = Theme.Accent
+        Button.BackgroundTransparency = 0.15
+        Button.TextColor3 = Theme.Text
+        if Icon then Icon.ImageColor3 = Theme.Text end
+        if Stroke then Stroke.Color = Theme.Accent end
+        Button.Text = (Icon and Icon.Image ~= "") and "" or "F*"
+    else
+        Button.BackgroundColor3 = Theme.Border
+        Button.BackgroundTransparency = math.clamp((UITransparency.TitleBar or 0) + 0.12, 0, 1)
+        Button.TextColor3 = Theme.TextDim
+        if Icon then Icon.ImageColor3 = Theme.TextDim end
+        if Stroke then Stroke.Color = Theme.Border end
+        Button.Text = (Icon and Icon.Image ~= "") and "" or "F"
+    end
+end
+
+function Explorer:_StartFreezeSearchWatcher()
+    self:_StopFreezeSearchWatcher()
+
+    self:InitFreezeState()
+
+    local Good, Conn = pcall(function()
+        return game.DescendantAdded:Connect(function(Descendant)
+            if typeof(Descendant) ~= "Instance" then return end
+            if self.ExplorerFrozen then return end
+
+            local Term = self.FreezeSearchTerm
+            if not Term or Term == "" then return end
+
+            local GoodName, Name = pcall(function() return Descendant.Name end)
+            if not GoodName or type(Name) ~= "string" then return end
+
+            if not string.find(string.lower(Name), string.lower(Term), 1, true) then
+                return
+            end
+
+            local Cloned = ClonerefInstance(Descendant)
+
+            pcall(function()
+                self:ExpandAncestorsOf(Cloned)
+            end)
+
+            pcall(function()
+                local Parent = ClonerefInstance(Cloned.Parent)
+                if not Parent then return end
+
+                local ParentNode = self.NodesByInstance[Parent]
+                if ParentNode
+                    and ParentNode.Expanded
+                    and not self.NodesByInstance[Cloned]
+                then
+                    self:CreateChildNode(ParentNode, Cloned)
+                end
+            end)
+
+            task.defer(function()
+                if KillScript then return end
+                if self.ExplorerFrozen then return end
+
+                self:SetExplorerFrozen(true, `matched "{Name}"`)
+
+                pcall(function()
+                    self:JumpToInstance(Cloned)
+                end)
+            end)
+        end)
+    end)
+
+    if Good and Conn then
+        self._FreezeSearchConn = Conn
+        Track(Conn)
+    end
+end
+
+function Explorer:_StopFreezeSearchWatcher()
+    if self._FreezeSearchConn then
+        pcall(function()
+            self._FreezeSearchConn:Disconnect()
+        end)
+
+        self._FreezeSearchConn = nil
+    end
+end
+
+function Explorer:SetFreezeSearchTerm(Term)
+    self:InitFreezeState()
+
+    Term = tostring(Term or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    self.FreezeSearchTerm = Term
+
+    if self.FreezeSearchBox
+        and self.FreezeSearchBox.Parent
+        and self.FreezeSearchBox.Text ~= Term
+    then
+        self.FreezeSearchBox.Text = Term
+    end
+
+    if Term == "" then
+        self:_StopFreezeSearchWatcher()
+    else
+        self:_StartFreezeSearchWatcher()
+    end
+
+    if self.SaveConfig then
+        pcall(function() self:SaveConfig() end)
+    end
+end
+
+function Explorer:_StartFreezeWatcher()
+    local Term = (self.FreezeSearchTerm or ""):lower()
+    if Term == "" then return end
+
+    self._FreezeWatcherConnection = Track(game.DescendantAdded:Connect(function(Descendant)
+        if self.ExplorerFrozen then return end
+        if typeof(Descendant) ~= "Instance" then return end
+
+        local Good, Name = pcall(function() return Descendant.Name end)
+        if not Good or type(Name) ~= "string" then return end
+
+        if Name:lower():find(Term, 1, true) then
+            self:SetExplorerFrozen(true, `matched "{Name}"`)
+        end
+    end))
 end
 
 function Explorer:CreateSearchBar()
@@ -14718,7 +15386,13 @@ function Explorer:BuildQuickAccessBar()
         end)
     end
 
-    QuickButton.MouseButton1Click:Connect(OpenDropdown)
+    QuickButton.MouseButton1Click:Connect(function()
+        if self._QuickDropdown and self._QuickDropdown.Parent then
+            CloseDropdown()
+        else
+            OpenDropdown()
+        end
+    end)
 end
 
 function Explorer:ToggleClickPartToSelect()
@@ -14796,6 +15470,10 @@ function Explorer:_StartClickUiToSelect()
             return
         end
 
+        if self:IsPointOverVexUi(Mouse.X, Mouse.Y) then
+            return
+        end
+
         self:JumpToInstance(ClonerefInstance(Target))
     end))
 end
@@ -14807,6 +15485,22 @@ function Explorer:_StopClickUiToSelect()
         end)
         self._ClickUiConnection = nil
     end
+end
+
+function Explorer:IsPointOverVexUi(X, Y)
+    if not self.ScreenGui then
+        return false
+    end
+
+    local Good, Hits = pcall(function()
+        return self.ScreenGui:GetGuiObjectsAtPosition(X, Y)
+    end)
+
+    if not Good or type(Hits) ~= "table" then
+        return false
+    end
+
+    return #Hits > 0
 end
 
 function Explorer:_StartClickPartToSelect()
@@ -14821,7 +15515,12 @@ function Explorer:_StartClickPartToSelect()
             return
         end
 
-        local Target = self.LocalPlayer:GetMouse().Target
+        local Mouse = self.LocalPlayer:GetMouse()
+        if self:IsPointOverVexUi(Mouse.X, Mouse.Y) then
+            return
+        end
+
+        local Target = Mouse.Target
         if not Target then
             return
         end
@@ -14872,6 +15571,44 @@ function Explorer:BuildExplorerWindow()
     })
     self.ExplorerWindow = Window
 
+    local FreezeButton = self.ExplorerWindow:AddTitleButton(
+        "",
+        24,
+        false,
+        function()
+            self:ToggleExplorerFreeze()
+        end,
+        "FreezeIcon",
+        10,
+        18
+    )
+    self.FreezeButton = FreezeButton
+    self:InitFreezeState()
+
+    local function ReapplyIfFrozen()
+        if self.ExplorerFrozen then
+            task.defer(function()
+                if FreezeButton and FreezeButton.Parent then
+                    self:_UpdateFreezeButtonVisual()
+                end
+            end)
+        end
+    end
+
+    Track(FreezeButton.MouseEnter:Connect(ReapplyIfFrozen))
+    Track(FreezeButton.MouseLeave:Connect(ReapplyIfFrozen))
+    Track(FreezeButton.MouseButton1Click:Connect(ReapplyIfFrozen))
+
+    BindTheme("Border", ReapplyIfFrozen)
+    BindTheme("Selected", ReapplyIfFrozen)
+    BindTheme("Text", ReapplyIfFrozen)
+    BindTheme("TextDim", ReapplyIfFrozen)
+    BindTheme("Accent", ReapplyIfFrozen)
+    BindTransparency("TitleBar", ReapplyIfFrozen)
+
+    self._ReapplyFreezeVisual = ReapplyIfFrozen
+    self:_UpdateFreezeButtonVisual()
+
     Window:AddTitleButton("C", 26, false, function()
         self:ToggleConsole()
     end, "ConsoleIcon", nil, 16)
@@ -14883,6 +15620,9 @@ function Explorer:BuildExplorerWindow()
     Window:AddTitleButton("X", 26, true, function()
         self:Kill()
     end, "CloseIcon", nil, 14)
+
+    self:InitFreezeState()
+    self:_UpdateFreezeButtonVisual()
 
     local ActionStrip = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, -16, 0, 26);
