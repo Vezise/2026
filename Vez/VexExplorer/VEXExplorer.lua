@@ -129,6 +129,12 @@ local RiskyServices = {
     "FeatureRestrictionManager";
     "GamePassService";
     "GenerationService";
+    "SlimReplicationService";
+    "SlimAnimationReplicationService";
+    "Packages";
+    "Debris";
+    "ServerScriptService";
+    "ServerStorage";
 }
 
 local NewInstance = Instance.new
@@ -2907,19 +2913,29 @@ local function CollectTags(Object)
     return Tags
 end
 
-local function GetGlobalCallable(Name)
-    local Env = nil
-
-    pcall(function()
-        if getgenv then
-            Env = getgenv()
+local function ResolveSelfForGlobal(Object, Method)
+    if Method.SelfFrom == "Parent" then
+        local Good, Parent = pcall(function() return Object.Parent end)
+        if Good and typeof(Parent) == "Instance" then
+            return Parent
         end
-    end)
+    end
+    return Object
+end
 
-    Env = Env or _G
+local function GetGlobalCallable(Name)
+    local Env
+    pcall(function() Env = getgenv and getgenv() end)
 
-    local Fn = Env and Env[Name]
-    if type(Fn) == "function" then
+    if Env then
+        local Good, Fn = pcall(function() return Env[Name] end)
+        if Good and type(Fn) == "function" then
+            return Fn
+        end
+    end
+
+    local Good, Fn = pcall(function() return _G[Name] end)
+    if Good and type(Fn) == "function" then
         return Fn
     end
 
@@ -2995,6 +3011,55 @@ local MethodGroups = {
                 "string";
                 {};
             };
+            {
+                "getconnections"; "table";
+                {
+                    { "signal"; "RBXScriptSignal"; "MouseButton1Click"; };
+                };
+                "global";
+                NoSelf = true;
+            };
+
+            {
+                "firesignal"; "void";
+                {
+                    { "signal"; "RBXScriptSignal"; "MouseButton1Click"; };
+                    { "args"; "Variadic"; ""; };
+                };
+                "global";
+                NoSelf = true;
+            };
+            {
+                "replicatesignal"; "void"; { { "signal"; "RBXScriptSignal"; "MouseButton1Click"; }; { "args"; "Variadic"; "" ; }; }; "global"; NoSelf = true;
+            };
+            {
+                "getproperties"; "table"; {}; "global"; NoSelf = false;
+            };
+            {
+                "gethiddenproperties"; "table"; {}; "global";
+            };
+            {
+                "gethiddenproperty"; "any"; { { "name"; "string"; }; }; "global";
+            };
+            {
+                "sethiddenproperty"; "void"; { { "name"; "string"; }; { "value"; "any"; }; }; "global";
+            };
+            {
+                "getcallbackvalue"; "function"; { { "name"; "string"; }; }; "global";
+            };
+            {
+                "saveinstance";
+                "void";
+                {
+                    { "FilePath";               "string";  "vex_dump.rbxm"; };
+                    { "NilInstances";           "boolean"; "false"; };
+                    { "IgnoreDefaultProps";     "boolean"; "true"; };
+                    { "Mode";                   "string";  "optimized"; };
+                    { "RemovePlayerCharacters"; "boolean"; "false"; };
+                };
+                "global";
+                BuildOptions = true;
+            };
         };
     };
 
@@ -3051,6 +3116,11 @@ local MethodGroups = {
                     };
                 };
             };
+            { "PivotTo"; "void"; { { "cframe"; "CFrame"; }; }; };
+            { "GetPivot"; "CFrame"; {}; };
+            { "GetBoundingBox"; "CFrame"; {}; };
+            { "ScaleTo"; "void"; { { "scale"; "number"; "1"; }; }; };
+            { "GetScale"; "number"; {}; };
         };
     };
 
@@ -3115,6 +3185,7 @@ local MethodGroups = {
                     {
                         "amount";
                         "number";
+                        "10";
                     };
                 };
             };
@@ -3123,7 +3194,7 @@ local MethodGroups = {
                 "void";
                 {
                     {
-                        "direction";
+                        "moveDirection";
                         "Vector3";
                     };
                     {
@@ -3141,6 +3212,68 @@ local MethodGroups = {
                         "location";
                         "Vector3";
                     };
+                    {
+                        "part";
+                        "BasePart";
+                    };
+                };
+            };
+            {
+                "Jump";
+                "void";
+                {};
+            };
+            {
+                "ChangeState";
+                "void";
+                {
+                    {
+                        "state";
+                        "string";
+                        "GettingUp";
+                    };
+                };
+            };
+            {
+                "GetState";
+                "EnumItem";
+                {};
+            };
+            {
+                "SetStateEnabled";
+                "void";
+                {
+                    {
+                        "state";
+                        "string";
+                        "Dead";
+                    };
+                    {
+                        "enabled";
+                        "boolean";
+                        "true";
+                    };
+                };
+            };
+            {
+                "GetStateEnabled";
+                "boolean";
+                {
+                    {
+                        "state";
+                        "string";
+                        "Dead";
+                    };
+                };
+            };
+            {
+                "EquipTool";
+                "void";
+                {
+                    {
+                        "tool";
+                        "Instance";
+                    };
                 };
             };
             {
@@ -3149,18 +3282,150 @@ local MethodGroups = {
                 {};
             };
             {
-                "GetState";
-                "EnumItem";
+                "AddAccessory";
+                "void";
+                {
+                    {
+                        "accessory";
+                        "Instance";
+                    };
+                };
+            };
+            {
+                "RemoveAccessories";
+                "void";
                 {};
+            };
+            {
+                "GetAccessories";
+                "table";
+                {};
+            };
+            {
+                "GetAccessoryHandleAttachmentPoint";
+                "CFrame";
+                {
+                    {
+                        "accessory";
+                        "Instance";
+                    };
+                    {
+                        "attachmentName";
+                        "string";
+                        "HatAttachment";
+                    };
+                };
+            };
+            {
+                "ReplaceBodyPartR15";
+                "boolean";
+                {
+                    {
+                        "bodyPart";
+                        "string";
+                        "Head";
+                    };
+                    {
+                        "part";
+                        "BasePart";
+                    };
+                };
+            };
+            {
+                "GetBodyPartR15";
+                "EnumItem";
+                {
+                    {
+                        "part";
+                        "BasePart";
+                    };
+                };
+            };
+            {
+                "GetLimb";
+                "EnumItem";
+                {
+                    {
+                        "part";
+                        "BasePart";
+                    };
+                };
             };
             {
                 "BuildRigFromAttachments";
                 "void";
                 {};
             };
+            {
+                "GetPlayingAnimationTracks";
+                "table";
+                {};
+            };
+            {
+                "LoadAnimation";
+                "AnimationTrack";
+                {
+                    {
+                        "animation";
+                        "Animation";
+                    };
+                };
+            };
+            {
+                "GetMoveVelocity";
+                "Vector3";
+                {};
+            };
+            {
+                "GetAppliedDescription";
+                "Instance";
+                {};
+            };
+            {
+                "ApplyDescription";
+                "void";
+                {
+                    {
+                        "humanoidDescription";
+                        "Instance";
+                    };
+                };
+            };
+            {
+                "ApplyDescriptionReset";
+                "void";
+                {
+                    {
+                        "humanoidDescription";
+                        "Instance";
+                    };
+                };
+            };
+            {
+                "PlayEmote";
+                "boolean";
+                {
+                    {
+                        "emoteName";
+                        "string";
+                        "wave";
+                    };
+                };
+            };
+            {
+                "PlayEmoteAndGetAnimTrackById";
+                "AnimationTrack";
+                {
+                    {
+                        "emoteId";
+                        "number";
+                        "0";
+                    };
+                };
+            };
         };
     };
-
+    
     {
         Class = "Player";
         Methods = {
@@ -3181,6 +3446,21 @@ local MethodGroups = {
                 {};
             };
             {
+                "LoadCharacterBlocking";
+                "void";
+                {};
+            };
+            {
+                "LoadCharacterWithHumanoidDescription";
+                "void";
+                {
+                    {
+                        "humanoidDescription";
+                        "Instance";
+                    };
+                };
+            };
+            {
                 "GetMouse";
                 "Mouse";
                 {};
@@ -3192,6 +3472,7 @@ local MethodGroups = {
                     {
                         "groupId";
                         "number";
+                        "0";
                     };
                 };
             };
@@ -3202,6 +3483,180 @@ local MethodGroups = {
                     {
                         "groupId";
                         "number";
+                        "0";
+                    };
+                };
+            };
+            {
+                "GetRoleInGroup";
+                "string";
+                {
+                    {
+                        "groupId";
+                        "number";
+                        "0";
+                    };
+                };
+            };
+            {
+                "IsFriendsWith";
+                "boolean";
+                {
+                    {
+                        "userId";
+                        "number";
+                        "0";
+                    };
+                };
+            };
+            {
+                "GetFriendsOnline";
+                "table";
+                {
+                    {
+                        "maxFriends";
+                        "number";
+                        "200";
+                    };
+                };
+            };
+            {
+                "GetNetworkPing";
+                "number";
+                {};
+            };
+            {
+                "DistanceFromCharacter";
+                "number";
+                {
+                    {
+                        "point";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "ClearCharacterAppearance";
+                "void";
+                {};
+            };
+            {
+                "HasAppearanceLoaded";
+                "boolean";
+                {};
+            };
+            {
+                "GetJoinData";
+                "table";
+                {};
+            };
+            {
+                "GetGameSessionID";
+                "string";
+                {};
+            };
+            {
+                "GetUnder13";
+                "boolean";
+                {};
+            };
+            {
+                "Move";
+                "void";
+                {
+                    {
+                        "walkDirection";
+                        "Vector3";
+                    };
+                    {
+                        "relativeToCamera";
+                        "boolean";
+                        "false";
+                    };
+                };
+            };
+        };
+    };
+
+    {
+        Class = "RemoteEvent";
+        Methods = {
+            {
+                "FireServer";
+                "void";
+                {
+                    {
+                        "args";
+                        "Variadic";
+                        "";
+                    };
+                };
+            };
+        };
+    };
+
+    {
+        Class = "UnreliableRemoteEvent";
+        Methods = {
+            {
+                "FireServer";
+                "void";
+                {
+                    {
+                        "args";
+                        "Variadic";
+                        "";
+                    };
+                };
+            };
+        };
+    };
+
+    {
+        Class = "RemoteFunction";
+        Methods = {
+            {
+                "InvokeServer";
+                "any";
+                {
+                    {
+                        "args";
+                        "Variadic";
+                        "";
+                    };
+                };
+            };
+        };
+    };
+
+    {
+        Class = "BindableEvent";
+        Methods = {
+            {
+                "Fire";
+                "void";
+                {
+                    {
+                        "args";
+                        "Variadic";
+                        "";
+                    };
+                };
+            };
+        };
+    };
+
+    {
+        Class = "BindableFunction";
+        Methods = {
+            {
+                "Invoke";
+                "any";
+                {
+                    {
+                        "args";
+                        "Variadic";
+                        "";
                     };
                 };
             };
@@ -3231,6 +3686,7 @@ local MethodGroups = {
                 "void";
                 {};
             };
+            { "GetWaveformAsync"; "table"; {}; };
         };
     };
 
@@ -3246,6 +3702,357 @@ local MethodGroups = {
                 "Deactivate";
                 "void";
                 {};
+            };
+        };
+    };
+
+    {
+        Class = "Camera";
+        Methods = {
+            {
+                "GetRenderCFrame";
+                "CFrame";
+                {};
+            };
+            {
+                "GetRoll";
+                "number";
+                {};
+            };
+            {
+                "SetRoll";
+                "void";
+                {
+                    {
+                        "rollAngle";
+                        "number";
+                        "0";
+                    };
+                };
+            };
+            {
+                "ZoomTo";
+                "void";
+                {
+                    {
+                        "distance";
+                        "number";
+                        "10";
+                    };
+                };
+            };
+            {
+                "ScreenPointToRay";
+                "Ray";
+                {
+                    {
+                        "x";
+                        "number";
+                        "0";
+                    };
+                    {
+                        "y";
+                        "number";
+                        "0";
+                    };
+                    {
+                        "depth";
+                        "number";
+                        "0";
+                    };
+                };
+            };
+            {
+                "ViewportPointToRay";
+                "Ray";
+                {
+                    {
+                        "x";
+                        "number";
+                        "0";
+                    };
+                    {
+                        "y";
+                        "number";
+                        "0";
+                    };
+                    {
+                        "depth";
+                        "number";
+                        "0";
+                    };
+                };
+            };
+            {
+                "WorldToScreenPoint";
+                "Vector3";
+                {
+                    {
+                        "worldPoint";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "WorldToViewportPoint";
+                "Vector3";
+                {
+                    {
+                        "worldPoint";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "GetPartsObscuringTarget";
+                "table";
+                {
+                    {
+                        "castPoints";
+                        "table";
+                    };
+                    {
+                        "ignoreList";
+                        "table";
+                    };
+                };
+            };
+        };
+    };
+
+    {
+        Class = "Workspace";
+        Methods = {
+            {
+                "Raycast";
+                "RaycastResult";
+                {
+                    {
+                        "origin";
+                        "Vector3";
+                    };
+                    {
+                        "direction";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "Blockcast";
+                "RaycastResult";
+                {
+                    {
+                        "cframe";
+                        "CFrame";
+                    };
+                    {
+                        "size";
+                        "Vector3";
+                    };
+                    {
+                        "direction";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "Spherecast";
+                "RaycastResult";
+                {
+                    {
+                        "origin";
+                        "Vector3";
+                    };
+                    {
+                        "radius";
+                        "number";
+                        "1";
+                    };
+                    {
+                        "direction";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "Shapecast";
+                "RaycastResult";
+                {
+                    {
+                        "part";
+                        "BasePart";
+                    };
+                    {
+                        "direction";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "GetPartBoundsInBox";
+                "table";
+                {
+                    {
+                        "cframe";
+                        "CFrame";
+                    };
+                    {
+                        "size";
+                        "Vector3";
+                    };
+                };
+            };
+            {
+                "GetPartBoundsInRadius";
+                "table";
+                {
+                    {
+                        "position";
+                        "Vector3";
+                    };
+                    {
+                        "radius";
+                        "number";
+                        "10";
+                    };
+                };
+            };
+            {
+                "GetPartsInPart";
+                "table";
+                {
+                    {
+                        "part";
+                        "BasePart";
+                    };
+                };
+            };
+            {
+                "FindPartOnRay";
+                "BasePart";
+                {
+                    {
+                        "ray";
+                        "Ray";
+                    };
+                };
+            };
+            {
+                "FindPartOnRayWithIgnoreList";
+                "BasePart";
+                {
+                    {
+                        "ray";
+                        "Ray";
+                    };
+                    {
+                        "ignoreList";
+                        "table";
+                    };
+                };
+            };
+            {
+                "FindPartOnRayWithWhitelist";
+                "BasePart";
+                {
+                    {
+                        "ray";
+                        "Ray";
+                    };
+                    {
+                        "whitelist";
+                        "table";
+                    };
+                };
+            };
+            {
+                "IsAncestorOf";
+                "boolean";
+                {
+                    {
+                        "descendant";
+                        "Instance";
+                    };
+                };
+            };
+            {
+                "GetServerTimeNow";
+                "number";
+                {};
+            };
+            {
+                "GetRealPhysicsFPS";
+                "number";
+                {};
+            };
+            {
+                "PGSIsEnabled";
+                "boolean";
+                {};
+            };
+        };
+    };
+
+    {
+        Class = "Lighting";
+        Methods = {
+            {
+                "GetMinutesAfterMidnight";
+                "number";
+                {};
+            };
+            {
+                "SetMinutesAfterMidnight";
+                "void";
+                {
+                    {
+                        "minutes";
+                        "number";
+                        "720";
+                    };
+                };
+            };
+            {
+                "GetMoonDirection";
+                "Vector3";
+                {};
+            };
+            {
+                "GetSunDirection";
+                "Vector3";
+                {};
+            };
+        };
+    };
+
+    {
+        Class = "Animator";
+        Methods = {
+            {
+                "LoadAnimation";
+                "AnimationTrack";
+                {
+                    {
+                        "animation";
+                        "Animation";
+                    };
+                };
+            };
+            {
+                "GetPlayingAnimationTracks";
+                "table";
+                {};
+            };
+            {
+                "StepAnimations";
+                "void";
+                {
+                    {
+                        "deltaTime";
+                        "number";
+                        "0.0166";
+                    };
+                };
             };
         };
     };
@@ -3315,6 +4122,30 @@ local MethodGroups = {
                     };
                 };
                 "global";
+            };
+        };
+    };
+
+    {
+        Class = "TouchTransmitter";
+        Methods = {
+            {
+                "firetouchinterest";
+                "void";
+                {
+                    {
+                        "target";
+                        "BasePart";
+                        "character";
+                    };
+                    {
+                        "toggle";
+                        "number";
+                        "0";
+                    };
+                };
+                "global";
+                SelfFrom = "Parent";
             };
         };
     };
@@ -4668,6 +5499,20 @@ local function ApplyPreset(Preset)
     end
 end
 
+local function ApplyFPSCap(Unlimited)
+    local Fn
+    pcall(function()
+        Fn = getgenv and getgenv().setfpscap
+    end)
+
+    if type(Fn) ~= "function" then
+        return false, "setfpscap not available"
+    end
+
+    local Good, Err = pcall(Fn, Unlimited and math.huge or 60)
+    return Good, Err
+end
+
 local Fonts = {
     Bold = Enum.Font.GothamBold;
     SemiBold = Enum.Font.GothamSemibold;
@@ -5639,6 +6484,7 @@ Explorer = setmetatable({
 
     ToggleKey = Enum.KeyCode.RightAlt;
     WindowVisible = true;
+    UnlimitedFPS = false;
     AutoRefreshProperties = true;
     RefreshDelay = 0;
 
@@ -12274,14 +13120,8 @@ function Explorer:OpenMethodCaller(Method)
 
         if ArgType == "boolean" then
             local Lowered = Text:lower()
-            if Lowered == "true" or Lowered == "1" then
-                return true
-            end
-
-            if Lowered == "false" or Lowered == "0" then
-                return false
-            end
-
+            if Lowered == "true" or Lowered == "1" then return true end
+            if Lowered == "false" or Lowered == "0" then return false end
             return nil
         end
 
@@ -12289,10 +13129,28 @@ function Explorer:OpenMethodCaller(Method)
             return ResolveInstanceText(Text)
         end
 
+        if ArgType == "RBXScriptSignal" then
+            local Good, Signal = pcall(function() return Object[Text] end)
+            if not Good then
+                return nil, `Couldn't read Object.{Text}: {Signal}`
+            end
+
+            local Tp = typeof(Signal)
+            if Tp == "RBXScriptSignal" then
+                return Signal
+            end
+
+            if Tp == "userdata" and type(rawget(getmetatable(Signal) or {}, "__index")) ~= "nil" then
+                return Signal
+            end
+
+            return nil, `Object.{Text} is {Tp}, not RBXScriptSignal`
+        end
+
         if ArgType == "Vector3" then
-            local VectorX, VectorY, VectorZ = Text:match("([%-%d%.]+)[,%s]+([%-%d%.]+)[,%s]+([%-%d%.]+)")
-            if VectorX then
-                return Vector3.new(tonumber(VectorX), tonumber(VectorY), tonumber(VectorZ))
+            local Vx, Vy, Vz = Text:match("([%-%d%.]+)[,%s]+([%-%d%.]+)[,%s]+([%-%d%.]+)")
+            if Vx then
+                return Vector3.new(tonumber(Vx), tonumber(Vy), tonumber(Vz))
             end
         end
 
@@ -12301,17 +13159,43 @@ function Explorer:OpenMethodCaller(Method)
             for Token in Text:gmatch("[%-%d%.]+") do
                 table.insert(Numbers, tonumber(Token))
             end
-
-            if #Numbers == 12 then
-                return CFrame.new(table.unpack(Numbers))
-            end
-
-            if #Numbers == 3 then
-                return CFrame.new(Numbers[1], Numbers[2], Numbers[3])
-            end
+            if #Numbers == 12 then return CFrame.new(table.unpack(Numbers)) end
+            if #Numbers == 3  then return CFrame.new(Numbers[1], Numbers[2], Numbers[3]) end
         end
 
         return Text
+    end
+
+    local function ParseVariadic(Text)
+        local Out = {}
+        if Text == "" then return Out end
+
+        local Tokens = {}
+        for Token in Text:gmatch("[^,]+") do
+            Tokens[#Tokens + 1] = (Token:gsub("^%s+", ""):gsub("%s+$", ""))
+        end
+
+        for Index, Token in Tokens do
+            local Lowered = Token:lower()
+            local Number = tonumber(Token)
+
+            if Lowered == "true" then
+                Out[Index] = true
+            elseif Lowered == "false" then
+                Out[Index] = false
+            elseif Lowered == "nil" then
+                Out[Index] = nil
+            elseif Number ~= nil then
+                Out[Index] = Number
+            elseif Token:match("^['\"].*['\"]$") then
+                Out[Index] = Token:sub(2, -2)
+            else
+                local AsInstance = ResolveInstanceText(Token)
+                Out[Index] = AsInstance or Token
+            end
+        end
+
+        return Out
     end
 
     local ResultLabel = VexUI:CreateInstance("TextLabel", {
@@ -12349,33 +13233,354 @@ function Explorer:OpenMethodCaller(Method)
     
     VexUI:AddStroke(CallButton, Theme.Accent, 1)
 
+    local LastResult
+    local LastResultIsError = false
+
     CallButton.MouseButton1Click:Connect(function()
         local Args = {}
+        local ArgCount = 0
         for Index, Entry in InputBoxes do
-            Args[Index] = ParseArg(Entry.Type, Entry.Box.Text)
+            if Entry.Type == "Variadic" then
+                for _, V in ParseVariadic(Entry.Box.Text) do
+                    ArgCount += 1
+                    Args[ArgCount] = V
+                end
+            else
+                local Value, Err = ParseArg(Entry.Type, Entry.Box.Text)
+                if Err then
+                    ResultLabel.Text = `ERROR: {Err}`
+                    ResultLabel.TextColor3 = Theme.Red
+                    return
+                end
+                ArgCount += 1
+                Args[ArgCount] = Value
+            end
         end
 
         local Good, Result = pcall(function()
+            if Method[4] == "global" and Method.BuildOptions then
+                local Fn = GetGlobalCallable(Method[1])
+                if not Fn then
+                    error(`Global function not available: {Method[1]}`)
+                end
+
+                local Options = { Object = Object }
+                for Index, Entry in InputBoxes do
+                    local Key = Method[3][Index][1]
+                    local Value = ParseArg(Entry.Type, Entry.Box.Text)
+                    if Value ~= nil then
+                        Options[Key] = Value
+                    end
+                end
+
+                return Fn(Options)
+            end
+
             if Method[4] == "global" then
                 local Fn = GetGlobalCallable(Method[1])
                 if not Fn then
                     error(`Global function not available: {Method[1]}`)
                 end
 
-                return Fn(Object, table.unpack(Args, 1, #InputBoxes))
+                if Method.NoSelf then
+                    return Fn(table.unpack(Args, 1, ArgCount))
+                end
+
+                local Target = ResolveSelfForGlobal(Object, Method)
+                return Fn(Target, table.unpack(Args, 1, ArgCount))
             end
 
-            return Object[Method[1]](Object, table.unpack(Args, 1, #InputBoxes))
+            return Object[Method[1]](Object, table.unpack(Args, 1, ArgCount))
         end)
 
+        LastResult = Result
+        LastResultIsError = not Good
+
         if Good then
-            ResultLabel.Text = `OK: {self:FormatValue(Result)}`
+            if Method[1] == "getconnections" and type(Result) == "table" then
+                self:ShowConnectionsResult(Result)
+                ResultLabel.Text = `OK: {#Result} connection(s)`
+            else
+                ResultLabel.Text = `OK: {self:FormatValue(Result)}`
+            end
             ResultLabel.TextColor3 = Theme.Green
         else
             ResultLabel.Text = `ERROR: {tostring(Result)}`
             ResultLabel.TextColor3 = Theme.Red
         end
     end)
+
+    local CopyOutputButton = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(1, 0, 0, 24);
+        BackgroundColor3 = Theme.Field;
+        BackgroundTransparency = 0.3;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Font = Fonts.SemiBold;
+        Text = "Copy Output";
+        TextColor3 = Theme.Text;
+        TextSize = 11;
+        LayoutOrder = 92;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    VexUI:AddStroke(CopyOutputButton, "Border", 1)
+
+    local function SerializeOutput(Value)
+        if Value == nil then
+            return "nil"
+        end
+
+        local ValueType = typeof(Value)
+
+        if ValueType == "string" then
+            return string.format("%q", Value)
+        end
+
+        if ValueType == "number" or ValueType == "boolean" then
+            return tostring(Value)
+        end
+
+        if ValueType == "Instance" then
+            local Good, Path = pcall(function() return BuildLuaPath(Value) end)
+            return Good and Path or Value:GetFullName()
+        end
+
+        if ValueType == "table" then
+            local Lines = { "{" }
+            local Count = 0
+            for K, V in pairs(Value) do
+                Count += 1
+                local Key = (type(K) == "string" and K:match("^[%a_][%w_]*$"))
+                    and K
+                    or `[{type(K) == "string" and string.format("%q", K) or tostring(K)}]`
+                Lines[#Lines + 1] = `    {Key} = {SerializeOutput(V)};`
+            end
+            if Count == 0 then return "{}" end
+            Lines[#Lines + 1] = "}"
+            return table.concat(Lines, "\n")
+        end
+
+        local Good, Formatted = pcall(function() return self:FormatValue(Value) end)
+        if Good and type(Formatted) == "string" then
+            return Formatted
+        end
+
+        return tostring(Value)
+    end
+
+    CopyOutputButton.MouseButton1Click:Connect(function()
+        if LastResult == nil and not LastResultIsError then
+            CopyOutputButton.Text = "Nothing to copy"
+            task.delay(1.2, function()
+                if CopyOutputButton and CopyOutputButton.Parent then
+                    CopyOutputButton.Text = "Copy Output"
+                end
+            end)
+
+            return
+        end
+
+        local Text
+        if LastResultIsError then
+            Text = `-- ERROR: {tostring(LastResult)}`
+        else
+            Text = SerializeOutput(LastResult)
+        end
+
+        local Good = pcall(setclipboard, Text)
+        CopyOutputButton.Text = Good and "Copied!" or "Failed"
+
+        task.delay(1.2, function()
+            if CopyOutputButton and CopyOutputButton.Parent then
+                CopyOutputButton.Text = "Copy Output"
+            end
+        end)
+    end)
+end
+
+function Explorer:ShowConnectionsResult(Connections)
+    if type(Connections) ~= "table" or #Connections == 0 then
+        self:Notify("No connections found")
+        return
+    end
+
+    local Window, Body = self:CreateModalWindow(
+        `Connections ({#Connections})`,
+        540,
+        math.min(560, 80 + #Connections * 68)
+    )
+
+    local Scroll = VexUI:CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 1, 0);
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        ScrollBarThickness = 4;
+        ScrollBarImageColor3 = Theme.Border;
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    VexUI:AddListLayout(Scroll, 4, Enum.FillDirection.Vertical)
+
+    local function SafeRead(Conn, Key)
+        local Good, Value = pcall(function() return Conn[Key] end)
+        if Good then return Value end
+        return nil
+    end
+
+    local function FormatFunction(Fn)
+        if type(Fn) ~= "function" then
+            return "<function unavailable>"
+        end
+
+        local GoodInfo, Info = pcall(debug.info, Fn, "sln")
+        if GoodInfo and type(Info) == "string" and Info ~= "" then
+            return Info
+        end
+
+        local GoodMulti = pcall(debug.info, Fn, "s")
+        if GoodMulti then
+            local Src  = debug.info(Fn, "s")
+            local Line = debug.info(Fn, "l")
+            local Name = debug.info(Fn, "n")
+            return `{Src or "?"}:{Line or "?"} {Name and `({Name})` or ""}`
+        end
+
+        return tostring(Fn)
+    end
+
+    for Index, Conn in Connections do
+        local Row = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 64);
+            BackgroundColor3 = Theme.Field;
+            BackgroundTransparency = 0.4;
+            BorderSizePixel = 0;
+            LayoutOrder = Index;
+            ZIndex = 202;
+            Parent = Scroll;
+        })
+        VexUI:AddStroke(Row, "Border", 1)
+        VexUI:AddPadding(Row, 6, 8, 6, 8)
+
+        local Enabled = SafeRead(Conn, "Enabled")
+        local ForeignState = SafeRead(Conn, "ForeignState")
+        local LuaConnection = SafeRead(Conn, "LuaConnection")
+        local Fn = SafeRead(Conn, "Function")
+
+        local Header = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 14);
+            BackgroundTransparency = 1;
+            Font = Fonts.Mono;
+            Text = `[{Index}]  Enabled={tostring(Enabled)}   Foreign={tostring(ForeignState)}   Lua={tostring(LuaConnection)}`;
+            TextColor3 = Theme.Text;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ZIndex = 203;
+            Parent = Row;
+        })
+
+        local FnLabel = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 14);
+            Position = UDim2.new(0, 0, 0, 16);
+            BackgroundTransparency = 1;
+            Font = Fonts.Mono;
+            Text = FormatFunction(Fn);
+            TextColor3 = Theme.TextDim;
+            TextSize = 10;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextTruncate = Enum.TextTruncate.AtEnd;
+            ZIndex = 203;
+            Parent = Row;
+        })
+
+        local function RefreshEnabled()
+            local NewEnabled = SafeRead(Conn, "Enabled")
+            Header.Text = `[{Index}]  Enabled={tostring(NewEnabled)}   Foreign={tostring(ForeignState)}   Lua={tostring(LuaConnection)}`
+        end
+
+        local BtnStrip = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 18);
+            Position = UDim2.new(0, 0, 1, -20);
+            BackgroundTransparency = 1;
+            ZIndex = 203;
+            Parent = Row;
+        })
+
+        VexUI:CreateInstance("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal;
+            Padding = UDim.new(0, 4);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            VerticalAlignment = Enum.VerticalAlignment.Center;
+            Parent = BtnStrip;
+        })
+
+        local BtnOrder = 0
+        local function MakeBtn(LabelText, Width, OnClick)
+            BtnOrder += 1
+            local Btn = VexUI:CreateInstance("TextButton", {
+                Size = UDim2.new(0, Width, 1, 0);
+                BackgroundColor3 = Theme.Field;
+                BorderSizePixel = 0;
+                AutoButtonColor = false;
+                Font = Fonts.SemiBold;
+                Text = LabelText;
+                TextColor3 = Theme.Text;
+                TextSize = 10;
+                LayoutOrder = BtnOrder;
+                ZIndex = 203;
+                Parent = BtnStrip;
+            })
+            VexUI:AddStroke(Btn, "Border", 1)
+            Btn.MouseButton1Click:Connect(OnClick)
+            Btn.MouseEnter:Connect(function()
+                VexUI:Tween(Btn, {BackgroundTransparency = 0.2})
+            end)
+            Btn.MouseLeave:Connect(function()
+                VexUI:Tween(Btn, {BackgroundTransparency = 0})
+            end)
+            return Btn
+        end
+
+        MakeBtn("Fire", 48, function()
+            local Good, Err = pcall(function() Conn:Fire() end)
+            if not Good then self:Notify(`Fire failed: {Err}`) end
+        end)
+
+        MakeBtn("Defer", 52, function()
+            local Good, Err = pcall(function() Conn:Defer() end)
+            if not Good then self:Notify(`Defer failed: {Err}`) end
+        end)
+
+        MakeBtn("Disable", 60, function()
+            local Good, Err = pcall(function() Conn:Disable() end)
+            if Good then RefreshEnabled() else self:Notify(`Disable failed: {Err}`) end
+        end)
+
+        MakeBtn("Enable", 56, function()
+            local Good, Err = pcall(function() Conn:Enable() end)
+            if Good then RefreshEnabled() else self:Notify(`Enable failed: {Err}`) end
+        end)
+
+        MakeBtn("Disconnect", 78, function()
+            local Good, Err = pcall(function() Conn:Disconnect() end)
+            if Good then
+                Row.BackgroundTransparency = 0.8
+                Header.TextColor3 = Theme.TextFaded
+                FnLabel.TextColor3 = Theme.TextFaded
+                self:Notify(`Disconnected connection [{Index}]`)
+            else
+                self:Notify(`Disconnect failed: {Err}`)
+            end
+        end)
+
+        MakeBtn("Copy Function Info", 120, function()
+            local Text = FormatFunction(Fn)
+            local Good = pcall(setclipboard, Text)
+            self:Notify(Good and "Copied function info" or "Copy failed")
+        end)
+    end
 end
 
 function Explorer:OpenCallRemote()
@@ -12825,7 +14030,7 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         Size = UDim2.fromOffset(720, 480);
         Position = UDim2.new(0.5, -360 + OffsetX, 0.5, -240 + OffsetY);
         BackgroundColor3 = Theme.Window;
-        BackgroundTransparency = 1;
+        BackgroundTransparency = UITransparency.Window or 0;
         BorderSizePixel = 0;
         ClipsDescendants = true;
         ZIndex = 50;
@@ -12840,6 +14045,12 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     BindTheme("Border", function(Color)
         WindowStroke.Color = Color
     end)
+
+    if BindTransparency then
+        BindTransparency("Window", function(Value)
+            Window.BackgroundTransparency = Value
+        end)
+    end
 
     local Entry = {Window = Window; ScriptObject = ScriptObject}
     table.insert(self.ScriptViewerWindows, Entry)
@@ -13959,6 +15170,19 @@ function Explorer:OpenSettings()
 
     CreateToggle("Use lua.expert decompiler", self.UseLuaExpertDecompiler, 4.5, function(State)
         self.UseLuaExpertDecompiler = State
+        self:SaveConfig()
+    end)
+
+    CreateHeader("Performance", 4.7)
+
+    CreateToggle("Unlimited FPS", self.UnlimitedFPS, 4.8, function(State)
+        local Good, Err = ApplyFPSCap(State)
+        if not Good then
+            self:Notify(`Couldn't change FPS cap: {Err}`)
+            return
+        end
+
+        self.UnlimitedFPS = State
         self:SaveConfig()
     end)
 
@@ -16696,6 +17920,7 @@ function Explorer:BuildConfigData()
         ThemePresetName = self.ThemePresetName or "Custom";
         Theme = ThemeData;
         UITransparency = TransparencyData;
+        UnlimitedFPS = self.UnlimitedFPS
     }
 end
 
@@ -16710,6 +17935,12 @@ function Explorer:ApplyConfigData(Data)
             self.ToggleKey = KeyCode
         end
     end
+
+    if typeof(Data.UnlimitedFPS) == "boolean" then
+        self.UnlimitedFPS = Data.UnlimitedFPS
+    end
+
+    ApplyFPSCap(self.UnlimitedFPS)
 
     if typeof(Data.AutoRefreshProperties) == "boolean" then
         self.AutoRefreshProperties = Data.AutoRefreshProperties
@@ -16875,6 +18106,7 @@ function Explorer:InitConfig()
         end
 
         self.ConfigLoaded = true
+        ApplyFPSCap(self.UnlimitedFPS)
         self:SaveConfig()
     end, "InitConfig")
 end
