@@ -5569,18 +5569,51 @@ local function ApplyPreset(Preset)
     end
 end
 
+local UserOriginalFPSCap
+local VexAppliedUnlimited
 local function ApplyFPSCap(Unlimited)
-    local Fn
+    local SetFn, GetFn
     pcall(function()
-        Fn = getgenv and getgenv().setfpscap
+        local Env = getgenv and getgenv() or nil
+        if Env then
+            SetFn = Env.setfpscap
+            GetFn = Env.getfpscap
+        end
     end)
 
-    if type(Fn) ~= "function" then
+    if type(SetFn) ~= "function" then
         return false, "setfpscap not available"
     end
 
-    local Good, Err = pcall(Fn, Unlimited and math.huge or 60)
-    return Good, Err
+    if UserOriginalFPSCap == nil then
+        if type(GetFn) == "function" then
+            local Good, Current = pcall(GetFn)
+            if Good and type(Current) == "number" and Current > 0 and Current ~= math.huge then
+                UserOriginalFPSCap = Current
+            end
+        end
+        UserOriginalFPSCap = UserOriginalFPSCap or 60
+    end
+
+    if Unlimited then
+        local Good, Err = pcall(SetFn, math.huge)
+        if Good then
+            VexAppliedUnlimited = true
+        end
+
+        return Good, Err
+    else
+        if VexAppliedUnlimited then
+            local Good, Err = pcall(SetFn, UserOriginalFPSCap)
+            if Good then
+                VexAppliedUnlimited = false
+            end
+
+            return Good, Err
+        end
+
+        return true
+    end
 end
 
 local Fonts = {
