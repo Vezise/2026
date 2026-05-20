@@ -2977,6 +2977,43 @@ local function ResolveInstanceText(Text)
     return nil
 end
 
+local SynSaveInstance
+local SynSaveInstanceErr
+local SynSaveInstanceTried = false
+local function LoadSynSaveInstance()
+    if SynSaveInstance then return SynSaveInstance end
+    if SynSaveInstanceTried then return nil, SynSaveInstanceErr end
+    SynSaveInstanceTried = true
+
+    local Params = {
+        RepoURL = "https://raw.githubusercontent.com/luau/UniversalSynSaveInstance/main/";
+        SSI = "saveinstance";
+    }
+
+    local GoodHttp, Source = pcall(function()
+        return game:HttpGet(Params.RepoURL .. Params.SSI .. ".luau", true)
+    end)
+    if not GoodHttp or type(Source) ~= "string" or Source == "" then
+        SynSaveInstanceErr = `HttpGet failed: {tostring(Source)}`
+        return nil, SynSaveInstanceErr
+    end
+
+    local Chunk, ParseErr = loadstring(Source, Params.SSI)
+    if not Chunk then
+        SynSaveInstanceErr = `loadstring failed: {tostring(ParseErr)}`
+        return nil, SynSaveInstanceErr
+    end
+
+    local GoodRun, Result = pcall(Chunk)
+    if not GoodRun or type(Result) ~= "function" then
+        SynSaveInstanceErr = `module returned non-function: {tostring(Result)}`
+        return nil, SynSaveInstanceErr
+    end
+
+    SynSaveInstance = Result
+    return SynSaveInstance
+end
+
 local MethodGroups = {
     {
         Class = "Instance";
@@ -3048,17 +3085,49 @@ local MethodGroups = {
                 "getcallbackvalue"; "function"; { { "name"; "string"; }; }; "global";
             };
             {
-                "saveinstance";
+                "synsaveinstance";
                 "void";
                 {
-                    { "FilePath";               "string";  "vex_dump.rbxm"; };
-                    { "NilInstances";           "boolean"; "false"; };
-                    { "IgnoreDefaultProps";     "boolean"; "true"; };
-                    { "Mode";                   "string";  "optimized"; };
-                    { "RemovePlayerCharacters"; "boolean"; "false"; };
+                    { "FilePath"; "string"; "vex_dump.rbxm"; };
+                    { "Mode"; "string";  "optimized"; };
+                    { "SafeMode"; "boolean"; "true"; };
+                    { "KillAllScripts"; "boolean"; "true"; };
+                    { "Decompile"; "boolean"; "true"; };
+                    { "DecompileTimeout"; "number";  "15"; };
+                    { "SaveBytecode"; "boolean"; "false"; };
+                    { "scriptcache"; "boolean"; "true"; };
+                    { "NilInstances"; "boolean"; "false"; };
+                    { "IgnoreDefaultProperties"; "boolean"; "true"; };
+                    { "IgnoreNotArchivable"; "boolean"; "true"; };
+                    { "AlternativeWritefile"; "boolean"; "true"; };
+                    { "IgnoreSharedStrings"; "boolean"; "true"; };
+                    { "BoostFPS"; "boolean"; "false"; };
+                    { "ShutdownWhenDone"; "boolean"; "false"; };
+                    { "AntiIdle"; "boolean"; "true"; };
+                    { "IsModel"; "boolean"; "false"; };
+                    { "SavePlayerCharacters"; "boolean"; "false"; };
+                    { "IsolatePlayers"; "boolean"; "false"; };
+                    { "IsolateLocalPlayer"; "boolean"; "false"; };
                 };
                 "global";
                 BuildOptions = true;
+                Resolve = function()
+                    return LoadSynSaveInstance()
+                end;
+                PostBuild = function(Options, Object)
+                    if typeof(Object) == "Instance" and Object ~= game then
+                        Options.Object = Object
+                        if Options.Mode == "optimized" then
+                            Options.Mode = "full"
+                        end
+
+                        if Options.IsModel == nil then
+                            Options.IsModel = true
+                        end
+                    end
+
+                    return Options
+                end;
             };
         };
     };
@@ -4164,8 +4233,9 @@ local function CollectMethods(Object)
             for _, Method in Group.Methods do
                 local MethodName = Method[1]
                 local IsGlobal = Method[4] == "global"
+                local HasResolver = type(Method.Resolve) == "function"
 
-                if IsGlobal and not GetGlobalCallable(MethodName) then
+                if IsGlobal and not HasResolver and not GetGlobalCallable(MethodName) then
                     continue
                 end
 
@@ -9976,16 +10046,19 @@ function Explorer:AttachPropertyCopyHandler(Row, Object, PropertyName, DisplayNa
 
     DisplayName = DisplayName or PropertyName
 
-    local ClickCatcher = VexUI:CreateInstance("TextButton", {
+    local ClickCatcher = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 1, 0);
         BackgroundTransparency = 1;
-        AutoButtonColor = false;
-        Text = "";
+        BorderSizePixel = 0;
         ZIndex = 199;
         Parent = Row;
     })
 
-    ClickCatcher.MouseButton2Click:Connect(function()
+    ClickCatcher.InputBegan:Connect(function(Input)
+        if Input.UserInputType ~= Enum.UserInputType.MouseButton2 then
+            return
+        end
+
         local ReadGood, CurrentValue = pcall(function()
             return Object[PropertyName]
         end)
@@ -10702,16 +10775,19 @@ function Explorer:RenderProperties(Object)
                             end
                         end
 
-                        local ClickCatcher = VexUI:CreateInstance("TextButton", {
+                        local ClickCatcher = VexUI:CreateInstance("Frame", {
                             Size = UDim2.new(1, 0, 1, 0);
                             BackgroundTransparency = 1;
-                            AutoButtonColor = false;
-                            Text = "";
+                            BorderSizePixel = 0;
                             ZIndex = 199;
                             Parent = Row;
                         })
 
-                        ClickCatcher.MouseButton2Click:Connect(function()
+                        ClickCatcher.InputBegan:Connect(function(Input)
+                            if Input.UserInputType ~= Enum.UserInputType.MouseButton2 then
+                                return
+                            end
+
                             local CurrentValue = Object:GetAttribute(Name)
                             local PathExpr = BuildLuaPath(Object)
                             local Code = `{PathExpr}:SetAttribute("{Name}", {SerializeValue(CurrentValue)})`
@@ -10855,16 +10931,19 @@ function Explorer:RenderProperties(Object)
                     Parent = Row;
                 })
 
-                local ClickCatcher = VexUI:CreateInstance("TextButton", {
+                local ClickCatcher = VexUI:CreateInstance("Frame", {
                     Size = UDim2.new(1, 0, 1, 0);
                     BackgroundTransparency = 1;
-                    AutoButtonColor = false;
-                    Text = "";
+                    BorderSizePixel = 0;
                     ZIndex = 199;
                     Parent = Row;
                 })
 
-                ClickCatcher.MouseButton2Click:Connect(function()
+                ClickCatcher.InputBegan:Connect(function(Input)
+                    if Input.UserInputType ~= Enum.UserInputType.MouseButton2 then
+                        return
+                    end
+                    
                     local PathExpr = BuildLuaPath(Object)
                     local Code = `game:GetService("CollectionService"):AddTag({PathExpr}, "{TagName}")`
                     pcall(setclipboard, Code)
@@ -13057,6 +13136,58 @@ function Explorer:OpenMethodCaller(Method)
         Parent = Body;
     })
 
+    local FieldCount = #Method[3]
+    local UseGrid = FieldCount > 6
+    local Columns = UseGrid and 2 or 1
+
+    local RowHeight = 42
+    local ListRowHeight = 44
+    local MaxViewport = 240
+
+    local EstimatedHeight
+    if UseGrid then
+        local Rows = math.ceil(FieldCount / Columns)
+        EstimatedHeight = Rows * RowHeight + (Rows - 1) * 6
+    else
+        EstimatedHeight = FieldCount * ListRowHeight
+    end
+    EstimatedHeight = math.max(0, EstimatedHeight)
+
+    local ViewportHeight = math.min(MaxViewport, EstimatedHeight)
+
+    local FieldsScroll = VexUI:CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 0, ViewportHeight);
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        ScrollBarThickness = 4;
+        ScrollBarImageColor3 = Theme.Border;
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+        ScrollingDirection = Enum.ScrollingDirection.Y;
+        ScrollBarImageTransparency = ViewportHeight >= EstimatedHeight and 1 or 0;
+        LayoutOrder = 2;
+        Visible = FieldCount > 0;
+        ZIndex = 202;
+        Parent = Body;
+    })
+
+    if UseGrid then
+        VexUI:CreateInstance("UIGridLayout", {
+            CellSize = UDim2.new(0.5, -3, 0, 42);
+            CellPadding = UDim2.new(0, 6, 0, 6);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            FillDirectionMaxCells = Columns;
+            Parent = FieldsScroll;
+        })
+    else
+        VexUI:CreateInstance("UIListLayout", {
+            FillDirection = Enum.FillDirection.Vertical;
+            Padding = UDim.new(0, 6);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Parent = FieldsScroll;
+        })
+    end
+
     local InputBoxes = {}
     for Index, Spec in Method[3] do
         local SpecName = Spec[1]
@@ -13064,11 +13195,11 @@ function Explorer:OpenMethodCaller(Method)
         local Default = Spec[3] or ""
 
         local Row = VexUI:CreateInstance("Frame", {
-            Size = UDim2.new(1, 0, 0, 38);
+            Size = UseGrid and UDim2.fromOffset(0, 0) or UDim2.new(1, 0, 0, 38);
             BackgroundTransparency = 1;
-            LayoutOrder = 1 + Index;
+            LayoutOrder = Index;
             ZIndex = 202;
-            Parent = Body;
+            Parent = FieldsScroll;
         })
 
         VexUI:CreateInstance("TextLabel", {
@@ -13079,6 +13210,7 @@ function Explorer:OpenMethodCaller(Method)
             TextColor3 = Theme.TextDim;
             TextSize = 11;
             TextXAlignment = Enum.TextXAlignment.Left;
+            TextTruncate = Enum.TextTruncate.AtEnd;
             ZIndex = 203;
             Parent = Row;
         })
@@ -13099,7 +13231,7 @@ function Explorer:OpenMethodCaller(Method)
             ZIndex = 203;
             Parent = Row;
         })
-        
+
         VexUI:AddStroke(Box, "Border", 1)
         VexUI:AddPadding(Box, 0, 8, 0, 8)
         table.insert(InputBoxes, {Box = Box; Type = SpecType})
@@ -13258,22 +13390,31 @@ function Explorer:OpenMethodCaller(Method)
         end
 
         local Good, Result = pcall(function()
-            if Method[4] == "global" and Method.BuildOptions then
-                local Fn = GetGlobalCallable(Method[1])
+            if type(Method.Resolve) == "function" then
+                local Fn, LoadErr = Method.Resolve()
                 if not Fn then
-                    error(`Global function not available: {Method[1]}`)
+                    error(LoadErr or `Resolver failed for {Method[1]}`)
                 end
 
-                local Options = { Object = Object }
-                for Index, Entry in InputBoxes do
-                    local Key = Method[3][Index][1]
-                    local Value = ParseArg(Entry.Type, Entry.Box.Text)
-                    if Value ~= nil then
-                        Options[Key] = Value
+                if Method.BuildOptions then
+                    local Options = {}
+                    for Index, Spec in Method[3] do
+                        Options[Spec[1]] = Args[Index]
                     end
+
+                    if type(Method.PostBuild) == "function" then
+                        Options = Method.PostBuild(Options, Object) or Options
+                    end
+
+                    return Fn(Options)
                 end
 
-                return Fn(Options)
+                if Method.NoSelf then
+                    return Fn(table.unpack(Args, 1, #Args))
+                end
+
+                local Target = ResolveSelfForGlobal(Object, Method)
+                return Fn(Target, table.unpack(Args, 1, #Args))
             end
 
             if Method[4] == "global" then
@@ -13282,15 +13423,28 @@ function Explorer:OpenMethodCaller(Method)
                     error(`Global function not available: {Method[1]}`)
                 end
 
+                if Method.BuildOptions then
+                    local Options = {}
+                    for Index, Spec in Method[3] do
+                        Options[Spec[1]] = Args[Index]
+                    end
+
+                    if type(Method.PostBuild) == "function" then
+                        Options = Method.PostBuild(Options, Object) or Options
+                    end
+
+                    return Fn(Options)
+                end
+
                 if Method.NoSelf then
-                    return Fn(table.unpack(Args, 1, ArgCount))
+                    return Fn(table.unpack(Args, 1, #Args))
                 end
 
                 local Target = ResolveSelfForGlobal(Object, Method)
-                return Fn(Target, table.unpack(Args, 1, ArgCount))
+                return Fn(Target, table.unpack(Args, 1, #Args))
             end
 
-            return Object[Method[1]](Object, table.unpack(Args, 1, ArgCount))
+            return Object[Method[1]](Object, table.unpack(Args, 1, #Args))
         end)
 
         LastResult = Result
@@ -13994,6 +14148,229 @@ local function HighlightLuau(Source)
     return table.concat(Out)
 end
 
+function Explorer:DumpScriptFunctions(ScriptObject)
+    local GetScriptClosure = GetGlobalCallable("getscriptclosure")
+    local GetGc = GetGlobalCallable("getgc")
+
+    local GetInfo = debug and debug.info
+    local GetConstants = debug and debug.getconstants
+    local GetUpvalues = debug and debug.getupvalues
+    local GetProtos = debug and debug.getprotos
+
+    if not (GetInfo and (GetConstants or GetUpvalues)) then
+        return nil
+    end
+
+    local Seen = {}
+    local Functions = {}
+
+    local function VisitFunction(Fn)
+        if type(Fn) ~= "function" or Seen[Fn] then
+            return
+        end
+
+        Seen[Fn] = true
+        table.insert(Functions, Fn)
+
+        if GetProtos then
+            local Success, Protos = pcall(GetProtos, Fn)
+
+            if Success and type(Protos) == "table" then
+                for _, Proto in Protos do
+                    VisitFunction(Proto)
+                end
+            end
+        end
+    end
+
+    if GetScriptClosure then
+        local Success, RootFn = pcall(GetScriptClosure, ScriptObject)
+
+        if Success and type(RootFn) == "function" then
+            VisitFunction(RootFn)
+        end
+    end
+
+    if GetGc then
+        local Success, GcList = pcall(GetGc, true)
+
+        if Success and type(GcList) == "table" then
+            for _, Item in GcList do
+                if type(Item) == "function" and not Seen[Item] then
+                    local Owns = false
+
+                    if GetUpvalues then
+                        local UpvalueSuccess, Upvalues = pcall(GetUpvalues, Item)
+
+                        if UpvalueSuccess and type(Upvalues) == "table" then
+                            for _, Upvalue in Upvalues do
+                                if Upvalue == ScriptObject then
+                                    Owns = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+
+                    if Owns then
+                        VisitFunction(Item)
+                    end
+                end
+            end
+        end
+    end
+
+    if #Functions == 0 then
+        return string.format(
+            "-- No functions could be enumerated for %s\n-- Your executor may not support getscriptclosure / debug APIs.",
+            ScriptObject:GetFullName()
+        )
+    end
+
+    local Lines = {}
+
+    local function Push(Text)
+        table.insert(Lines, Text)
+    end
+
+    local function FormatValue(Value)
+        local ValueType = typeof(Value)
+
+        if ValueType == "string" then
+            return string.format("%q", Value)
+        end
+
+        if ValueType == "number"
+            or ValueType == "boolean"
+            or ValueType == "nil"
+        then
+            return tostring(Value)
+        end
+
+        if ValueType == "Instance" then
+            return string.format(
+                "<%s> %s",
+                Value.ClassName,
+                Value:GetFullName()
+            )
+        end
+
+        if ValueType == "function" then
+            local Source = "?"
+            local Line = "?"
+            local Name = ""
+
+            pcall(function()
+                Source = debug.info(Value, "s") or "?"
+                Line = debug.info(Value, "l") or "?"
+                Name = debug.info(Value, "n") or ""
+            end)
+
+            return string.format(
+                "<function %s @ %s:%s>",
+                Name ~= "" and Name or "?",
+                Source,
+                Line
+            )
+        end
+
+        if ValueType == "table" then
+            return string.format("<table %s>", tostring(Value))
+        end
+
+        return string.format(
+            "<%s> %s",
+            ValueType,
+            tostring(Value)
+        )
+    end
+
+    Push(string.format(
+        "-- Function dump for %s",
+        ScriptObject:GetFullName()
+    ))
+
+    Push(string.format(
+        "-- Functions found: %d",
+        #Functions
+    ))
+
+    Push(string.rep("-", 72))
+
+    for Index, Fn in Functions do
+        local Source = "?"
+        local Line = "?"
+        local Name = ""
+
+        pcall(function()
+            Source = debug.info(Fn, "s") or "?"
+            Line = debug.info(Fn, "l") or "?"
+            Name = debug.info(Fn, "n") or ""
+        end)
+
+        Push("")
+        Push(string.format(
+            "[%d] %s @ %s:%s",
+            Index,
+            Name ~= "" and Name or "(anonymous)",
+            Source,
+            Line
+        ))
+
+        if GetConstants then
+            local Success, Constants = pcall(GetConstants, Fn)
+
+            if Success and type(Constants) == "table" then
+                if next(Constants) == nil then
+                    Push("  Constants: (none)")
+                else
+                    Push("  Constants:")
+
+                    for ConstantIndex, ConstantValue in Constants do
+                        Push(string.format(
+                            "    [%s] = %s",
+                            tostring(ConstantIndex),
+                            FormatValue(ConstantValue)
+                        ))
+                    end
+                end
+            else
+                Push(string.format(
+                    "  Constants: <unavailable> (%s)",
+                    tostring(Constants)
+                ))
+            end
+        end
+
+        if GetUpvalues then
+            local Success, Upvalues = pcall(GetUpvalues, Fn)
+
+            if Success and type(Upvalues) == "table" then
+                if next(Upvalues) == nil then
+                    Push("  Upvalues: (none)")
+                else
+                    Push("  Upvalues:")
+
+                    for UpvalueIndex, UpvalueValue in Upvalues do
+                        Push(string.format(
+                            "    [%s] = %s",
+                            tostring(UpvalueIndex),
+                            FormatValue(UpvalueValue)
+                        ))
+                    end
+                end
+            else
+                Push(string.format(
+                    "  Upvalues: <unavailable> (%s)",
+                    tostring(Upvalues)
+                ))
+            end
+        end
+    end
+
+    return table.concat(Lines, "\n")
+end
+
 function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     if not ScriptObject then
         return
@@ -14077,7 +14454,7 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     })
 
     VexUI:CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -180, 1, 0);
+        Size = UDim2.new(1, -420, 1, 0);
         Position = UDim2.new(0, 12, 0, 0);
         BackgroundTransparency = 1;
         Font = Fonts.Bold;
@@ -14090,38 +14467,172 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         Parent = TitleBar;
     })
 
-    local CopyButton = VexUI:CreateInstance("TextButton", {
-        Size = UDim2.new(0, 60, 0, 20);
-        Position = UDim2.new(1, -98, 0.5, -10);
-        BackgroundColor3 = Theme.Field;
-        BackgroundTransparency = 0.3;
-        BorderSizePixel = 0;
-        AutoButtonColor = false;
-        Font = Fonts.SemiBold;
-        Text = "Copy";
-        TextColor3 = Theme.Text;
-        TextSize = 11;
+    local ButtonStrip = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(0, 0, 0, 20);
+        AutomaticSize = Enum.AutomaticSize.X;
+        Position = UDim2.new(1, -8, 0.5, -10);
+        AnchorPoint = Vector2.new(1, 0);
+        BackgroundTransparency = 1;
         ZIndex = 52;
         Parent = TitleBar;
     })
-    
-    VexUI:AddStroke(CopyButton, "Border", 1)
 
-    CopyButton.MouseButton1Click:Connect(function()
-        local Good = pcall(setclipboard, Source)
-        CopyButton.Text = Good and "Copied!" or "Failed"
+    VexUI:CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal;
+        Padding = UDim.new(0, 6);
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        VerticalAlignment = Enum.VerticalAlignment.Center;
+        Parent = ButtonStrip;
+    })
 
+    local StripOrder = 0
+    local function MakeStripButton(LabelText, Width, OnClick)
+        StripOrder += 1
+        local Btn = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.fromOffset(Width, 20);
+            BackgroundColor3 = Theme.Field;
+            BackgroundTransparency = 0.3;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.SemiBold;
+            Text = LabelText;
+            TextColor3 = Theme.Text;
+            TextSize = 11;
+            LayoutOrder = StripOrder;
+            ZIndex = 52;
+            Parent = ButtonStrip;
+        })
+        VexUI:AddStroke(Btn, "Border", 1)
+        Btn.MouseButton1Click:Connect(OnClick)
+        return Btn
+    end
+
+    local function SafeFileBase()
+        local Raw = ScriptObject:GetFullName()
+        local Cleaned = Raw:gsub("[^%w%-_%.]", "_")
+        return Cleaned
+    end
+
+    local function FlashButton(Btn, OkText, FailText, Good)
+        local Original = Btn.Text
+        Btn.Text = Good and OkText or FailText
         task.delay(1.2, function()
-            if CopyButton and CopyButton.Parent then
-                CopyButton.Text = "Copy"
+            if Btn and Btn.Parent then
+                Btn.Text = Original
             end
         end)
+    end
+
+    local CopyButton
+    CopyButton = MakeStripButton("Copy", 60, function()
+        local Good = pcall(setclipboard, Source)
+        FlashButton(CopyButton, "Copied!", "Failed", Good)
+    end)
+
+    local DumpScriptButton
+    DumpScriptButton = MakeStripButton("Dump Script", 86, function()
+        local Path = `vex_dumps/{SafeFileBase()}.luau`
+        local FileOK = false
+        if writefile and isfolder and makefolder then
+            FileOK = pcall(function()
+                if not isfolder("vex_dumps") then makefolder("vex_dumps") end
+                writefile(Path, Source)
+            end)
+        end
+        local ClipOK = pcall(setclipboard, Source)
+        FlashButton(
+            DumpScriptButton,
+            FileOK and "Saved!" or (ClipOK and "Copied!" or "Failed"),
+            "Failed",
+            FileOK or ClipOK
+        )
+        self:Notify(FileOK and `Dumped script -> {Path}` or "Script dump failed (file)")
+    end)
+
+    local DumpFunctionsButton
+    DumpFunctionsButton = MakeStripButton("Dump Functions", 108, function()
+        local Result = self:DumpScriptFunctions(ScriptObject)
+        if not Result then
+            FlashButton(DumpFunctionsButton, "-", "Unavailable", false)
+            self:Notify("Dump functions: executor missing required globals")
+            return
+        end
+
+        local Path = `vex_dumps/{SafeFileBase()}.functions.txt`
+        local FileOK = false
+        if writefile and isfolder and makefolder then
+            FileOK = pcall(function()
+                if not isfolder("vex_dumps") then makefolder("vex_dumps") end
+                writefile(Path, Result)
+            end)
+        end
+        local ClipOK = pcall(setclipboard, Result)
+        FlashButton(
+            DumpFunctionsButton,
+            FileOK and "Saved!" or (ClipOK and "Copied!" or "Failed"),
+            "Failed",
+            FileOK or ClipOK
+        )
+        self:Notify(FileOK and `Dumped functions -> {Path}` or "Functions dump failed (file)")
+    end)
+
+    local DumpBytecodeButton
+    DumpBytecodeButton = MakeStripButton("Dump Bytecode", 102, function()
+        local GetScriptBytecode = GetGlobalCallable("getscriptbytecode")
+        if not GetScriptBytecode then
+            FlashButton(DumpBytecodeButton, "-", "Unavailable", false)
+            self:Notify("Dump bytecode: executor missing getscriptbytecode")
+
+            return
+        end
+
+        local Good, Bytecode = pcall(GetScriptBytecode, ScriptObject)
+        if not Good or type(Bytecode) ~= "string" or Bytecode == "" then
+            FlashButton(DumpBytecodeButton, "-", "Failed", false)
+            self:Notify(`Bytecode dump failed: {tostring(Bytecode)}`)
+
+            return
+        end
+
+        local Path = `vex_dumps/{SafeFileBase()}.bytecode.bin`
+        local FileOK = false
+        if writefile and isfolder and makefolder then
+            FileOK = pcall(function()
+                if not isfolder("vex_dumps") then makefolder("vex_dumps") end
+                writefile(Path, Bytecode)
+            end)
+        end
+
+        local ClipOK = false
+        local PreviewBytes = math.min(#Bytecode, 4096)
+        local HexChunks = {}
+        for I = 1, PreviewBytes do
+            HexChunks[I] = string.format("%02X", string.byte(Bytecode, I))
+        end
+
+        local Preview = table.concat(HexChunks, " ")
+        if #Bytecode > PreviewBytes then
+            Preview ..= `\n-- truncated, full length: {#Bytecode} bytes`
+        end
+
+        ClipOK = pcall(setclipboard, Preview)
+
+        FlashButton(
+            DumpBytecodeButton,
+            FileOK and "Saved!" or (ClipOK and "Copied hex" or "Failed"),
+            "Failed",
+            FileOK or ClipOK
+        )
+
+        self:Notify(FileOK
+            and `Dumped bytecode ({#Bytecode} bytes) -> {Path}`
+            or "Bytecode dump failed (file)"
+        )
     end)
 
     local CloseAssetId = GetUIAssetId("CloseIcon")
     local CloseButton = VexUI:CreateInstance("TextButton", {
-        Size = UDim2.new(0, 28, 0, 20);
-        Position = UDim2.new(1, -32, 0.5, -10);
+        Size = UDim2.fromOffset(28, 20);
         BackgroundColor3 = Theme.Accent;
         BackgroundTransparency = 0.85;
         BorderSizePixel = 0;
@@ -14130,10 +14641,11 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         Text = CloseAssetId and "" or "x";
         TextColor3 = Theme.Accent;
         TextSize = 10;
+        LayoutOrder = 999;
         ZIndex = 52;
-        Parent = TitleBar;
+        Parent = ButtonStrip;
     })
-    
+
     local CloseStroke = VexUI:AddStroke(CloseButton, Theme.Accent, 1)
 
     local CloseIcon
@@ -14163,7 +14675,6 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         for Index, Item in self.ScriptViewerWindows do
             if Item == Entry then
                 table.remove(self.ScriptViewerWindows, Index)
-
                 break
             end
         end
@@ -18090,8 +18601,13 @@ function Explorer:InitConfig()
             end
 
             if Data and Data.Version ~= self.Version then
-                writefile(self.ConfigPath, Services.HttpService:JSONEncode(Info))
-                Data = nil
+                local OldVersion = Data.Version
+                Data.Version = self.Version
+                task.delay(3, function()
+                    self:ShowNotification(`NEW UPDATE!`, `VEX has updated to {Data.Version}`, "info")
+                end)
+
+                pcall(writefile, self.ConfigPath, Services.HttpService:JSONEncode(Data))
             end
         end
 
