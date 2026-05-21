@@ -5616,6 +5616,65 @@ local function ApplyFPSCap(Unlimited)
     end
 end
 
+local function BeautifyJson(Compact, IndentStr)
+    IndentStr = IndentStr or "    "
+
+    local Out = {}
+    local Depth = 0
+    local InString = false
+    local Escape = false
+    local Length = #Compact
+
+    local function Newline()
+        Out[#Out + 1] = "\n"
+        Out[#Out + 1] = string.rep(IndentStr, Depth)
+    end
+
+    for I = 1, Length do
+        local Char = Compact:sub(I, I)
+
+        if InString then
+            Out[#Out + 1] = Char
+            if Escape then
+                Escape = false
+            elseif Char == "\\" then
+                Escape = true
+            elseif Char == "\"" then
+                InString = false
+            end
+        else
+            if Char == "\"" then
+                InString = true
+                Out[#Out + 1] = Char
+            elseif Char == "{" or Char == "[" then
+                Out[#Out + 1] = Char
+                local Next = Compact:sub(I + 1, I + 1)
+                if Next == "}" or Next == "]" then
+                else
+                    Depth += 1
+                    Newline()
+                end
+            elseif Char == "}" or Char == "]" then
+                local Prev = Compact:sub(I - 1, I - 1)
+                if Prev ~= "{" and Prev ~= "[" then
+                    Depth -= 1
+                    Newline()
+                end
+                Out[#Out + 1] = Char
+            elseif Char == "," then
+                Out[#Out + 1] = Char
+                Newline()
+            elseif Char == ":" then
+                Out[#Out + 1] = ": "
+            elseif Char ~= " " and Char ~= "\t" and Char ~= "\n" and Char ~= "\r" then
+                Out[#Out + 1] = Char
+            end
+        end
+    end
+
+    return table.concat(Out)
+end
+
 local Fonts = {
     Bold = Enum.Font.GothamBold;
     SemiBold = Enum.Font.GothamSemibold;
@@ -8139,6 +8198,24 @@ function Explorer:JumpToCharacter(Player)
     end
 
     self:JumpToInstance(ClonerefInstance(Character))
+end
+
+function Explorer:JumpToPlayer(Player)
+    local Good, Player = pcall(function()
+        return Services.Players[Player.Name]
+    end)
+
+    if not Good or not Player then
+        if self.ShowErrorNotification then
+            pcall(function()
+                self:ShowErrorNotification(`{Player.Name} no longer exists`)
+            end)
+        end
+
+        return
+    end
+
+    self:JumpToInstance(ClonerefInstance(Player))
 end
 
 function Explorer:EnsureNodeVisible(Object)
@@ -12022,6 +12099,8 @@ function Explorer:SelectChildrenOfSelection()
     end
 
     if #Collected == 0 then
+        self:Notify("Selected instance has no children")
+
         return
     end
 
@@ -12062,7 +12141,7 @@ function Explorer:TeleportSelfTo(Object)
     local Target
     if Object:IsA("Model") then
         pcall(function()
-            Target = Object:GetPivot()
+            Target = Object:GetModelCFrame()
         end)
 
         if not Target then
@@ -12072,6 +12151,10 @@ function Explorer:TeleportSelfTo(Object)
         end
     elseif Object:IsA("BasePart") then
         Target = Object.CFrame
+    elseif Object:IsA("Attachment") then
+        Target = Object.WorldCFrame
+    elseif Object:IsA("Tool") then
+        Target = Object.WorldPivot
     end
 
     if not Target then
@@ -12079,9 +12162,9 @@ function Explorer:TeleportSelfTo(Object)
     end
 
     local Character = self.LocalPlayer.Character
-    local PrimaryPart = Character and Character:FindFirstChild("HumanoidRootPart")
+    local PrimaryPart = Character and (Character:FindFirstChild("HumanoidRootPart") or Character.PrimaryPart)
     if not PrimaryPart then
-        return false, "no HumanoidRootPart"
+        return false, "no HumanoidRootPart/PrimaryPart"
     end
 
     PrimaryPart.CFrame = Target + Vector3.new(0, 3, 0)
@@ -14404,6 +14487,330 @@ function Explorer:DumpScriptFunctions(ScriptObject)
     return table.concat(Lines, "\n")
 end
 
+function Explorer:CollectScriptFunctions(ScriptObject)
+    local GetScriptClosure = GetGlobalCallable("getscriptclosure")
+    local GetProtos = debug and debug.getprotos
+    local GetUpvalues = debug and debug.getupvalues
+    local GetGc = GetGlobalCallable("getgc")
+
+    local Seen = {}
+    local Functions = {}
+
+    local function Visit(Fn)
+        if type(Fn) ~= "function" or Seen[Fn] then return end
+        Seen[Fn] = true
+        Functions[#Functions + 1] = Fn
+
+        if GetProtos then
+            local Good, Protos = pcall(GetProtos, Fn)
+            if Good and type(Protos) == "table" then
+                for _, Proto in Protos do Visit(Proto) end
+            end
+        end
+    end
+
+    local ClosureSucceeded = false
+    if GetScriptClosure then
+        local Good, RootFn = pcall(GetScriptClosure, ScriptObject)
+        if Good and type(RootFn) == "function" then
+            Visit(RootFn)
+            ClosureSucceeded = true
+        end
+    end
+
+    if not ClosureSucceeded and GetGc then
+        local Good, GcList = pcall(GetGc, true)
+        if Good and type(GcList) == "table" then
+            for _, Item in GcList do
+                if type(Item) == "function" and not Seen[Item] and GetUpvalues then
+                    local UpGood, Ups = pcall(GetUpvalues, Item)
+                    if UpGood and type(Ups) == "table" then
+                        for _, UpVal in Ups do
+                            if UpVal == ScriptObject then
+                                Visit(Item)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return Functions
+end
+
+function Explorer:OpenConstantUpvalueSearch(ScriptObject)
+    local GetConstants = debug and debug.getconstants
+    local GetUpvalues  = debug and debug.getupvalues
+    local GetInfo = debug and debug.info
+
+    if not (GetInfo and (GetConstants or GetUpvalues)) then
+        self:Notify("Search: executor missing debug.getconstants / getupvalues")
+        return
+    end
+
+    local Functions = self:CollectScriptFunctions(ScriptObject)
+    if #Functions == 0 then
+        self:Notify("Search: no functions could be enumerated")
+        return
+    end
+
+    local Window, Body = self:CreateModalWindow(`Search: {ScriptObject.Name}`, 560, 460)
+
+    local TopBar = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 0, 26);
+        Position = UDim2.new(0, 0, 0, 0);
+        BackgroundTransparency = 1;
+        ZIndex = 202;
+        Parent = Body;
+    })
+
+    local SearchBox = VexUI:CreateInstance("TextBox", {
+        Size = UDim2.new(1, -128, 1, 0);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        Font = Fonts.Mono;
+        Text = "";
+        PlaceholderText = "Search constants & upvalues…";
+        PlaceholderColor3 = Theme.TextFaded;
+        TextColor3 = Theme.Text;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        ZIndex = 203;
+        Parent = TopBar;
+    })
+    VexUI:AddStroke(SearchBox, "Border", 1)
+    VexUI:AddPadding(SearchBox, 0, 8, 0, 8)
+
+    local function MakeFilterToggle(Text, Width, RightOffset, InitialOn)
+        local State = InitialOn ~= false
+        local Btn = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.new(0, Width, 1, 0);
+            Position = UDim2.new(1, -RightOffset, 0, 0);
+            BackgroundColor3 = State and Theme.Accent or Theme.Field;
+            BackgroundTransparency = State and 0 or 0.3;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.SemiBold;
+            Text = Text;
+            TextColor3 = Theme.Text;
+            TextSize = 11;
+            ZIndex = 203;
+            Parent = TopBar;
+        })
+        VexUI:AddStroke(Btn, "Border", 1)
+        return Btn, function() return State end, function(NewState)
+            State = NewState
+            Btn.BackgroundColor3 = State and Theme.Accent or Theme.Field
+            Btn.BackgroundTransparency = State and 0 or 0.3
+        end
+    end
+
+    local ConstsBtn, GetConstsOn, SetConstsOn = MakeFilterToggle("Const", 56, 122, true)
+    local UpsBtn, GetUpsOn, SetUpsOn = MakeFilterToggle("Upval", 56, 60,  true)
+
+    ConstsBtn.MouseButton1Click:Connect(function() SetConstsOn(not GetConstsOn()) end)
+    UpsBtn.MouseButton1Click:Connect(function() SetUpsOn(not GetUpsOn()) end)
+
+    local CountLabel = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 16);
+        Position = UDim2.new(0, 0, 0, 32);
+        BackgroundTransparency = 1;
+        Font = Fonts.Medium;
+        Text = "";
+        TextColor3 = Theme.TextDim;
+        TextSize = 11;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = 202;
+        Parent = Body;
+    })
+
+    local Results = VexUI:CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 1, -54);
+        Position = UDim2.new(0, 0, 0, 54);
+        BackgroundColor3 = Theme.Background;
+        BackgroundTransparency = 0.4;
+        BorderSizePixel = 0;
+        ScrollBarThickness = 4;
+        ScrollBarImageColor3 = Theme.Border;
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+        ScrollingDirection = Enum.ScrollingDirection.Y;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    VexUI:AddStroke(Results, "BorderSoft", 1)
+
+    VexUI:CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical;
+        Padding = UDim.new(0, 2);
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Parent = Results;
+    })
+    VexUI:AddPadding(Results, 4, 6, 4, 6)
+
+    local function FormatValue(Value)
+        local Tp = typeof(Value)
+        if Tp == "string"  then return string.format("%q", Value) end
+        if Tp == "number" or Tp == "boolean" or Tp == "nil" then return tostring(Value) end
+        if Tp == "Instance" then return `<{Value.ClassName}> {Value:GetFullName()}` end
+        if Tp == "function" then
+            local Src, Line = "?", "?"
+            pcall(function()
+                Src  = debug.info(Value, "s") or "?"
+                Line = debug.info(Value, "l") or "?"
+            end)
+            return `<function @ {Src}:{Line}>`
+        end
+        if Tp == "table" then return `<table {tostring(Value)}>` end
+        return `<{Tp}> {tostring(Value)}`
+    end
+
+    local function ValueMatches(Value, Needle)
+        local Formatted = FormatValue(Value):lower()
+        return Formatted:find(Needle, 1, true) ~= nil
+    end
+
+    local function ClearResults()
+        for _, Child in Results:GetChildren() do
+            if Child:IsA("Frame") then Child:Destroy() end
+        end
+    end
+
+    local ResultOrder = 0
+    local function AddResultRow(Kind, FnIndex, FnLabel, EntryIdx, Value)
+        ResultOrder += 1
+        local Row = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 36);
+            BackgroundColor3 = Theme.Field;
+            BackgroundTransparency = 0.5;
+            BorderSizePixel = 0;
+            LayoutOrder = ResultOrder;
+            ZIndex = 203;
+            Parent = Results;
+        })
+        VexUI:AddStroke(Row, "BorderSoft", 1)
+
+        VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, -12, 0, 14);
+            Position = UDim2.new(0, 6, 0, 3);
+            BackgroundTransparency = 1;
+            Font = Fonts.SemiBold;
+            Text = `[{Kind}] [{EntryIdx}]  ·  fn #{FnIndex}  {FnLabel}`;
+            TextColor3 = Theme.PropEnum;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextTruncate = Enum.TextTruncate.AtEnd;
+            ZIndex = 204;
+            Parent = Row;
+        })
+
+        local ValueLabel = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, -12, 0, 16);
+            Position = UDim2.new(0, 6, 0, 17);
+            BackgroundTransparency = 1;
+            Font = Fonts.Mono;
+            Text = FormatValue(Value);
+            TextColor3 = Theme.Text;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextTruncate = Enum.TextTruncate.AtEnd;
+            ZIndex = 204;
+            Parent = Row;
+        })
+
+        local Catcher = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 1, 0);
+            BackgroundTransparency = 1;
+            ZIndex = 205;
+            Parent = Row;
+        })
+        Catcher.InputBegan:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+                pcall(setclipboard, ValueLabel.Text)
+                self:Notify("Copied value")
+            end
+        end)
+    end
+
+    local function RunSearch()
+        ClearResults()
+        ResultOrder = 0
+        local Query = SearchBox.Text:lower()
+        if Query == "" then
+            CountLabel.Text = "Type to search constants & upvalues. Right-click a result to copy its value."
+            return
+        end
+
+        local Hits = 0
+        local Scanned = 0
+        local SearchConsts = GetConstsOn()
+        local SearchUps    = GetUpsOn()
+
+        for FnIndex, Fn in Functions do
+            Scanned += 1
+            local Src, Line, Name = "?", "?", ""
+            pcall(function()
+                Src  = debug.info(Fn, "s") or "?"
+                Line = debug.info(Fn, "l") or "?"
+                Name = debug.info(Fn, "n") or ""
+            end)
+            local FnLabel = `{Name ~= "" and Name or "(anon)"} @ {Src}:{Line}`
+
+            if SearchConsts and GetConstants then
+                local Good, Consts = pcall(GetConstants, Fn)
+                if Good and type(Consts) == "table" then
+                    for ConstIdx, ConstVal in Consts do
+                        if ValueMatches(ConstVal, Query) then
+                            AddResultRow("CONST", FnIndex, FnLabel, ConstIdx, ConstVal)
+                            Hits += 1
+                            if Hits >= 500 then break end
+                        end
+                    end
+                end
+            end
+            if Hits >= 500 then break end
+
+            if SearchUps and GetUpvalues then
+                local Good, Ups = pcall(GetUpvalues, Fn)
+                if Good and type(Ups) == "table" then
+                    for UpIdx, UpVal in Ups do
+                        if ValueMatches(UpVal, Query) then
+                            AddResultRow("UPVAL", FnIndex, FnLabel, UpIdx, UpVal)
+                            Hits += 1
+                            if Hits >= 500 then break end
+                        end
+                    end
+                end
+            end
+            if Hits >= 500 then break end
+        end
+
+        CountLabel.Text = Hits >= 500
+            and `Showing first 500 matches across {Scanned} function(s) (refine query for more)`
+            or `{Hits} match(es) across {Scanned} function(s)`
+    end
+
+    local DebounceToken = 0
+    SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        DebounceToken += 1
+        local MyToken = DebounceToken
+        task.delay(0.15, function()
+            if MyToken == DebounceToken then
+                RunSearch()
+            end
+        end)
+    end)
+
+    ConstsBtn.MouseButton1Click:Connect(RunSearch)
+    UpsBtn.MouseButton1Click:Connect(RunSearch)
+
+    RunSearch()
+    SearchBox:CaptureFocus()
+end
+
 function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     if not ScriptObject then
         return
@@ -14487,7 +14894,7 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     })
 
     VexUI:CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -420, 1, 0);
+        Size = UDim2.new(1, -500, 1, 0);
         Position = UDim2.new(0, 12, 0, 0);
         BackgroundTransparency = 1;
         Font = Fonts.Bold;
@@ -14661,6 +15068,11 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
             and `Dumped bytecode ({#Bytecode} bytes) -> {Path}`
             or "Bytecode dump failed (file)"
         )
+    end)
+
+    local SearchButton
+    SearchButton = MakeStripButton("Search", 64, function()
+        self:OpenConstantUpvalueSearch(ScriptObject)
     end)
 
     local CloseAssetId = GetUIAssetId("CloseIcon")
@@ -18138,7 +18550,11 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
         self:SelectChildrenOfSelection()
     end)
 
-    MakeItem("Clear Search & Jump", false, function()
+    local HasSearch = (self._LastAppliedSearchQuery or "") ~= ""
+        or (self.SearchBox and self.SearchBox.Text ~= "")
+    local HasSelection = typeof(self.SelectedInstance) == "Instance"
+
+    MakeItem("Clear Search & Jump", not (HasSearch and HasSelection), function()
         self:ClearSearchAndJumpTo()
     end)
 
@@ -18155,6 +18571,23 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
     if IsPlayer then
         MakeItem("Jump to Character", false, function()
             self:JumpToCharacter(Target)
+            self:CloseContextMenu()
+        end)
+    end
+
+    local Target = self.SelectedInstance
+    local IsCharacter = false
+    if Target then
+        local Good, Result = pcall(function()
+            return Services.Players[Target.Name]
+        end)
+
+        IsCharacter = Good and Result
+    end
+
+    if Target:IsA("Model") and IsCharacter then
+        MakeItem("Jump to Player", false, function()
+            self:JumpToPlayer(Target)
             self:CloseContextMenu()
         end)
     end
@@ -18224,7 +18657,7 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
         self:Notify(`Unanchored {Count} part(s)`)
     end)
 
-    local CanTeleport = self.SelectedInstance and (self.SelectedInstance:IsA("BasePart") or self.SelectedInstance:IsA("Model"))
+    local CanTeleport = self.SelectedInstance and (self.SelectedInstance:IsA("BasePart") or self.SelectedInstance:IsA("Model") or self.SelectedInstance:IsA("Tool") or self.SelectedInstance:IsA("Attachment"))
     MakeItem("Teleport Here", not CanTeleport, function()
         local Good, Reason = self:TeleportSelfTo(self.SelectedInstance)
         self:Notify(Good and `Teleported to {self.SelectedInstance.Name}` or `Teleport failed: {Reason}`)
@@ -18577,7 +19010,7 @@ function Explorer:SaveConfig()
         end
 
         local Encoded = Services.HttpService:JSONEncode(self:BuildConfigData())
-        writefile(self.ConfigPath, Encoded)
+        writefile(self.ConfigPath, BeautifyJson(Encoded))
     end, "SaveConfig")
 end
 
@@ -18620,7 +19053,7 @@ function Explorer:InitConfig()
         end
 
         if not isfile(self.ConfigPath) then
-            writefile(self.ConfigPath, Services.HttpService:JSONEncode(Info))
+            writefile(self.ConfigPath, BeautifyJson(Services.HttpService:JSONEncode(Info)))
         else
             local ReadGood, RawText = pcall(readfile, self.ConfigPath)
             if ReadGood then
@@ -18640,7 +19073,7 @@ function Explorer:InitConfig()
                     self:ShowNotification(`NEW UPDATE!`, `VEX has updated to {Data.Version}`, "info")
                 end)
 
-                pcall(writefile, self.ConfigPath, Services.HttpService:JSONEncode(Data))
+                pcall(writefile, self.ConfigPath, BeautifyJson(Services.HttpService:JSONEncode(Data)))
             end
         end
 
