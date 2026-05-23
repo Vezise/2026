@@ -1,6 +1,8 @@
 getgenv().VexExecutedCheck = false
 
 local RiskyServices = {
+    "EncodingService";
+    "ExperienceStateRecordingService";
     "LodDataService";
     "TelemetryService";
     "BrowserService";
@@ -4414,6 +4416,7 @@ local Theme = {
     PropDefault = Color3.fromRGB(220, 220, 220);
 }
 
+local DefaultTheme = table.clone(Theme)
 local UITransparency = {
     Window = 0;
     TitleBar = 0;
@@ -4484,6 +4487,40 @@ local function SetUITransparency(Key, Value)
     end
 end
 
+local function RefreshThemePresetButton()
+    if Explorer
+        and Explorer.ThemePresetButton
+        and Explorer.ThemePresetButton.Parent
+    then
+        Explorer.ThemePresetButton.Text = `{Explorer.ThemePresetName or "Custom"}`
+    end
+end
+
+local function SetThemePresetName(Name)
+    if not Explorer then
+        return
+    end
+
+    Explorer.ThemePresetName = Name or "Custom"
+    RefreshThemePresetButton()
+end
+
+local ApplyingPreset = false
+local function MarkThemeCustom()
+    if ApplyingPreset then
+        return
+    end
+
+    if not Explorer then
+        return
+    end
+
+    if Explorer.ThemePresetName ~= "Custom" then
+        Explorer.ThemePresetName = "Custom"
+        RefreshThemePresetButton()
+    end
+end
+
 local function SetThemeColor(ThemeKey, NewColor)
     Theme[ThemeKey] = NewColor
 
@@ -4504,41 +4541,6 @@ local function SetThemeColor(ThemeKey, NewColor)
 
     if SaveConfigDeferred and not InBatchSave then
         pcall(SaveConfigDeferred)
-    end
-end
-
-local ApplyingPreset = false
-
-local function RefreshThemePresetButton()
-    if Explorer
-        and Explorer.ThemePresetButton
-        and Explorer.ThemePresetButton.Parent
-    then
-        Explorer.ThemePresetButton.Text = `{Explorer.ThemePresetName or "Custom"}`
-    end
-end
-
-local function SetThemePresetName(Name)
-    if not Explorer then
-        return
-    end
-
-    Explorer.ThemePresetName = Name or "Custom"
-    RefreshThemePresetButton()
-end
-
-local function MarkThemeCustom()
-    if ApplyingPreset then
-        return
-    end
-
-    if not Explorer then
-        return
-    end
-
-    if Explorer.ThemePresetName ~= "Custom" then
-        Explorer.ThemePresetName = "Custom"
-        RefreshThemePresetButton()
     end
 end
 
@@ -13442,6 +13444,96 @@ function Explorer:OpenMethodCaller(Method)
         return
     end
 
+    local function FormatResultForDisplay(Value, Depth, Seen)
+        Depth = Depth or 0
+        Seen = Seen or {}
+
+        local T = typeof(Value)
+
+        if Value == nil then
+            return "nil"
+        end
+
+        if T == "string" then
+            return string.format("%q", Value)
+        end
+
+        if T == "Instance" then
+            return `{Value.ClassName}({Value:GetFullName()})`
+        end
+
+        if T == "EnumItem" or T == "number" or T == "boolean" then
+            return tostring(Value)
+        end
+
+        if T ~= "table" then
+            return tostring(Value)
+        end
+
+        if Seen[Value] then
+            return "<cycle>"
+        end
+        Seen[Value] = true
+
+        if Depth >= 5 then
+            Seen[Value] = nil
+            return "{...}"
+        end
+
+        local Count = 0
+        for _ in pairs(Value) do
+            Count += 1
+        end
+        if Count == 0 then
+            Seen[Value] = nil
+            return "{}"
+        end
+
+        local Indent = string.rep("    ", Depth + 1)
+        local CloseIndent = string.rep("    ", Depth)
+        local Parts = {}
+        local Emitted = 0
+        local MaxEntries = 500
+
+        local IsArray = true
+        for K in Value do
+            if type(K) ~= "number" then
+                IsArray = false
+                break
+            end
+        end
+
+        if IsArray then
+            for I, V in Value do
+                Emitted += 1
+                if Emitted > MaxEntries then
+                    Parts[#Parts + 1] = `{Indent}... ({Count - MaxEntries} more)`
+                    break
+                end
+                Parts[#Parts + 1] = `{Indent}{FormatResultForDisplay(V, Depth + 1, Seen)},`
+            end
+        else
+            for K, V in Value do
+                Emitted += 1
+                if Emitted > MaxEntries then
+                    Parts[#Parts + 1] = `{Indent}... ({Count - MaxEntries} more)`
+                    break
+                end
+                local KeyStr
+                if type(K) == "string" and K:match("^[%a_][%w_]*$") then
+                    KeyStr = K
+                else
+                    KeyStr = `[{FormatResultForDisplay(K, Depth + 1, Seen)}]`
+                end
+                Parts[#Parts + 1] = `{Indent}{KeyStr} = {FormatResultForDisplay(V, Depth + 1, Seen)},`
+            end
+        end
+
+        Seen[Value] = nil
+
+        return `\{\n{table.concat(Parts, "\n")}\n{CloseIndent}\}`
+    end
+
     local Window, Body = self:CreateModalWindow(`Call: {Method[1]}`, 360, 420)
     VexUI:AddListLayout(Body, 6, Enum.FillDirection.Vertical)
 
@@ -13652,20 +13744,34 @@ function Explorer:OpenMethodCaller(Method)
         return Out
     end
 
-    local ResultLabel = VexUI:CreateInstance("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40);
+    local ResultScroll = VexUI:CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 0, 140);
         BackgroundColor3 = Theme.Field;
         BorderSizePixel = 0;
+        ScrollBarThickness = 4;
+        ScrollBarImageColor3 = Theme.Border;
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+        ScrollingDirection = Enum.ScrollingDirection.XY;
+        LayoutOrder = 90;
+        ZIndex = 202;
+        Parent = Body;
+    })
+    VexUI:AddPadding(ResultScroll, 6, 8, 6, 8)
+
+    local ResultLabel = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(1, -8, 0, 0);
+        AutomaticSize = Enum.AutomaticSize.Y;
+        BackgroundTransparency = 1;
         Font = Fonts.Mono;
         Text = "(no result)";
         TextColor3 = Theme.TextDim;
         TextSize = 11;
         TextXAlignment = Enum.TextXAlignment.Left;
-        TextWrapped = true;
         TextYAlignment = Enum.TextYAlignment.Top;
-        LayoutOrder = 90;
-        ZIndex = 202;
-        Parent = Body;
+        TextWrapped = true;
+        ZIndex = 203;
+        Parent = ResultScroll;
     })
     
     VexUI:AddPadding(ResultLabel, 6, 8, 6, 8)
@@ -13776,8 +13882,14 @@ function Explorer:OpenMethodCaller(Method)
             if Method[1] == "getconnections" and type(Result) == "table" then
                 self:ShowConnectionsResult(Result)
                 ResultLabel.Text = `OK: {#Result} connection(s)`
+            elseif type(Result) == "table" then
+                local Count = 0
+                for _ in pairs(Result) do
+                    Count += 1
+                end
+                ResultLabel.Text = `OK ({Count} entries):\n{FormatResultForDisplay(Result)}`
             else
-                ResultLabel.Text = `OK: {self:FormatValue(Result)}`
+                ResultLabel.Text = `OK: {FormatResultForDisplay(Result)}`
             end
             ResultLabel.TextColor3 = Theme.Green
         else
@@ -16466,23 +16578,202 @@ function Explorer:OpenSettings()
         self:SaveConfig()
     end, Percent)
 
-    CreateHeader("Theme Colors", 10)
-    CreateColorRow("Accent", "Accent", 11)
-    CreateColorRow("Window", "Window", 12)
-    CreateColorRow("Title Bar", "TitleBar", 13)
-    CreateColorRow("Field", "Field", 14)
-    CreateColorRow("Text", "Text", 15)
-    CreateColorRow("Border", "Border", 16)
-    CreateColorRow("Selection", "Selected", 17)
-    CreateColorRow("Selection Bar", "SelectionBar", 18)
+    local ColorSections = {
+        {
+            Header = "Surfaces",
+            BaseOrder = 10,
+            Rows = {
+                {
+                    "Main Background",
+                    "Background"
+                },
+                {
+                    "Window Background",
+                    "Window"
+                },
+                {
+                    "Title Bar Background",
+                    "TitleBar"
+                },
+                {
+                    "Input / Button Background",
+                    "Field"
+                },
+                {
+                    "Input / Button Hover",
+                    "FieldHover"
+                },
+            },
+        },
+        {
+            Header = "Borders & Selection",
+            BaseOrder = 11,
+            Rows = {
+                {
+                    "Border (Strong)",
+                    "Border"
+                },
+                {
+                    "Border (Subtle)",
+                    "BorderSoft"
+                },
+                {
+                    "Selected Row Background",
+                    "Selected"
+                },
+                {
+                    "Selected Row Accent Bar",
+                    "SelectionBar"
+                },
+            },
+        },
+        {
+            Header = "Text",
+            BaseOrder = 12,
+            Rows = {
+                {
+                    "Text (Primary)",
+                    "Text"
+                },
+                {
+                    "Text (Dim)",
+                    "TextDim"
+                },
+                {
+                    "Text (Faded / Placeholder)",
+                    "TextFaded"
+                },
+                {
+                    "Text (Section Header)",
+                    "TextHeader"
+                },
+            },
+        },
+        {
+            Header = "Accents & Status",
+            BaseOrder = 13,
+            Rows = {
+                {
+                    "Accent (Highlights)",
+                    "Accent"
+                },
+                {
+                    "Toggle: On",
+                    "ToggleOn"
+                },
+                {
+                    "Toggle: Off",
+                    "ToggleOff"
+                },
+                {
+                    "Status: Success",
+                    "Green"
+                },
+                {
+                    "Status: Error",
+                    "Red"
+                },
+                {
+                    "Status: Warning",
+                    "Yellow"
+                },
+                {
+                    "Status: Info",
+                    "Blue"
+                },
+            },
+        },
+        {
+            Header = "Property Value Colors",
+            BaseOrder = 14,
+            Rows = {
+                {
+                    "Property: String",
+                    "PropString"
+                },
+                {
+                    "Property: Number",
+                    "PropNumber"
+                },
+                {
+                    "Property: Instance",
+                    "PropInstance"
+                },
+                {
+                    "Property: Enum",
+                    "PropEnum"
+                },
+                {
+                    "Property: Nil",
+                    "PropNil"
+                },
+                {
+                    "Property: Default",
+                    "PropDefault"
+                },
+            },
+        },
+    }
 
-    CreateHeader("Property Value Colors", 20)
-    CreateColorRow("String", "PropString", 21)
-    CreateColorRow("Number", "PropNumber", 22)
-    CreateColorRow("Instance", "PropInstance", 23)
-    CreateColorRow("Enum", "PropEnum", 24)
-    CreateColorRow("Nil", "PropNil", 25)
-    CreateColorRow("Default", "PropDefault", 26)
+    for SectionIdx, Section in ColorSections do
+        local SectionBase = Section.BaseOrder * 10
+        CreateHeader(Section.Header, SectionBase)
+        for RowIdx, RowDef in Section.Rows do
+            CreateColorRow(RowDef[1], RowDef[2], SectionBase + RowIdx * 0.1)
+        end
+    end
+
+    local ResetColorsRow = CreateRow(150)
+    local ResetColorsButton = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(1, 0, 0, 24);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Font = Fonts.Medium;
+        Text = "Reset Colors to Default";
+        TextColor3 = Theme.TextDim;
+        TextSize = 12;
+        ZIndex = 203;
+        Parent = ResetColorsRow;
+    })
+    VexUI:AddStroke(ResetColorsButton, "Border", 1)
+
+    ResetColorsButton.MouseEnter:Connect(function()
+        VexUI:Tween(ResetColorsButton, {TextColor3 = Theme.Text})
+    end)
+    ResetColorsButton.MouseLeave:Connect(function()
+        VexUI:Tween(ResetColorsButton, {TextColor3 = Theme.TextDim})
+    end)
+
+    ResetColorsButton.MouseButton1Click:Connect(function()
+        local TargetPreset
+        if self.ThemePresetName then
+            for _, Preset in Presets do
+                if Preset.Name == self.ThemePresetName then
+                    TargetPreset = Preset
+                    break
+                end
+            end
+        end
+
+        if TargetPreset then
+            ApplyPreset(TargetPreset)
+        else
+            InBatchSave = true
+            for Key, DefaultColor in DefaultTheme do
+                if Theme[Key] ~= DefaultColor then
+                    SetThemeColor(Key, DefaultColor)
+                end
+            end
+            InBatchSave = false
+        end
+
+        if self.SaveConfig then self:SaveConfig() end
+        if self.SelectedInstance then self:RenderProperties(self.SelectedInstance) end
+
+        self:CloseModal()
+        self:OpenSettings()
+    end)
 
     CreateHeader("Fonts", 30)
 
