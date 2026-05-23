@@ -1,6 +1,7 @@
 getgenv().VexExecutedCheck = false
 
 local RiskyServices = {
+    "LodDataService";
     "TelemetryService";
     "BrowserService";
     "CommerceService";
@@ -32,7 +33,6 @@ local RiskyServices = {
     "IXPService";
     "UserService";
     "NonReplicatedCSGDictionaryService";
-    "EncodingService";
     "TextService";
     "Stats";
     "NetworkClient";
@@ -257,6 +257,16 @@ local function Track(Connection)
     return Connection
 end
 
+local function CompactConnections()
+    local Kept = {}
+    for _, C in Connections do
+        if C and C.Connected then
+            Kept[#Kept + 1] = C
+        end
+    end
+    Connections = Kept
+end
+
 local function SafeGet(Object, Key)
     local Good, Result = pcall(function()
         return Object[Key]
@@ -445,6 +455,27 @@ local SerializeDeprecated = {
     Archivable = true; RobloxLocked = true;
     LocalTransparencyModifier = true;
     ChatHistory = true;
+}
+
+local ReadOnlyProperties = {
+    ClassName = true;
+    AccountAge = true;
+    UserId = true;
+    MembershipType = true;
+    FollowUserId = true;
+    LocalPlayer = true;
+    NumPlayers = true;
+    MaxPlayers = true;
+    PreferredPlayers = true;
+    IsLoaded = true;
+    IsPlaying = true;
+    IsPaused = true;
+    TimeLength = true;
+    Occupant = true;
+    AssemblyLinearVelocity = true;
+    AssemblyAngularVelocity = true;
+    WorldCFrame = true;
+    WorldPosition = true;
 }
 
 local CollectProperties;
@@ -972,7 +1003,7 @@ local function PrefetchAssets()
 
         pcall(DownloadAsset, "CloseIcon")
         pcall(DownloadAsset, "FreezeIcon")
-        pcall(DownloadAsset, "Console Icon")
+        pcall(DownloadAsset, "ConsoleIcon")
         pcall(DownloadAsset, "SearchIcon")
         pcall(DownloadAsset, "SettingsIcon")
         pcall(DownloadAsset, "Unspecified")
@@ -2957,26 +2988,6 @@ local function GetLocalCharacterRootPart()
         or Character:FindFirstChildWhichIsA("BasePart")
 end
 
-local function ResolveInstanceText(Text)
-    Text = tostring(Text or "")
-
-    local Lowered = Text:lower()
-    if Lowered == ""
-        or Lowered == "character"
-        or Lowered == "char"
-        or Lowered == "hrp"
-        or Lowered == "me"
-    then
-        return GetLocalCharacterRootPart()
-    end
-
-    if Lowered == "selected" then
-        return self.SelectedInstance
-    end
-
-    return nil
-end
-
 local SynSaveInstance
 local SynSaveInstanceErr
 local SynSaveInstanceTried = false
@@ -4419,8 +4430,58 @@ local TransparencyBindings = {}
 
 local function BindTheme(ThemeKey, Apply)
     ThemeBindings[ThemeKey] = ThemeBindings[ThemeKey] or {}
-    table.insert(ThemeBindings[ThemeKey], Apply)
+
+    local Wrapper
+    Wrapper = function(Color)
+        local Good, Result = pcall(Apply, Color)
+        if not Good then
+            return false
+        end
+
+        return Result ~= false
+    end
+
+    table.insert(ThemeBindings[ThemeKey], Wrapper)
     Apply(Theme[ThemeKey])
+end
+
+local function BindTransparency(Key, Apply)
+    TransparencyBindings[Key] = TransparencyBindings[Key] or {}
+
+    local Wrapper
+    Wrapper = function(Value)
+        local Good, Result = pcall(Apply, Value)
+        if not Good then
+            return false
+        end
+        return Result ~= false
+    end
+
+    table.insert(TransparencyBindings[Key], Wrapper)
+    Apply(UITransparency[Key] or 0)
+end
+
+local function ClampTransparency(Value)
+    return math.clamp(tonumber(Value) or 0, 0, 0.95)
+end
+
+local function SetUITransparency(Key, Value)
+    UITransparency[Key] = ClampTransparency(Value)
+
+    local Bindings = TransparencyBindings[Key]
+    if Bindings then
+        local Kept = {}
+        for _, Wrapper in Bindings do
+            if Wrapper(UITransparency[Key]) ~= false then
+                Kept[#Kept + 1] = Wrapper
+            end
+        end
+        TransparencyBindings[Key] = Kept
+    end
+
+    if SaveConfigDeferred and not InBatchSave then
+        pcall(SaveConfigDeferred)
+    end
 end
 
 local function SetThemeColor(ThemeKey, NewColor)
@@ -4428,9 +4489,13 @@ local function SetThemeColor(ThemeKey, NewColor)
 
     local Bindings = ThemeBindings[ThemeKey]
     if Bindings then
-        for _, Apply in Bindings do
-            pcall(Apply, NewColor)
+        local Kept = {}
+        for _, Wrapper in Bindings do
+            if Wrapper(NewColor) ~= false then
+                Kept[#Kept + 1] = Wrapper
+            end
         end
+        ThemeBindings[ThemeKey] = Kept
     end
 
     if not InBatchSave then
@@ -4440,16 +4505,6 @@ local function SetThemeColor(ThemeKey, NewColor)
     if SaveConfigDeferred and not InBatchSave then
         pcall(SaveConfigDeferred)
     end
-end
-
-local function ClampTransparency(Value)
-    return math.clamp(tonumber(Value) or 0, 0, 0.95)
-end
-
-local function BindTransparency(Key, Apply)
-    TransparencyBindings[Key] = TransparencyBindings[Key] or {}
-    table.insert(TransparencyBindings[Key], Apply)
-    Apply(UITransparency[Key] or 0)
 end
 
 local ApplyingPreset = false
@@ -4484,21 +4539,6 @@ local function MarkThemeCustom()
     if Explorer.ThemePresetName ~= "Custom" then
         Explorer.ThemePresetName = "Custom"
         RefreshThemePresetButton()
-    end
-end
-
-local function SetUITransparency(Key, Value)
-    UITransparency[Key] = ClampTransparency(Value)
-
-    local Bindings = TransparencyBindings[Key]
-    if Bindings then
-        for _, Apply in Bindings do
-            pcall(Apply, UITransparency[Key])
-        end
-    end
-
-    if SaveConfigDeferred and not InBatchSave then
-        pcall(SaveConfigDeferred)
     end
 end
 
@@ -5685,6 +5725,11 @@ local Fonts = {
     Heading = Enum.Font.Ubuntu;
 }
 
+local DefaultFonts = {}
+for K, V in Fonts do
+    DefaultFonts[K] = V
+end
+
 local TweenSnappy = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TweenSlide = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
@@ -6519,6 +6564,19 @@ function VexUI:CreateTooltip(Parent, Text)
     return Tooltip
 end
 
+function VexUI:ApplyClassIcon(ImageLabel, ClassName)
+    if not ImageLabel then return end
+
+    local AssetId = ClassName and GetClassAssetId(ClassName)
+    if AssetId then
+        ImageLabel.Image = AssetId
+        ImageLabel.ImageTransparency = 0
+    else
+        ImageLabel.Image = ""
+        ImageLabel.ImageTransparency = 1
+    end
+end
+
 local function IsLuaIdentifier(Name)
     if type(Name) ~= "string" or #Name == 0 then
         return false
@@ -6637,12 +6695,8 @@ Explorer = setmetatable({
     SelectedOrder = {};
     SelectionAnchor = nil;
 
-    NodesByInstance = {};
-    RootNodes = {};
-
     SearchQuery = "";
     PropertyFilter = "";
-    ForcedExpanded = {};
 
     ToggleKey = Enum.KeyCode.RightAlt;
     WindowVisible = true;
@@ -6769,7 +6823,67 @@ Explorer = setmetatable({
     ClickPartToSelect = false;
     _ClickPartConnection = nil;
     _QuickDropdown = nil;
+
+    SearchIndex = {};
+    SearchIndexByInstance = setmetatable({}, {__mode = "k"});
+    SearchIndexBuilt = false;
+    _SearchIndexHooked = false;
+    _LastIndexedQuery = nil;
+    _LastIndexedResults = nil;
+    _FilterChangedSinceLastSearch = false;
+
+    MatchByClassName = false;
+    MatchByProperty = false;
+
+    FlatSearchResults = false;
+    _FlatResultsContainer = nil;
+    _FlatResultsPool = nil;
+    _FlatResultsItems = nil;
+    _FlatRowHeight = 22;
+    _FlatRowGap = 0;
+    _FlatBufferRows = 6;
+
+    _VTreeRows = nil;
+    _VTreeRowsByInstance = nil;
+    _VTreeFilteredRows = nil;
+    _VTreeFilterActive = false;
+    _VTreeExpanded = nil;
+    _VTreeContainer = nil;
+    _VTreePool = nil;
+    _VTreeRowHeight = 22;
+    _VTreeRowGap = 0;
+    _VTreeBufferRows = 4;
+    _VTreeIndent = 16;
+    _VTreeScrollConn = nil;
+    _VTreeRebuildScheduled = false;
+    _VTreeFilteredPageSize = 150;
+
+    _NilWalkCache = nil;
+    _NilWalkCacheTime = 0;
+    _NilWalkCacheTTL = math.huge;
+    _NilRefreshDebounceToken = 0;
+
+    PinnedPaths = {};
 }, ExplorerClass)
+
+local function RebindFont(OldEnum, NewEnum)
+    if OldEnum == NewEnum then return end
+    local Root = Explorer.ScreenGui
+    if not Root then return end
+
+    for _, Desc in Root:GetDescendants() do
+        if Desc:IsA("TextLabel")
+            or Desc:IsA("TextButton")
+            or Desc:IsA("TextBox")
+        then
+            if Desc.Font == OldEnum then
+                pcall(function()
+                    Desc.Font = NewEnum
+                end)
+            end
+        end
+    end
+end
 
 function Explorer:SpawnTask(TaskName, Callback)
     Handle(function()
@@ -6787,6 +6901,26 @@ function Explorer:ResetTasks()
         pcall(task.cancel, Thread)
         self.Tasks[TaskName] = nil
     end
+end
+
+local function ResolveInstanceText(Text)
+    Text = tostring(Text or "")
+
+    local Lowered = Text:lower()
+    if Lowered == ""
+        or Lowered == "character"
+        or Lowered == "char"
+        or Lowered == "hrp"
+        or Lowered == "me"
+    then
+        return GetLocalCharacterRootPart()
+    end
+
+    if Lowered == "selected" then
+        return Explorer.SelectedInstance
+    end
+
+    return nil
 end
 
 function Explorer:GetInstancePath(Object)
@@ -7243,770 +7377,6 @@ function Explorer:BeginRename(Node)
     end)
 end
 
-function Explorer:CreateNodeRow(Node, RowParent)
-    local IndentOffset = 6 + Node.Depth * 14
-
-    local Row = VexUI:CreateInstance("TextButton", {
-        Size = UDim2.new(1, 0, 0, 22);
-        BackgroundColor3 = Theme.Selected;
-        BackgroundTransparency = 1;
-        BorderSizePixel = 0;
-        AutoButtonColor = false;
-        Text = "";
-        Parent = RowParent;
-    })
-    BindTheme("Selected", function(Color)
-        Row.BackgroundColor3 = Color
-    end)
-
-    local SelectionAccent = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(0, 2, 1, -6);
-        Position = UDim2.new(0, 0, 0, 3);
-        BackgroundColor3 = Theme.SelectionBar;
-        BorderSizePixel = 0;
-        Visible = false;
-        Parent = Row;
-    })
-    BindTheme("SelectionBar", function(Color)
-        SelectionAccent.BackgroundColor3 = Color
-    end)
-
-    local Arrow = VexUI:CreateInstance("TextButton", {
-        Size = UDim2.new(0, 16, 1, 0);
-        Position = UDim2.new(0, IndentOffset, 0, 0);
-        BackgroundTransparency = 1;
-        AutoButtonColor = false;
-        Font = Fonts.Bold;
-        Text = "";
-        TextColor3 = Theme.TextDim;
-        TextSize = 11;
-        Parent = Row;
-    })
-
-    BindTheme("TextDim", function(Color)
-        if Arrow and Arrow.Parent then
-            Arrow.TextColor3 = Color
-        end
-    end)
-
-    local GoodClass, ClassName = pcall(function()
-        return Node.Instance.ClassName
-    end)
-
-    if not GoodClass or type(ClassName) ~= "string" or ClassName == "" then
-        ClassName = "Instance"
-    end
-
-    local GoodName, InstanceName = pcall(function()
-        return Node.Instance.Name
-    end)
-
-    if not GoodName or type(InstanceName) ~= "string" or InstanceName == "" then
-        InstanceName = "?"
-    end
-
-    local Icon = VexUI:CreateClassIcon(ClassName, Row)
-    Icon.Position = UDim2.new(0, IndentOffset + 18, 0.5, -8)
-
-    local Label = VexUI:CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -(IndentOffset + 42), 1, 0);
-        Position = UDim2.new(0, IndentOffset + 40, 0, 0);
-        BackgroundTransparency = 1;
-        Font = Node.Depth == 0 and Fonts.SemiBold or Fonts.Medium;
-        Text = InstanceName;
-        TextColor3 = Theme.Text;
-        TextSize = 12;
-        TextXAlignment = Enum.TextXAlignment.Left;
-        TextTruncate = Enum.TextTruncate.AtEnd;
-        Parent = Row;
-    })
-
-    BindTheme("Text", function(Color)
-        if Label and Label.Parent then
-            Label.TextColor3 = Color
-        end
-    end)
-
-    Node.Row = Row
-    Node.Arrow = Arrow
-    Node.Icon = Icon
-    Node.Label = Label
-    Node.SelectionAccent = SelectionAccent
-
-    local function RefreshNodeTheme()
-        if Arrow and Arrow.Parent then
-            Arrow.TextColor3 = Theme.TextDim
-        end
-
-        if Label and Label.Parent then
-            Label.TextColor3 = Theme.Text
-        end
-
-        if Row and Row.Parent then
-            Row.BackgroundColor3 = Theme.Selected
-        end
-
-        if SelectionAccent and SelectionAccent.Parent then
-            SelectionAccent.BackgroundColor3 = Theme.SelectionBar
-        end
-
-        if Node and Node.Instance then
-            self:UpdateNodeVisual(Node.Instance)
-        end
-    end
-
-    BindTheme("Text", RefreshNodeTheme)
-    BindTheme("TextDim", RefreshNodeTheme)
-    BindTheme("Selected", RefreshNodeTheme)
-    BindTheme("SelectionBar", RefreshNodeTheme)
-    BindTheme("Accent", RefreshNodeTheme)
-
-    self:UpdateArrow(Node)
-    self:UpdateNodeVisual(Node.Instance)
-
-    Node.Connections = Node.Connections or {}
-
-    table.insert(Node.Connections, Track(Row.MouseEnter:Connect(function()
-        if self.SelectedSet[Node.Instance] then
-            return
-        end
-
-        VexUI:Tween(Row, {BackgroundTransparency = 0.7})
-    end)))
-
-    table.insert(Node.Connections, Track(Row.MouseLeave:Connect(function()
-        if self.SelectedSet[Node.Instance] then
-            return
-        end
-
-        VexUI:Tween(Row, {BackgroundTransparency = 1})
-    end)))
-
-    local LastClickAt = 0
-    table.insert(Node.Connections, Track(Row.MouseButton1Click:Connect(function()
-        if self._JustDragged then
-            return
-        end
-
-        if self.ReparentMode then
-            self:CommitReparent(Node.Instance)
-
-            return
-        end
-
-        local Now = os.clock()
-        if Now - LastClickAt < 0.35 then
-            LastClickAt = 0
-            self:HandleDoubleClick(Node)
-
-            return
-        end
-        LastClickAt = Now
-
-        if self.ShiftHeld and self.SelectionAnchor then
-            self:RangeSelect(self.SelectionAnchor, Node.Instance)
-        elseif self.CtrlHeld then
-            self:ToggleInSelection(Node.Instance)
-            self.SelectionAnchor = Node.Instance
-        else
-            self:SetSelection({Node.Instance})
-            self.SelectionAnchor = Node.Instance
-        end
-    end)))
-
-    table.insert(Node.Connections, Track(Arrow.MouseButton1Click:Connect(function()
-        if self._JustDragged then
-            return
-        end
-
-        self:ToggleNode(Node)
-    end)))
-
-    table.insert(Node.Connections, Track(Row.MouseButton2Click:Connect(function()
-        if not self.SelectedSet[Node.Instance] then
-            self:SetSelection({Node.Instance})
-            self.SelectionAnchor = Node.Instance
-        end
-
-        local Mouse = self.LocalPlayer:GetMouse()
-        self:OpenContextMenu(Mouse.X, Mouse.Y)
-    end)))
-
-    table.insert(Node.Connections, Track(Row.InputBegan:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-            self.DragOperation = {
-                StartX = Input.Position.X;
-                StartY = Input.Position.Y;
-                Started = false;
-                Source = Node.Instance;
-                SourceName = SafeGet(Node.Instance, "Name") or "?";
-            }
-        end
-    end)))
-
-    table.insert(Node.Connections, Track(Row.InputBegan:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton3 then
-            self:ToggleViewObject(Node.Instance)
-        end
-    end)))
-
-    local function ScheduleSearchRefresh()
-        if self.SearchQuery == "" then
-            return
-        end
-
-        self._RefreshDebounceToken = (self._RefreshDebounceToken or 0) + 1
-        local Token = self._RefreshDebounceToken
-
-        task.delay(0.4, function()
-            if Token ~= self._RefreshDebounceToken then
-                return
-            end
-
-            if KillScript then
-                return
-            end
-
-            self:RefreshAllSearchFilters()
-        end)
-    end
-
-    local NameSignalGood, NameSignal = pcall(function()
-        return Node.Instance:GetPropertyChangedSignal("Name")
-    end)
-
-    if NameSignalGood and NameSignal then
-        table.insert(Node.Connections, Track(NameSignal:Connect(function()
-            local GoodNewName, NewName = pcall(function()
-                return Node.Instance.Name
-            end)
-
-            if not GoodNewName or type(NewName) ~= "string" then
-                NewName = "?"
-            end
-
-            if Node.Label and Node.Label.Parent then
-                Node.Label.Text = NewName
-            end
-
-            if self.SearchQuery ~= ""
-                and NewName:lower():find(self.SearchQuery, 1, true)
-            then
-                ScheduleSearchRefresh()
-            end
-        end)))
-    end
-
-    Node._ConnectChildSignals = function()
-        if Node._ChildAddedConn then
-            return
-        end
-
-        local Good, Connection = pcall(function()
-            return Node.Instance.ChildAdded:Connect(function(RawChild)
-                if typeof(RawChild) ~= "Instance" then return end
-                local Child = ClonerefInstance(RawChild)
-
-                if self.ExplorerFrozen then
-                    self.FrozenPendingAdds[Child] = true
-                    return
-                end
-
-                self:UpdateArrow(Node)
-
-                if Node.Expanded then
-                    if self.SearchQuery == ""
-                        or self.MatchSet[Child]
-                        or self.SubtreeMatchSet[Child]
-                    then
-                        self:CreateChildNode(Node, Child, self:GetNextChildLayoutOrder(Node))
-                    end
-                end
-
-                if self.SearchQuery ~= "" then
-                    local GoodChildName, ChildName = pcall(function()
-                        return Child.Name
-                    end)
-
-                    if GoodChildName
-                        and type(ChildName) == "string"
-                        and ChildName:lower():find(self.SearchQuery, 1, true)
-                    then
-                        ScheduleSearchRefresh()
-                    end
-                end
-            end)
-        end)
-
-        if Good and Connection then
-            Node._ChildAddedConn = Connection
-            table.insert(Node.Connections, Track(Connection))
-        end
-        
-        local Good2, Connection2 = pcall(function()
-            return Node.Instance.ChildRemoved:Connect(function(RawChild)
-                if typeof(RawChild) ~= "Instance" then return end
-                local Child = ClonerefInstance(RawChild)
-
-                if self.ExplorerFrozen then
-                    self.FrozenPendingRemoves[Child] = true
-                    return
-                end
-
-                self:UpdateArrow(Node)
-                local ChildNode = self.NodesByInstance[Child]
-                if ChildNode and ChildNode.Parent == Node then
-                    self:DestroyNode(ChildNode)
-                end
-            end)
-        end)
-
-        if Good2 and Connection2 then
-            Node._ChildRemovedConn = Connection2
-            table.insert(Node.Connections, Track(Connection2))
-        end
-    end
-
-    Node._DisconnectChildSignals = function()
-        if Node._ChildAddedConn then
-            pcall(function()
-                Node._ChildAddedConn:Disconnect()
-            end)
-
-            Node._ChildAddedConn = nil
-        end
-        if Node._ChildRemovedConn then
-            pcall(function()
-                Node._ChildRemovedConn:Disconnect()
-            end)
-
-            Node._ChildRemovedConn = nil
-        end
-    end
-
-    local function HookArrowSignal(SignalName)
-        local Good, Conn = pcall(function()
-            return Node.Instance[SignalName]:Connect(function(RawChild)
-                if typeof(RawChild) ~= "Instance" then
-                    return
-                end
-
-                self:UpdateArrow(Node)
-            end)
-        end)
-
-        if Good and Conn then
-            table.insert(Node.Connections, Track(Conn))
-        end
-    end
-
-    HookArrowSignal("ChildAdded")
-    HookArrowSignal("ChildRemoved")
-end
-
-function Explorer:UpdateArrow(Node)
-    if not Node.Arrow then
-        return
-    end
-
-    local HasChildren
-    if Node.IsNilContainer then
-        HasChildren = true
-    else
-        local Good, Children = pcall(function()
-            return Node.Instance:GetChildren()
-        end)
-
-        HasChildren = Good and #Children > 0
-    end
-
-    if HasChildren then
-        Node.Arrow.Text = Node.Expanded and "-" or "+"
-        Node.Arrow.TextSize = 14
-        Node.Arrow.TextColor3 = Theme.TextDim
-    else
-        Node.Arrow.Text = ""
-    end
-end
-
-function Explorer:BuildNodeContainer(ParentFrame, Order)
-    local Container = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 0);
-        AutomaticSize = Enum.AutomaticSize.Y;
-        BackgroundTransparency = 1;
-        LayoutOrder = Order or 0;
-        Parent = ParentFrame;
-    })
-    VexUI:AddListLayout(Container, 1, Enum.FillDirection.Vertical)
-
-    local RowHolder = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 22);
-        BackgroundTransparency = 1;
-        LayoutOrder = 1;
-        Parent = Container;
-    })
-
-    local ChildContainer = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 0);
-        AutomaticSize = Enum.AutomaticSize.Y;
-        BackgroundTransparency = 1;
-        Visible = false;
-        LayoutOrder = 2;
-        Parent = Container;
-    })
-    VexUI:AddListLayout(ChildContainer, 1, Enum.FillDirection.Vertical)
-
-    return Container, RowHolder, ChildContainer
-end
-
-function Explorer:GetNextChildLayoutOrder(ParentNode)
-    local Highest = 0
-
-    if ParentNode.Children then
-        for _, ChildNode in ParentNode.Children do
-            if ChildNode and ChildNode.NodeFrame then
-                Highest = math.max(Highest, ChildNode.NodeFrame.LayoutOrder or 0)
-            end
-        end
-    end
-
-    if ParentNode.PendingChildren then
-        for _, Pending in ParentNode.PendingChildren do
-            local Order = 0
-
-            if type(Pending) == "table" then
-                Order = Pending.Order or 0
-            end
-
-            Highest = math.max(Highest, Order)
-        end
-    end
-
-    return Highest + 1
-end
-
-function Explorer:CreateChildNode(ParentNode, Object, Order)
-    if not ParentNode or typeof(Object) ~= "Instance" then
-        return nil
-    end
-
-    if self.NodesByInstance[Object] then
-        return self.NodesByInstance[Object]
-    end
-
-    if Order == nil then
-        Order = self:GetNextChildLayoutOrder(ParentNode)
-    end
-
-    local Node = {
-        Instance = Object;
-        Depth = ParentNode.Depth + 1;
-        Expanded = false;
-        Children = {};
-        Parent = ParentNode;
-    }
-
-    local Container, RowHolder, ChildContainer = self:BuildNodeContainer(ParentNode.ChildContainer, Order)
-    Node.NodeFrame = Container
-    Node.ChildContainer = ChildContainer
-
-    self:CreateNodeRow(Node, RowHolder)
-    self.NodesByInstance[Object] = Node
-    table.insert(ParentNode.Children, Node)
-    self:ApplySearchFilterToNode(Node)
-
-    if self.ExpandedInstances and self.ExpandedInstances[Object] then
-        task.defer(function()
-            if KillScript then
-                return
-            end
-
-            if Node.NodeFrame and Node.NodeFrame.Parent then
-                self:ExpandNode(Node)
-            end
-        end)
-    end
-
-    return Node
-end
-
-function Explorer:DestroyNode(Node)
-    if not Node then
-        return
-    end
-
-    for _, ChildNode in {table.unpack(Node.Children)} do
-        self:DestroyNode(ChildNode)
-    end
-    Node.Children = {}
-
-    if Node.Connections then
-        for _, Connection in Node.Connections do
-            pcall(function()
-                Connection:Disconnect()
-            end)
-        end
-    end
-
-    if Node.NodeFrame then
-        Node.NodeFrame:Destroy()
-    end
-
-    if Node.Parent and Node.Parent.Children then
-        for Index, Child in Node.Parent.Children do
-            if Child == Node then
-                table.remove(Node.Parent.Children, Index)
-
-                break
-            end
-        end
-    end
-    if self.SelectedSet[Node.Instance] then
-        self.SelectedSet[Node.Instance] = nil
-
-        for Index, Value in self.SelectedOrder do
-            if Value == Node.Instance then
-                table.remove(self.SelectedOrder, Index)
-
-                break
-            end
-        end
-
-        if self.SelectedInstance == Node.Instance then
-            self.SelectedInstance = self.SelectedOrder[#self.SelectedOrder]
-            self:OnSelectionChanged()
-        end
-    end
-
-    self.NodesByInstance[Node.Instance] = nil
-    self.ForcedExpanded[Node.Instance] = nil
-end
-
-function Explorer:ExpandNode(Node)
-    if Node.Expanded then
-        return
-    end
-
-    Node.Expanded = true
-
-    if not Node.IsNilContainer then
-        self.ExpandedInstances[Node.Instance] = true
-    end
-
-    self:UpdateArrow(Node)
-    Node.ChildContainer.Visible = true
-
-    if Node._ConnectChildSignals then
-        Node._ConnectChildSignals()
-    end
-
-    if Node.IsNilContainer then
-        self:MountNilVirtualList()
-
-        return
-    end
-
-    local Children = WeakGetChildren(Node.Instance)
-    SortExplorerChildren(Children)
-
-    Node.PendingChildren = Node.PendingChildren or {}
-    local Searching = self.SearchQuery ~= ""
-
-    for Index, Child in Children do
-        if self.NodesByInstance[Child] then
-            continue
-        end
-
-        if Searching
-            and not (self.MatchSet[Child] or self.SubtreeMatchSet[Child])
-        then
-            continue
-        end
-
-        table.insert(Node.PendingChildren, {
-            Instance = Child;
-            Order = Index;
-        })
-    end
-
-    if #Node.PendingChildren > 0 then
-        self.PendingNodesSet = self.PendingNodesSet or {}
-        self.PendingNodesSet[Node] = true
-    end
-
-    self:ScheduleNodeRealiser()
-end
-
-function Explorer:CancelPendingNodeRealiser()
-    self.NodeRealiserToken = (self.NodeRealiserToken or 0) + 1
-    self.NodeRealiserRunning = false
-    self.PendingNodesSet = {}
-
-    for _, Node in self.NodesByInstance do
-        if Node then
-            Node.PendingChildren = nil
-        end
-    end
-end
-
-function Explorer:ScheduleNodeRealiser()
-    if self.NodeRealiserRunning then
-        return
-    end
-
-    self.NodeRealiserRunning = true
-    self.PendingNodesSet = self.PendingNodesSet or {}
-
-    local RealiserToken = self.NodeRealiserToken or 0
-
-    task.spawn(function()
-        while not KillScript and RealiserToken == (self.NodeRealiserToken or 0) do
-            local Budgets = self:GetSearchBudgets(self.SearchQuery)
-            local Budget = self.SearchQuery ~= "" and Budgets.RealiserBudget or 8
-            local Created = 0
-
-            local ScrollFrame = self.ExplorerColumn and self.ExplorerColumn.Content
-            if not ScrollFrame then
-                break
-            end
-
-            local ViewTop = ScrollFrame.CanvasPosition.Y
-            local ViewBottom = ViewTop + ScrollFrame.AbsoluteSize.Y
-            local ScrollAbsTop = ScrollFrame.AbsolutePosition.Y
-            local Overscan = self.SearchQuery ~= "" and Budgets.Overscan or 250
-
-            local ToProcess = {}
-            for Node in self.PendingNodesSet do
-                table.insert(ToProcess, Node)
-            end
-
-            for _, Node in ToProcess do
-                if Created >= Budget then
-                    break
-                end
-
-                local Pending = Node.PendingChildren
-                if not Pending or #Pending == 0 then
-                    self.PendingNodesSet[Node] = nil
-
-                    continue
-                end
-
-                local Container = Node.ChildContainer
-                if not Container or not Container.Parent then
-                    self.PendingNodesSet[Node] = nil
-
-                    continue
-                end
-
-                local AbsTop = Container.AbsolutePosition.Y - ScrollAbsTop + ViewTop
-                local AbsBottom = AbsTop + Container.AbsoluteSize.Y
-                if AbsBottom < (ViewTop - Overscan) or AbsTop > (ViewBottom + Overscan) then
-                    continue
-                end
-
-                while #Pending > 0 and Created < Budget do
-                    local PendingEntry = table.remove(Pending, 1)
-                    local Child = PendingEntry
-                    local Order = 0
-
-                    if type(PendingEntry) == "table" then
-                        Child = PendingEntry.Instance
-                        Order = PendingEntry.Order or 0
-                    end
-
-                    if Child and not self.NodesByInstance[Child] then
-                        if self.SearchQuery ~= ""
-                            and not (self.MatchSet[Child] or self.SubtreeMatchSet[Child])
-                        then
-                            continue
-                        end
-
-                        self:CreateChildNode(Node, Child, Order)
-
-                        if self.SearchQuery ~= "" then
-                            local NewNode = self.NodesByInstance[Child]
-                            if NewNode then
-                                self:ApplySearchFilterToNode(NewNode)
-                            end
-                        end
-
-                        Created += 1
-                    end
-                end
-
-                if #Pending == 0 then
-                    Node.PendingChildren = nil
-                    self.PendingNodesSet[Node] = nil
-                end
-            end
-
-            if Created == 0 then
-                if self.SearchQuery ~= ""
-                    and self.SearchExpansionQueue
-                    and #self.SearchExpansionQueue > 0
-                then
-                    self:ProcessSearchExpansionQueue(self.SearchToken, 1)
-                end
-
-                break
-            else
-                task.wait()
-
-                if RealiserToken ~= (self.NodeRealiserToken or 0) then
-                    break
-                end
-            end
-        end
-
-        if RealiserToken == (self.NodeRealiserToken or 0) then
-            self.NodeRealiserRunning = false
-        end
-    end)
-end
-
-function Explorer:CollapseNode(Node)
-    if Node.IsNilContainer then
-        self:UnmountNilVirtualList()
-    end
-
-    if not Node.Expanded then
-        return
-    end
-
-    Node.Expanded = false
-
-    if not Node.IsNilContainer then
-        self.ExpandedInstances[Node.Instance] = nil
-    end
-
-    self:UpdateArrow(Node)
-    Node.ChildContainer.Visible = false
-
-    if Node._DisconnectChildSignals then
-        Node._DisconnectChildSignals()
-    end
-
-    Node.PendingChildren = nil
-    if self.PendingNodesSet then
-        self.PendingNodesSet[Node] = nil
-    end
-
-    for _, ChildNode in {table.unpack(Node.Children)} do
-        self:DestroyNode(ChildNode)
-    end
-
-    Node.Children = {}
-end
-
-function Explorer:ToggleNode(Node)
-    if Node.Expanded then
-        self:CollapseNode(Node)
-    else
-        self:ExpandNode(Node)
-    end
-end
-
 function Explorer:UpdateSelectionHighlights()
     self.SelectionHighlights = self.SelectionHighlights or setmetatable({}, {__mode = "k"})
 
@@ -8062,120 +7432,25 @@ function Explorer:JumpToInstance(Target)
         self._SuppressSearchBoxChanged = false
         self._LastAppliedSearchQuery = ""
 
-        self:ClearSearchStateWithoutRebuild()
+        if self.ClearSearchStateWithoutRebuild then
+            self:ClearSearchStateWithoutRebuild()
+        end
     end
 
-    local Chain = {}
-    local Cursor = ClonerefInstance(Target)
-    while Cursor and Cursor.Parent ~= nil and Cursor ~= game do
-        table.insert(Chain, 1, Cursor)
-        Cursor = ClonerefInstance(Cursor.Parent)
-    end
+    local Cloned = ClonerefInstance(Target)
 
-    if #Chain == 0 then
+    if self._VTreeRevealInstance then
+        self:_VTreeRevealInstance(Cloned, {
+            Select = true;
+            Scroll = true;
+            Expand = true;
+        })
+        self.SelectionAnchor = Cloned
         return
     end
 
-    local function UnpackPending(Pending)
-        if type(Pending) == "table" then
-            return Pending.Instance, Pending.Order or 0
-        end
-
-        return Pending, 0
-    end
-
-    local PreviousNode
-    for Index, Ancestor in Chain do
-        local IsLeaf = Index == #Chain
-        local Node = self.NodesByInstance[Ancestor]
-
-        if not Node and PreviousNode then
-            if not PreviousNode.Expanded then
-                self:ExpandNode(PreviousNode)
-            end
-
-            if PreviousNode.PendingChildren then
-                for Index, Pending in PreviousNode.PendingChildren do
-                    local PendingObj, PendingOrder = UnpackPending(Pending)
-
-                    if PendingObj == Ancestor then
-                        table.remove(PreviousNode.PendingChildren, Index)
-                        Node = self:CreateChildNode(PreviousNode, Ancestor, PendingOrder)
-                        break
-                    end
-                end
-
-                if PreviousNode.PendingChildren and #PreviousNode.PendingChildren == 0 then
-                    PreviousNode.PendingChildren = nil
-
-                    if self.PendingNodesSet then
-                        self.PendingNodesSet[PreviousNode] = nil
-                    end
-                end
-            end
-
-            if not Node then
-                Node = self:CreateChildNode(PreviousNode, Ancestor)
-            end
-        end
-
-        if not Node then
-            return
-        end
-
-        if not IsLeaf and not Node.Expanded then
-            self:ExpandNode(Node)
-        end
-
-        PreviousNode = Node
-    end
-
-    self:SetSelection({Target})
-    self.SelectionAnchor = Target
-
-    local function FindScrollAncestor(Object)
-        local Cur = Object
-        while Cur do
-            if Cur:IsA("ScrollingFrame") then
-                return Cur
-            end
-            Cur = Cur.Parent
-        end
-        return nil
-    end
-
-    task.defer(function()
-        if KillScript then
-            return
-        end
-
-        for Attempt = 1, 60 do
-            task.wait()
-
-            local Node = self.NodesByInstance[Target]
-            if Node and Node.Row and Node.Row.Parent then
-                local Scroll = FindScrollAncestor(Node.Row)
-                if Scroll then
-                    local _ = Scroll.AbsoluteSize
-                    local _ = Node.Row.AbsolutePosition
-
-                    local RowAbsY = Node.Row.AbsolutePosition.Y
-                    local FrameAbsY = Scroll.AbsolutePosition.Y
-                    if Node.Row.AbsoluteSize.Y > 0 and Scroll.AbsoluteSize.Y > 0 then
-                        local Offset = (RowAbsY - FrameAbsY) + Scroll.CanvasPosition.Y
-                        local TargetY = math.max(0, Offset - Scroll.AbsoluteSize.Y / 2 + 11)
-                        Scroll.CanvasPosition = Vector2.new(Scroll.CanvasPosition.X, TargetY)
-
-                        if self.UpdateStickyHeader then
-                            self.UpdateStickyHeader()
-                        end
-
-                        return
-                    end
-                end
-            end
-        end
-    end)
+    self:SetSelection({Cloned})
+    self.SelectionAnchor = Cloned
 end
 
 function Explorer:JumpToCharacter(Player)
@@ -8218,79 +7493,6 @@ function Explorer:JumpToPlayer(Player)
     self:JumpToInstance(ClonerefInstance(Player))
 end
 
-function Explorer:EnsureNodeVisible(Object)
-    local Chain = {}
-    local Cursor = Object
-    while Cursor and Cursor ~= game do
-        table.insert(Chain, 1, Cursor)
-        Cursor = Cursor.Parent
-    end
-
-    for _, Ancestor in Chain do
-        local Node = self.NodesByInstance[Ancestor]
-        if not Node then
-            return
-        end
-
-        if Ancestor ~= Object
-            and not Node.Expanded
-        then
-            self:ExpandNode(Node)
-        end
-    end
-end
-
-function Explorer:CreateRootNode(Object, Order)
-    if self.NodesByInstance[Object] then
-        return
-    end
-
-    local Node = {
-        Instance = Object;
-        Depth = 0;
-        Expanded = false;
-        Children = {};
-        Parent = nil;
-    }
-
-    local Container, RowHolder, ChildContainer = self:BuildNodeContainer(self.ExplorerColumn.Content, Order)
-    Node.NodeFrame = Container
-    Node.ChildContainer = ChildContainer
-
-    self:CreateNodeRow(Node, RowHolder)
-    self.NodesByInstance[Object] = Node
-    table.insert(self.RootNodes, Node)
-    self:ApplySearchFilterToNode(Node)
-
-    return Node
-end
-
-function Explorer:ComputeOrderForService(Object)
-    local Pinned = PinnedRank[Object.Name]
-    if Pinned then
-        return Pinned
-    end
-
-    local Unpinned = {}
-    for _, Child in WeakGetChildren(game) do
-        if not PinnedRank[Child.Name] then
-            table.insert(Unpinned, Child)
-        end
-    end
-
-    table.sort(Unpinned, function(Left, Right)
-        return Left.Name:lower() < Right.Name:lower()
-    end)
-
-    for Index, Child in Unpinned do
-        if Child == Object then
-            return #PinnedServices + Index
-        end
-    end
-
-    return #PinnedServices + 100
-end
-
 function Explorer:ToggleAllServicesHidden()
     self.AllServicesHidden = not self.AllServicesHidden
     if self.AllServicesHidden then
@@ -8310,273 +7512,35 @@ function Explorer:ToggleAllServicesHidden()
     self:RebuildExplorer()
 end
 
-function Explorer:CountNilInstancesLite()
-    local GNI = getnilinstances
-    if not GNI then
-        return 0
-    end
-
-    local Good, List = pcall(GNI)
-    if not Good or type(List) ~= "table" then
-        return 0
-    end
-
-    local OwnGui = self.ScreenGui
-    local NilSet = {}
-    for _, Inst in List do
-        if typeof(Inst) == "Instance" then
-            NilSet[Inst] = true
-        end
-    end
-
-    local Total = 0
-    local Walked = 0
-
-    for Index = 1, #List do
-        local NilInstance = List[Index]
-        if typeof(NilInstance) ~= "Instance" then
-            continue
-        end
-        if NilInstance == self.NilContainerPlaceholder then
-            continue
-        end
-        if OwnGui and NilInstance == OwnGui then
-            continue
-        end
-
-        local GoodParent, Parent = pcall(function()
-            return NilInstance.Parent
-        end)
-        if not GoodParent then
-            continue
-        end
-
-        local TopLevel = false
-        if Parent == nil then
-            TopLevel = true
-        elseif not NilSet[Parent] then
-            local GoodGame, InGame = pcall(function()
-                return Parent:IsDescendantOf(game)
-            end)
-            if not (GoodGame and InGame) then
-                TopLevel = Parent == nil
-            end
-        end
-
-        if not TopLevel then
-            continue
-        end
-
-        Total += 1
-
-        local Descendants = WeakGetDescendants(NilInstance)
-        local GoodDesc = type(Descendants) == "table"
-        if GoodDesc and type(Descendants) == "table" then
-            Total += #Descendants
-        end
-
-        Walked += 1
-        if Walked % 25 == 0 then
-            task.wait()
-            if KillScript then
-                return Total
-            end
-        end
-    end
-
-    return Total
-end
-
-function Explorer:CollectNilInstances(SearchFilter, ClassFilter)
-    local Result = {}
-    local Total = 0
-
-    local GNI = getnilinstances
-    if not GNI then
-        return Result, 0
-    end
-
-    local Good, List = pcall(GNI)
-    if not Good or type(List) ~= "table" then
-        return Result, 0
-    end
-
-    local LowerSearch = (SearchFilter or ""):lower()
-    local OwnGui = self.ScreenGui
-
-    local NilSet = {}
-    for _, NilInstance in List do
-        if typeof(NilInstance) == "Instance" then
-            NilSet[NilInstance] = true
-        end
-    end
-
-    local function IsTopLevelNil(NilInstance)
-        local GoodParent, Parent = pcall(function()
-            return NilInstance.Parent
-        end)
-
-        if not GoodParent then
-            return false
-        end
-
-        if Parent == nil then
-            return true
-        end
-
-        if NilSet[Parent] then
-            return false
-        end
-
-        local GoodGame, InGame = pcall(function()
-            return Parent:IsDescendantOf(game)
-        end)
-
-        if GoodGame and InGame then
-            return false
-        end
-
-        return Parent == nil
-    end
-
-    local function PassesClass(Instance)
-        if not ClassFilter or ClassFilter == "" then
-            return true
-        end
-
-        local GoodClass, IsMatch = pcall(function()
-            return Instance:IsA(ClassFilter)
-        end)
-
-        return GoodClass and IsMatch
-    end
-
-    local function PassesSearch(Instance)
-        if LowerSearch == "" then
-            return true
-        end
-
-        local GoodName, Name = pcall(function()
-            return Instance.Name
-        end)
-
-        if not GoodName or typeof(Name) ~= "string" then
-            return false
-        end
-
-        return Name:lower():find(LowerSearch, 1, true) ~= nil
-    end
-
-    local Seen = {}
-    local Walked = 0
-    local function Consider(Instance)
-        if Seen[Instance] then
-            return
-        end
-        Seen[Instance] = true
-
-        if Instance == self.NilContainerPlaceholder then
-            return
-        end
-
-        if OwnGui and Instance == OwnGui then
-            return
-        end
-
-        Total += 1
-
-        if PassesClass(Instance) and PassesSearch(Instance) then
-            table.insert(Result, Instance)
-        end
-        local Children = WeakGetDescendants(Instance)
-        if type(Children) ~= "table" then
-            return
-        end
-
-        for _, Child in Children do
-            if typeof(Child) == "Instance" and not Seen[Child] then
-                Seen[Child] = true
-
-                if Child == self.NilContainerPlaceholder then
-                    continue
-                end
-
-                if OwnGui and Child == OwnGui then
-                    continue
-                end
-
-                Total += 1
-
-                if PassesClass(Child) and PassesSearch(Child) then
-                    table.insert(Result, Child)
-                end
-
-                Walked += 1
-                if Walked % 2000 == 0 then
-                    task.wait()
-                end
-            end
-        end
-    end
-
-    for Index = #List, 1, -1 do
-        local NilInstance = List[Index]
-        if typeof(NilInstance) ~= "Instance" then
-            continue
-        end
-
-        if not IsTopLevelNil(NilInstance) then
-            continue
-        end
-
-        Consider(NilInstance)
-    end
-
-    return Result, Total
-end
-
-function Explorer:NilUpdateRowSelection(Row, Item)
-    if not Row
-        or not Row.Parent
-    then
-        return
-    end
-
-    if self.SelectedSet[Item] then
-        Row.BackgroundColor3 = Theme.Selected
-        Row.BackgroundTransparency = 0.4
-    else
-        Row.BackgroundColor3 = Theme.Field
-        Row.BackgroundTransparency = 1
-    end
-end
-
-function Explorer:NilCreateRow(Item, IndexY, Container)
+function Explorer:_FlatAllocateRow(Container)
     local Row = VexUI:CreateInstance("TextButton", {
-        Size = UDim2.new(1, 0, 0, self.NilRowHeight);
-        Position = UDim2.new(0, 0, 0, IndexY);
+        Size = UDim2.new(1, 0, 0, self._FlatRowHeight);
+        Position = UDim2.new(0, 0, 0, 0);
         BackgroundColor3 = Theme.Field;
         BackgroundTransparency = 1;
         BorderSizePixel = 0;
         AutoButtonColor = false;
         Text = "";
-        Parent = Container.NilVirtualInner;
+        Visible = false;
+        Parent = Container;
     })
 
-    local IndentPx = (Container.Depth + 1) * 16 + 6
-    local Icon = VexUI:CreateClassIcon(Item.ClassName, Row)
-    Icon.Position = UDim2.new(0, IndentPx, 0.5, -8)
+    local Icon = VexUI:CreateInstance("ImageLabel", {
+        Size = UDim2.new(0, 16, 0, 16);
+        Position = UDim2.new(0, 6, 0.5, -8);
+        BackgroundTransparency = 1;
+        Image = "";
+        ScaleType = Enum.ScaleType.Fit;
+        Parent = Row;
+    })
 
-    local GoodName, Name = pcall(function()
-        return Item.Name
-    end)
-
-    VexUI:CreateInstance("TextLabel", {
-        Size = UDim2.new(1, -(IndentPx + 24), 1, 0);
-        Position = UDim2.new(0, IndentPx + 22, 0, 0);
+    local Label = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(0.55, -28, 1, 0);
+        Position = UDim2.new(0, 28, 0, 0);
         BackgroundTransparency = 1;
         Font = Fonts.Medium;
-        Text = (GoodName and Name) or "?";
+        RichText = true;
+        Text = "";
         TextColor3 = Theme.Text;
         TextSize = 12;
         TextXAlignment = Enum.TextXAlignment.Left;
@@ -8584,159 +7548,279 @@ function Explorer:NilCreateRow(Item, IndexY, Container)
         Parent = Row;
     })
 
+    local Path = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(0.45, -8, 1, 0);
+        Position = UDim2.new(0.55, 0, 0, 0);
+        BackgroundTransparency = 1;
+        Font = Fonts.Medium;
+        Text = "";
+        TextColor3 = Theme.TextFaded;
+        TextSize = 11;
+        TextXAlignment = Enum.TextXAlignment.Right;
+        TextTruncate = Enum.TextTruncate.AtEnd;
+        Parent = Row;
+    })
+
+    local PoolEntry = {
+        Row = Row;
+        Icon = Icon;
+        Label = Label;
+        Path = Path;
+        Item = nil;
+        IconClassName = nil;
+    }
+
     Row.MouseEnter:Connect(function()
-        if not self.SelectedSet[Item] then
+        if PoolEntry.Item and not self.SelectedSet[PoolEntry.Item] then
             Row.BackgroundTransparency = 0.85
         end
     end)
 
     Row.MouseLeave:Connect(function()
-        if not self.SelectedSet[Item] then
+        if PoolEntry.Item and not self.SelectedSet[PoolEntry.Item] then
             Row.BackgroundTransparency = 1
         end
     end)
 
     Row.MouseButton1Click:Connect(function()
+        local Item = PoolEntry.Item
+        if not Item then return end
+
         if self.CtrlHeld then
             local New = {}
             for _, Existing in self.SelectedOrder do
                 table.insert(New, Existing)
             end
-
             if self.SelectedSet[Item] then
-                for Index, Value in New do
-                    if Value == Item then
-                        table.remove(New, Index)
-                        
-                        break
-                    end
+                for I, V in New do
+                    if V == Item then table.remove(New, I); break end
                 end
             else
                 table.insert(New, Item)
             end
-
             self:SetSelection(New)
         else
             self:SetSelection({Item})
         end
 
-        self:NilRefreshVisibleSelection()
+        self:_FlatRefreshVisibleSelection()
     end)
 
     Row.MouseButton2Click:Connect(function()
+        local Item = PoolEntry.Item
+        if not Item then return end
+
         if not self.SelectedSet[Item] then
             self:SetSelection({Item})
             self.SelectionAnchor = Item
         end
-
         local Mouse = self.LocalPlayer:GetMouse()
         self:OpenContextMenu(Mouse.X, Mouse.Y)
-        self:NilRefreshVisibleSelection()
+        self:_FlatRefreshVisibleSelection()
     end)
 
-    self:NilUpdateRowSelection(Row, Item)
-
-    return Row
+    return PoolEntry
 end
 
-function Explorer:NilRebuildVisible()
-    local Container = self.NilContainerNode
-    if not Container
-        or not Container.NilVirtualInner
-    then
-        return
+function Explorer:_FlatBuildPath(Inst)
+    local Parts = {}
+    local Cursor = Inst.Parent
+    local Depth = 0
+
+    while Cursor and Cursor ~= game and Depth < 6 do
+        Parts[#Parts + 1] = Cursor.Name
+        Cursor = Cursor.Parent
+        Depth += 1
     end
+
+    if Cursor == nil and Inst.Parent ~= nil then
+        Parts[#Parts + 1] = "[nil]"
+    end
+
+    local Reversed = {}
+    for I = #Parts, 1, -1 do
+        Reversed[#Reversed + 1] = Parts[I]
+    end
+
+    return table.concat(Reversed, " › ")
+end
+
+function Explorer:_FlatBindRow(PoolEntry, Item, IndexY)
+    PoolEntry.Item = Item
+    PoolEntry.Row.Position = UDim2.new(0, 0, 0, IndexY)
+    PoolEntry.Row.Visible = true
+
+    local GoodClass, ClassName = pcall(function() return Item.ClassName end)
+    if not GoodClass or type(ClassName) ~= "string" then
+        ClassName = "Instance"
+    end
+
+    if PoolEntry.IconClassName ~= ClassName then
+        local NewIcon = VexUI:CreateClassIcon(ClassName, PoolEntry.Row)
+        NewIcon.Size = UDim2.new(0, 16, 0, 16)
+        NewIcon.Position = UDim2.new(0, 6, 0.5, -8)
+        if PoolEntry.Icon and PoolEntry.Icon ~= NewIcon then
+            PoolEntry.Icon:Destroy()
+        end
+        PoolEntry.Icon = NewIcon
+        PoolEntry.IconClassName = ClassName
+    end
+
+    local GoodName, Name = pcall(function() return Item.Name end)
+    local DisplayName = (GoodName and Name) or "?"
+
+    local HLText, _ = self:_BuildHighlightedName(DisplayName, self.SearchQuery)
+    PoolEntry.Label.Text = HLText
+
+    PoolEntry.Path.Text = self:_FlatBuildPath(Item)
+
+    if self.SelectedSet[Item] then
+        PoolEntry.Row.BackgroundColor3 = Theme.Selected
+        PoolEntry.Row.BackgroundTransparency = 0.4
+    else
+        PoolEntry.Row.BackgroundColor3 = Theme.Field
+        PoolEntry.Row.BackgroundTransparency = 1
+    end
+end
+
+function Explorer:_FlatHideRow(PoolEntry)
+    PoolEntry.Item = nil
+    PoolEntry.Row.Visible = false
+end
+
+function Explorer:_FlatEnsureContainer()
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return nil end
+
+    if self._FlatResultsContainer and self._FlatResultsContainer.Parent then
+        return self._FlatResultsContainer
+    end
+
+    local Container = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 0, 0);
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        Visible = false;
+        ZIndex = 100;
+        Parent = Scroll;
+    })
+
+    self._FlatResultsContainer = Container
+    self._FlatResultsPool = {}
+
+    return Container
+end
+
+function Explorer:_FlatRebuildVisible()
+    local Container = self._FlatResultsContainer
+    if not Container or not Container.Visible then return end
 
     local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
-    if not Scroll
-        or not Scroll:IsA("ScrollingFrame")
-    then
-        return
+    if not Scroll then return end
+
+    local Items = self._FlatResultsItems or {}
+    local Slot = self._FlatRowHeight + self._FlatRowGap
+
+    local CTopOnScreen = Container.AbsolutePosition.Y
+    local VTopOnScreen = Scroll.AbsolutePosition.Y
+    local ViewHeight = Scroll.AbsoluteSize.Y
+    local LayoutNotReady = ViewHeight <= 0 or (CTopOnScreen == 0 and VTopOnScreen == 0)
+
+    local FirstIndex, LastIndex
+    if LayoutNotReady then
+        FirstIndex = 1
+        LastIndex = math.min(#Items, 30)
+    else
+        local Offset = VTopOnScreen - CTopOnScreen
+        FirstIndex = math.max(1, math.floor(Offset / Slot) + 1 - self._FlatBufferRows)
+        LastIndex = math.min(#Items, FirstIndex + math.ceil(ViewHeight / Slot) + self._FlatBufferRows * 2)
     end
 
-    local Inner = Container.NilVirtualInner
-    local Items = Container.NilFilteredItems or {}
-    local Slot = self.NilRowHeight + self.NilRowGap
+    local NeededRows = math.max(0, LastIndex - FirstIndex + 1)
+    local Pool = self._FlatResultsPool
 
-    local InnerTopOnScreen = Inner.AbsolutePosition.Y
-    local ViewTopOnScreen = Scroll.AbsolutePosition.Y
-    local ViewHeight = Scroll.AbsoluteSize.Y
-    local OffsetIntoInner = ViewTopOnScreen - InnerTopOnScreen
-    local FirstIndex = math.max(1, math.floor(OffsetIntoInner / Slot) + 1 - self.NilBufferRows)
-    local LastIndex = math.min(#Items, FirstIndex + math.ceil(ViewHeight / Slot) + self.NilBufferRows * 2)
+    while #Pool < NeededRows do
+        Pool[#Pool + 1] = self:_FlatAllocateRow(Container)
+    end
 
-    Container.NilRowItems = Container.NilRowItems or {}
-    local Rows = Container.NilCurrentRows
-    local RowItems = Container.NilRowItems
-
-    for Index, Row in Rows do
-        if Index < FirstIndex or Index > LastIndex or Items[Index] ~= RowItems[Index] then
-            Row:Destroy()
-            Rows[Index] = nil
-            RowItems[Index] = nil
+    for SlotIndex = 1, NeededRows do
+        local PoolEntry = Pool[SlotIndex]
+        local DataIndex = FirstIndex + SlotIndex - 1
+        local Item = Items[DataIndex]
+        if Item then
+            self:_FlatBindRow(PoolEntry, Item, (DataIndex - 1) * Slot)
+        else
+            self:_FlatHideRow(PoolEntry)
         end
     end
 
-    for Index = FirstIndex, LastIndex do
-        if not Rows[Index] then
-            local Item = Items[Index]
-            if Item then
-                Rows[Index] = self:NilCreateRow(Item, (Index - 1) * Slot, Container)
-                RowItems[Index] = Item
+    for SlotIndex = NeededRows + 1, #Pool do
+        self:_FlatHideRow(Pool[SlotIndex])
+    end
+end
+
+function Explorer:_FlatApplyResults(Matches)
+    local Container = self:_FlatEnsureContainer()
+    if not Container then return end
+
+    local Items = table.create(#Matches)
+    for I = 1, #Matches do
+        local Entry = Matches[I]
+        if Entry and Entry.Instance and Entry.Instance.Parent ~= nil then
+            Items[#Items + 1] = Entry.Instance
+        end
+    end
+
+    self._FlatResultsItems = Items
+
+    local Slot = self._FlatRowHeight + self._FlatRowGap
+    Container.Size = UDim2.new(1, 0, 0, math.max(0, #Items * Slot))
+    Container.Visible = true
+
+    self:_FlatRebuildVisible()
+    task.defer(function()
+        if Container and Container.Parent then
+            self:_FlatRebuildVisible()
+        end
+    end)
+end
+
+function Explorer:_FlatHideContainer()
+    if self._FlatResultsContainer then
+        self._FlatResultsContainer.Visible = false
+    end
+    self._FlatResultsItems = nil
+end
+
+function Explorer:_FlatIsActive()
+    return self.FlatSearchResults == true and self.SearchQuery ~= ""
+end
+
+function Explorer:_FlatHookScroll()
+    if self._FlatScrollConn then return end
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return end
+
+    self._FlatScrollConn = Scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+        if self:_FlatIsActive() then
+            self:_FlatRebuildVisible()
+        end
+    end)
+end
+
+function Explorer:_FlatRefreshVisibleSelection()
+    if not self._FlatResultsPool then return end
+    for _, PoolEntry in self._FlatResultsPool do
+        if PoolEntry.Item and PoolEntry.Row.Visible then
+            if self.SelectedSet[PoolEntry.Item] then
+                PoolEntry.Row.BackgroundColor3 = Theme.Selected
+                PoolEntry.Row.BackgroundTransparency = 0.4
+            else
+                PoolEntry.Row.BackgroundColor3 = Theme.Field
+                PoolEntry.Row.BackgroundTransparency = 1
             end
         end
     end
-end
-
-function Explorer:NilRefreshVisibleSelection()
-    local Container = self.NilContainerNode
-    if not Container or not Container.NilCurrentRows then
-        return
-    end
-
-    local RowItems = Container.NilRowItems or {}
-    for Index, Row in Container.NilCurrentRows do
-        self:NilUpdateRowSelection(Row, RowItems[Index])
-    end
-end
-
-function Explorer:RefreshNilVirtualList()
-    local Container = self.NilContainerNode
-    if not Container then
-        return
-    end
-
-    local Search = self.SearchQuery or ""
-    local Filtered, Total = self:CollectNilInstances(Search, self.NilFilterClass)
-    Container.NilFilteredItems = Filtered
-    Container.NilTotalCount = Total
-
-    if Container.Label and Container.Label.Parent then
-        local Suffix = (Search ~= "" or self.NilFilterClass ~= "") and ` ({#Filtered}/{Total})` or ` ({Total})`
-        Container.Label.Text = `"Nil Instances"{Suffix}`
-    end
-
-    if not Container.NilVirtualInner then
-        return
-    end
-
-    local Slot = self.NilRowHeight + self.NilRowGap
-    local TotalHeight = math.max(0, #Filtered * Slot)
-    Container.NilVirtualInner.Size = UDim2.new(1, 0, 0, TotalHeight)
-    Container.ChildContainer.Size = UDim2.new(1, 0, 0, TotalHeight)
-
-    for Index, Row in Container.NilCurrentRows do
-        Row:Destroy()
-        Container.NilCurrentRows[Index] = nil
-    end
-
-    if Container.NilRowItems then
-        for Index in Container.NilRowItems do
-            Container.NilRowItems[Index] = nil
-        end
-    end
-
-    self:NilRebuildVisible()
 end
 
 function Explorer:SetNilFilterClass(Value, Source)
@@ -8758,84 +7842,6 @@ function Explorer:SetNilFilterClass(Value, Source)
     end
 
     self._SyncingClassFilter = false
-
-    if self.NilContainerNode and self.NilContainerNode.Expanded then
-        self:RefreshNilVirtualList()
-    end
-end
-
-function Explorer:MountNilVirtualList()
-    local Container = self.NilContainerNode
-    if not Container then
-        return
-    end
-
-    for _, Child in WeakGetChildren(Container.ChildContainer) do
-        Child:Destroy()
-    end
-
-    Container.ChildContainer.AutomaticSize = Enum.AutomaticSize.None
-    Container.ChildContainer.Size = UDim2.new(1, 0, 0, 0)
-    Container.ChildContainer.ClipsDescendants = false
-
-    local Inner = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 0, 0);
-        BackgroundTransparency = 1;
-        ClipsDescendants = false;
-        Parent = Container.ChildContainer;
-    })
-    Container.NilVirtualInner = Inner
-    Container.NilCurrentRows = {}
-    Container.NilRowItems = {}
-
-    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
-    if Scroll then
-        Container.NilScrollConnection = Scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-            self:NilRebuildVisible()
-        end)
-
-        Container.NilSizeConnection = Scroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-            self:NilRebuildVisible()
-        end)
-    end
-
-    self:RefreshNilVirtualList()
-end
-
-function Explorer:UnmountNilVirtualList()
-    local Container = self.NilContainerNode
-    if not Container then
-        return
-    end
-
-    if Container.NilScrollConnection then
-        Container.NilScrollConnection:Disconnect()
-    end
-
-    if Container.NilSizeConnection then
-        Container.NilSizeConnection:Disconnect()
-    end
-    Container.NilScrollConnection = nil
-    Container.NilSizeConnection = nil
-
-    if Container.NilCurrentRows then
-        for Index, Row in Container.NilCurrentRows do
-            Row:Destroy()
-            Container.NilCurrentRows[Index] = nil
-        end
-    end
-
-    Container.NilCurrentRows = nil
-    Container.NilRowItems = nil
-
-    if Container.NilVirtualInner then
-        Container.NilVirtualInner:Destroy()
-    end
-    Container.NilVirtualInner = nil
-    Container.NilFilteredItems = nil
-
-    Container.ChildContainer.AutomaticSize = Enum.AutomaticSize.Y
-    Container.ChildContainer.Size = UDim2.new(1, 0, 0, 0)
 end
 
 function Explorer:_CheckFreezeSearchMatch(Child)
@@ -8863,113 +7869,1642 @@ end
 
 function Explorer:RebuildExplorer()
     Handle(function()
-        for _, Node in {table.unpack(self.RootNodes)} do
-            self:DestroyNode(Node)
+        if self.ExplorerColumn and self.ExplorerColumn.Clear then
+            self.ExplorerColumn:Clear()
         end
-
-        self.RootNodes = {}
-        self.NodesByInstance = setmetatable({}, {__mode = "k"})
-
-        self.ExplorerColumn:Clear()
 
         if typeof(self.HiddenServices) ~= "table" then
             self.HiddenServices = {}
         end
 
-        local Sorted = SortServices(WeakGetChildren(game))
-        local HiddenCount = 0
-        for ServiceName in self.HiddenServices do
-            HiddenCount += 1
+        self:_VTreeActivate()
+
+        if not self._RootServiceHooksInstalled then
+            self._RootServiceHooksInstalled = true
+
+            Track(game.ChildAdded:Connect(function(Child)
+                if typeof(Child) ~= "Instance" then return end
+                if self.HiddenServices[Child.Name] then return end
+
+                if self.ExplorerFrozen then
+                    self.FrozenPendingAdds[ClonerefInstance(Child)] = true
+                    return
+                end
+
+                self:_VTreeScheduleRebuild()
+            end))
+
+            Track(game.ChildRemoved:Connect(function(Child)
+                if typeof(Child) ~= "Instance" then return end
+
+                if self.ExplorerFrozen then
+                    self.FrozenPendingRemoves[ClonerefInstance(Child)] = true
+                    return
+                end
+
+                self:_VTreeScheduleRebuild()
+            end))
         end
 
-        local Created = 0
-        for Index, Service in Sorted do
-            if self.HiddenServices[Service.Name] then
-                continue
+        if not self.SearchIndexBuilt then
+            task.spawn(function() self:BuildSearchIndex() end)
+        end
+    end, "Function Explorer.RebuildExplorer")
+end
+
+function Explorer:_VTreeMakeRowData(Instance, Depth, IsNilContainerSlot)
+    return {
+        Instance = Instance;
+        Depth = Depth;
+        Expanded = false;
+        HasChildren = false;
+        IsNilContainer = IsNilContainerSlot == true;
+        RawName = "";
+        ClassName = "";
+        MatchState = "none";
+    }
+end
+
+function Explorer:_VTreeRefreshRowMeta(RowData)
+    local Inst = RowData.Instance
+    if not Inst then return end
+
+    if RowData.IsNilContainer then
+        RowData.RawName = "Nil Instances"
+        RowData.ClassName = "Folder"
+        RowData.HasChildren = true
+        return
+    end
+
+    local GoodName, Name = pcall(function() return Inst.Name end)
+    RowData.RawName = (GoodName and Name) or "?"
+
+    local GoodClass, ClassName = pcall(function() return Inst.ClassName end)
+    RowData.ClassName = (GoodClass and ClassName) or "Instance"
+
+    local GoodChildren, FirstChild = pcall(function()
+        local Kids = WeakGetChildren(Inst)
+        return Kids and Kids[1] or nil
+    end)
+    RowData.HasChildren = GoodChildren and FirstChild ~= nil
+end
+
+function Explorer:_VTreeBuildRoots()
+    self._VTreeRows = {}
+    self._VTreeRowsByInstance = {}
+    self._VTreeExpanded = self._VTreeExpanded or {}
+
+    local TempServices = {}
+    for _, Service in WeakGetChildren(game) do
+        if not self.HiddenServices[Service.Name] and not self.AllServicesHidden then
+            TempServices[#TempServices + 1] = Service
+        elseif self.AllServicesHidden and self.HiddenServices[Service.Name] == false then
+            TempServices[#TempServices + 1] = Service
+        end
+    end
+
+    TempServices = SortServices(TempServices)
+
+    for _, Service in TempServices do
+        local RowData = self:_VTreeMakeRowData(Service, 0, false)
+        self:_VTreeRefreshRowMeta(RowData)
+        self._VTreeRows[#self._VTreeRows + 1] = RowData
+        self._VTreeRowsByInstance[Service] = #self._VTreeRows
+    end
+
+    if not self.HideNilContainer then
+        local NilRow = self:_VTreeMakeRowData(nil, 0, true)
+        self:_VTreeRefreshRowMeta(NilRow)
+        self._VTreeRows[#self._VTreeRows + 1] = NilRow
+    end
+end
+
+function Explorer:_VTreeEnsureContainer()
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return nil end
+
+    if self._VTreeContainer and self._VTreeContainer.Parent then
+        return self._VTreeContainer
+    end
+
+    local Container = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 0, 0);
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        Visible = false;
+        ZIndex = 50;
+        Parent = Scroll;
+    })
+
+    self._VTreeContainer = Container
+    self._VTreePool = {}
+
+    return Container
+end
+
+function Explorer:_VTreeBeginRename(PoolEntry, RowData)
+    if not PoolEntry or not RowData or not RowData.Instance then return end
+    if RowData.IsNilContainer then return end
+
+    local Inst = RowData.Instance
+    local Label = PoolEntry.Label
+    if not Label or not Label.Parent then return end
+
+    local GoodOld, OldText = pcall(function() return Inst.Name end)
+    if not GoodOld or type(OldText) ~= "string" then OldText = RowData.RawName or "" end
+
+    Label.Visible = false
+
+    local Box = VexUI:CreateInstance("TextBox", {
+        Size = Label.Size;
+        Position = Label.Position;
+        BackgroundColor3 = Theme.Field;
+        BackgroundTransparency = 0.15;
+        BorderSizePixel = 0;
+        Font = Label.Font;
+        Text = OldText;
+        TextColor3 = Theme.Text;
+        TextSize = Label.TextSize;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        ZIndex = (Label.ZIndex or 1) + 1;
+        Parent = Label.Parent;
+    })
+    VexUI:AddStroke(Box, Theme.Accent, 1)
+
+    task.defer(function()
+        if Box.Parent then
+            Box:CaptureFocus()
+            Box.SelectionStart = 1
+            Box.CursorPosition = #OldText + 1
+        end
+    end)
+
+    local Done = false
+    local function Finish(Apply)
+        if Done then return end
+        Done = true
+
+        if Apply then
+            local NewName = Box.Text
+            if NewName ~= "" and NewName ~= OldText then
+                pcall(function() Inst.Name = NewName end)
             end
-
-            local Good, ClassName = pcall(function()
-                return Service.ClassName
-            end)
-
-            if not Good or type(ClassName) ~= "string" then
-                continue
-            end
-
-            local NameGood, NodeName = pcall(function()
-                return Service.Name
-            end)
-
-            if not NameGood or type(NodeName) ~= "string" or NodeName == "" then
-                continue
-            end
-
-            self:CreateRootNode(Service, Index)
-            Created += 1
         end
 
-        if not self.HideNilContainer and getnilinstances then
-            if not self.NilContainerPlaceholder then
-                self.NilContainerPlaceholder = Instance.new("Folder")
-                self.NilContainerPlaceholder.Name = "Nil Instances"
+        if Box.Parent then Box:Destroy() end
+        if Label and Label.Parent then Label.Visible = true end
+    end
+
+    Box.FocusLost:Connect(function(Enter) Finish(Enter) end)
+end
+
+function Explorer:_VTreeAllocateRow(Container)
+    local Row = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(1, 0, 0, self._VTreeRowHeight);
+        Position = UDim2.new(0, 0, 0, 0);
+        BackgroundColor3 = Theme.Field;
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Text = "";
+        Visible = false;
+        ZIndex = 51;
+        Parent = Container;
+    })
+
+    local AccentStrip = VexUI:CreateInstance("Frame", {
+        Size = UDim2.new(0, 2, 1, 0);
+        Position = UDim2.new(0, 0, 0, 0);
+        BackgroundColor3 = Theme.Accent;
+        BorderSizePixel = 0;
+        Visible = false;
+        ZIndex = 53;
+        Parent = Row;
+    })
+
+    BindTheme("Accent", function(Color)
+        AccentStrip.BackgroundColor3 = Color
+    end)
+
+    local Arrow = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(0, 14, 0, 14);
+        Position = UDim2.new(0, 0, 0.5, -7);
+        BackgroundTransparency = 1;
+        Font = Fonts.Bold;
+        Text = "+";
+        TextColor3 = Theme.TextDim;
+        TextSize = 16;
+        TextXAlignment = Enum.TextXAlignment.Center;
+        Visible = false;
+        ZIndex = 52;
+        Parent = Row;
+    })
+
+    local ArrowHit = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(0, 18, 1, 0);
+        Position = UDim2.new(0, -2, 0, 0);
+        BackgroundTransparency = 1;
+        Text = "";
+        AutoButtonColor = false;
+        ZIndex = 53;
+        Parent = Row;
+    })
+
+    local Icon = VexUI:CreateInstance("ImageLabel", {
+        Size = UDim2.new(0, 16, 0, 16);
+        Position = UDim2.new(0, 18, 0.5, -8);
+        BackgroundTransparency = 1;
+        Image = "";
+        ScaleType = Enum.ScaleType.Fit;
+        ZIndex = 52;
+        Parent = Row;
+    })
+
+    local Label = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(1, -40, 1, 0);
+        Position = UDim2.new(0, 38, 0, 0);
+        BackgroundTransparency = 1;
+        Font = Fonts.Medium;
+        RichText = true;
+        Text = "";
+        TextColor3 = Theme.Text;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        TextTruncate = Enum.TextTruncate.AtEnd;
+        ZIndex = 52;
+        Parent = Row;
+    })
+
+    local PoolEntry = {
+        Row = Row;
+        AccentStrip = AccentStrip;
+        Arrow = Arrow;
+        ArrowHit = ArrowHit;
+        Icon = Icon;
+        Label = Label;
+        IconClassName = nil;
+        Bound = nil;
+    }
+
+    Row.MouseEnter:Connect(function()
+        local RowData = PoolEntry.Bound
+        if RowData and RowData.Instance and not self.SelectedSet[RowData.Instance] then
+            Row.BackgroundTransparency = 0.85
+        end
+    end)
+
+    Row.MouseLeave:Connect(function()
+        local RowData = PoolEntry.Bound
+        if RowData and RowData.Instance and not self.SelectedSet[RowData.Instance] then
+            Row.BackgroundTransparency = 1
+        end
+    end)
+
+    ArrowHit.MouseButton1Click:Connect(function()
+        local RowData = PoolEntry.Bound
+        if not RowData or not RowData.HasChildren then return end
+        if RowData.Expanded then
+            self:_VTreeCollapse(RowData)
+        else
+            self:_VTreeExpand(RowData)
+        end
+    end)
+
+    local LastClickAt = 0
+    Row.MouseButton1Click:Connect(function()
+        local RowData = PoolEntry.Bound
+        if not RowData then return end
+        if RowData.IsNilContainer then return end
+
+        local Inst = RowData.Instance
+        if not Inst then return end
+
+        if self._JustDragged or self.JustDragged then return end
+
+        if self.ReparentMode then
+            self:CommitReparent(Inst)
+            return
+        end
+
+        local Now = os.clock()
+        if Now - LastClickAt < 0.35 then
+            LastClickAt = 0
+
+            local IsScript = false
+            local Cls = RowData.ClassName
+            if Cls == "LocalScript" or Cls == "ModuleScript" then
+                IsScript = true
+            elseif Cls == "Script" then
+                local Good, RC = pcall(function() return Inst.RunContext end)
+                if Good and RC == Enum.RunContext.Client then
+                    IsScript = true
+                end
             end
 
-            local Placeholder = self.NilContainerPlaceholder
-            local Node = {
-                Instance = Placeholder;
-                Depth = 0;
-                Expanded = false;
-                Children = {};
-                Parent = nil;
-                IsNilContainer = true;
+            if IsScript then
+                self:OpenScriptViewer(Inst, true)
+            else
+                self:_VTreeBeginRename(PoolEntry, RowData)
+            end
+            return
+        end
+        LastClickAt = Now
+
+        if self.ShiftHeld and self.SelectionAnchor then
+            local Rows = self:_VTreeActiveRows()
+            local AnchorIdx, TargetIdx
+            for I = 1, #Rows do
+                local RI = Rows[I].Instance
+                if RI == self.SelectionAnchor then AnchorIdx = I end
+                if RI == Inst then TargetIdx = I end
+                if AnchorIdx and TargetIdx then break end
+            end
+            if AnchorIdx and TargetIdx then
+                if AnchorIdx > TargetIdx then AnchorIdx, TargetIdx = TargetIdx, AnchorIdx end
+                local NewSel = {}
+                for I = AnchorIdx, TargetIdx do
+                    local RI = Rows[I].Instance
+                    if RI then table.insert(NewSel, RI) end
+                end
+                self:SetSelection(NewSel)
+            else
+                self:SetSelection({Inst})
+                self.SelectionAnchor = Inst
+            end
+        elseif self.CtrlHeld then
+            local New = {}
+            for _, Existing in self.SelectedOrder do
+                table.insert(New, Existing)
+            end
+            if self.SelectedSet[Inst] then
+                for I, V in New do
+                    if V == Inst then table.remove(New, I); break end
+                end
+            else
+                table.insert(New, Inst)
+            end
+            self:SetSelection(New)
+        else
+            self:SetSelection({Inst})
+            self.SelectionAnchor = Inst
+        end
+
+        self:_VTreeRefreshVisibleSelection()
+    end)
+
+    Row.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local RowData = PoolEntry.Bound
+            if not RowData or not RowData.Instance or RowData.IsNilContainer then return end
+            self.DragOperation = {
+                StartX = Input.Position.X;
+                StartY = Input.Position.Y;
+                HasStarted = false;
+                Source = RowData.Instance;
+                SourceName = SafeGet(RowData.Instance, "Name") or "?";
             }
+        elseif Input.UserInputType == Enum.UserInputType.MouseButton3 then
+            local RowData = PoolEntry.Bound
+            if RowData and RowData.Instance then
+                self:ToggleViewObject(RowData.Instance)
+            end
+        end
+    end)
 
-            local Container, RowHolder, ChildContainer = self:BuildNodeContainer(self.ExplorerColumn.Content, #Sorted + 1)
-            Node.NodeFrame = Container
-            Node.ChildContainer = ChildContainer
-            self:CreateNodeRow(Node, RowHolder)
-            self.NodesByInstance[Placeholder] = Node
-            table.insert(self.RootNodes, Node)
-            self.NilContainerNode = Node
+    Row.MouseButton2Click:Connect(function()
+        local RowData = PoolEntry.Bound
+        if not RowData or not RowData.Instance then return end
 
-            local _, Initial = self:CollectNilInstances("", "")
-            if Node.Label then
-                Node.Label.Text = `Nil Instances ({Initial})`
+        if not self.SelectedSet[RowData.Instance] then
+            self:SetSelection({RowData.Instance})
+            self.SelectionAnchor = RowData.Instance
+        end
+        local Mouse = self.LocalPlayer:GetMouse()
+        self:OpenContextMenu(Mouse.X, Mouse.Y)
+        self:_VTreeRefreshVisibleSelection()
+    end)
+
+    return PoolEntry
+end
+
+function Explorer:_VTreeBindRow(PoolEntry, RowData, YPos)
+    PoolEntry.Bound = RowData
+
+    local Row = PoolEntry.Row
+
+    if RowData.IsTruncationNotice then
+        Row.Position = UDim2.new(0, 0, 0, YPos)
+        Row.Visible = true
+        Row.BackgroundTransparency = 1
+        PoolEntry.AccentStrip.Visible = false
+        PoolEntry.Arrow.Visible = false
+        PoolEntry.ArrowHit.Visible = false
+        VexUI:ApplyClassIcon(PoolEntry.Icon, nil)
+        PoolEntry.Icon.ImageTransparency = 1
+        PoolEntry.IconClassName = nil
+        PoolEntry.Label.Position = UDim2.new(0, 12, 0, 0)
+        PoolEntry.Label.Size = UDim2.new(1, -16, 1, 0)
+        PoolEntry.Label.Font = Fonts.Medium
+        PoolEntry.Label.Text = self:_EscapeRichText(RowData.RawName)
+        PoolEntry.Label.TextColor3 = Theme.TextFaded
+        return
+    end
+
+    if RowData.Instance and not RowData.IsNilContainer then
+        local GoodN, FreshName = pcall(function() return RowData.Instance.Name end)
+        if GoodN and FreshName and FreshName ~= RowData.RawName then
+            if self._VTreeHighlightCache then
+                self._VTreeHighlightCache[RowData.RawName] = nil
+            end
+            RowData.RawName = FreshName
+        end
+        self:_VTreeEnsureInstanceHooks(RowData.Instance)
+    end
+
+    Row.Position = UDim2.new(0, 0, 0, YPos)
+    Row.Visible = true
+
+    local IndentPx = RowData.Depth * self._VTreeIndent + 4
+
+    if RowData.HasChildren and not self._VTreeFilterActive then
+        PoolEntry.Arrow.Visible = true
+        PoolEntry.Arrow.Text = RowData.Expanded and "-" or "+"
+        PoolEntry.Arrow.Position = UDim2.new(0, IndentPx, 0.5, -7)
+        PoolEntry.ArrowHit.Position = UDim2.new(0, IndentPx - 2, 0, 0)
+        PoolEntry.ArrowHit.Visible = true
+    else
+        PoolEntry.Arrow.Visible = false
+        PoolEntry.ArrowHit.Visible = false
+    end
+
+    local ClassName = RowData.ClassName
+    if PoolEntry.IconClassName ~= ClassName then
+        VexUI:ApplyClassIcon(PoolEntry.Icon, ClassName)
+        PoolEntry.IconClassName = ClassName
+    end
+
+    PoolEntry.Icon.Position = UDim2.new(0, IndentPx + 16, 0.5, -8)
+    PoolEntry.Label.Position = UDim2.new(0, IndentPx + 36, 0, 0)
+    PoolEntry.Label.Size = UDim2.new(1, -(IndentPx + 40), 1, 0)
+    PoolEntry.Label.Font = RowData.Depth == 0 and Fonts.SemiBold or Fonts.Medium
+
+    local Query = self.SearchQuery or ""
+    local IsMatched = (not RowData.IsNilContainer)
+        and RowData.Instance
+        and self.MatchSet
+        and self.MatchSet[RowData.Instance] == true
+
+    if Query ~= "" and IsMatched then
+        local Cache = self._VTreeHighlightCache
+        if not Cache then
+            Cache = {}
+            self._VTreeHighlightCache = Cache
+        end
+        local HLText = Cache[RowData.RawName]
+        if not HLText then
+            HLText = self:_BuildHighlightedName(RowData.RawName, Query)
+            Cache[RowData.RawName] = HLText
+        end
+        PoolEntry.Label.Text = HLText
+    else
+        PoolEntry.Label.Text = self:_EscapeRichText(RowData.RawName)
+    end
+
+    if Query ~= "" then
+        if RowData.IsNilContainer then
+            PoolEntry.Label.TextColor3 = Theme.Accent
+        elseif IsMatched then
+            PoolEntry.Label.TextColor3 = Theme.Accent
+        elseif self.SubtreeMatchSet and self.SubtreeMatchSet[RowData.Instance] then
+            PoolEntry.Label.TextColor3 = Theme.TextDim
+        else
+            PoolEntry.Label.TextColor3 = Theme.TextFaded
+        end
+    else
+        PoolEntry.Label.TextColor3 = Theme.Text
+    end
+
+    local Selected = RowData.Instance and self.SelectedSet[RowData.Instance]
+    if Selected then
+        Row.BackgroundColor3 = Theme.Selected
+        Row.BackgroundTransparency = 0.55
+        PoolEntry.AccentStrip.Visible = true
+    else
+        Row.BackgroundColor3 = Theme.Field
+        Row.BackgroundTransparency = 1
+        PoolEntry.AccentStrip.Visible = false
+    end
+end
+
+function Explorer:_VTreeHideRow(PoolEntry)
+    PoolEntry.Bound = nil
+    PoolEntry.Row.Visible = false
+end
+
+function Explorer:_VTreeRefreshVisibleSelection()
+    if not self._VTreePool then return end
+    for _, PoolEntry in self._VTreePool do
+        local RowData = PoolEntry.Bound
+        if RowData and PoolEntry.Row.Visible then
+            local Inst = RowData.Instance
+            if Inst and self.SelectedSet[Inst] then
+                PoolEntry.Row.BackgroundColor3 = Theme.Selected
+                PoolEntry.Row.BackgroundTransparency = 0.55
+                PoolEntry.AccentStrip.Visible = true
+            else
+                PoolEntry.Row.BackgroundColor3 = Theme.Field
+                PoolEntry.Row.BackgroundTransparency = 1
+                PoolEntry.AccentStrip.Visible = false
+            end
+        end
+    end
+end
+
+function Explorer:_VTreeRebuildVisible()
+    self._VTreeRebuildScheduled = false
+
+    local Container = self._VTreeContainer
+    if not Container or not Container.Visible then return end
+
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return end
+
+    local Rows = self:_VTreeActiveRows()
+    local Slot = self._VTreeRowHeight + self._VTreeRowGap
+
+    local CTopOnScreen = Container.AbsolutePosition.Y
+    local VTopOnScreen = Scroll.AbsolutePosition.Y
+    local ViewHeight = Scroll.AbsoluteSize.Y
+    local LayoutNotReady = ViewHeight <= 0 or (CTopOnScreen == 0 and VTopOnScreen == 0)
+
+    local FirstIndex, LastIndex
+    if LayoutNotReady then
+        FirstIndex = 1
+        LastIndex = math.min(#Rows, 40)
+    else
+        local Offset = VTopOnScreen - CTopOnScreen
+        FirstIndex = math.max(1, math.floor(Offset / Slot) + 1 - self._VTreeBufferRows)
+        LastIndex = math.min(#Rows, FirstIndex + math.ceil(ViewHeight / Slot) + self._VTreeBufferRows * 2)
+    end
+
+    if self._VTreeLastFirstIndex == FirstIndex
+        and self._VTreeLastLastIndex == LastIndex
+        and self._VTreeLastRowCount == #Rows
+    then
+        return
+    end
+    self._VTreeLastFirstIndex = FirstIndex
+    self._VTreeLastLastIndex = LastIndex
+    self._VTreeLastRowCount = #Rows
+
+    local NeededRows = math.max(0, LastIndex - FirstIndex + 1)
+    local Pool = self._VTreePool
+
+    while #Pool < NeededRows do
+        Pool[#Pool + 1] = self:_VTreeAllocateRow(Container)
+    end
+
+    for SlotIndex = 1, NeededRows do
+        local PoolEntry = Pool[SlotIndex]
+        local DataIndex = FirstIndex + SlotIndex - 1
+        local RowData = Rows[DataIndex]
+        if RowData then
+            self:_VTreeBindRow(PoolEntry, RowData, (DataIndex - 1) * Slot)
+        else
+            self:_VTreeHideRow(PoolEntry)
+        end
+    end
+
+    for SlotIndex = NeededRows + 1, #Pool do
+        self:_VTreeHideRow(Pool[SlotIndex])
+    end
+end
+
+function Explorer:_VTreeInvalidateVisibleCache()
+    self._VTreeLastFirstIndex = nil
+    self._VTreeLastLastIndex = nil
+    self._VTreeLastRowCount = nil
+end
+
+function Explorer:_VTreeEnsureInstanceHooks(Inst)
+    if not Inst then return end
+
+    self._VTreeNameConns = self._VTreeNameConns or setmetatable({}, {__mode = "k"})
+    if not self._VTreeNameConns[Inst] then
+        local GoodSig, Sig = pcall(function()
+            return Inst:GetPropertyChangedSignal("Name")
+        end)
+        if GoodSig and Sig then
+            self._VTreeNameConns[Inst] = Track(Sig:Connect(function()
+                local GoodN, NN = pcall(function() return Inst.Name end)
+                if GoodN then
+                    self:_VTreeUpdateInstanceName(Inst, NN or "?")
+                end
+            end))
+        end
+    end
+
+    self:_VTreeHookAncestryFor(Inst)
+end
+
+function Explorer:_VTreeUpdateCanvasSize()
+    local Container = self._VTreeContainer
+    if not Container then return end
+
+    local Rows = self:_VTreeActiveRows()
+    local Slot = self._VTreeRowHeight + self._VTreeRowGap
+    Container.Size = UDim2.new(1, 0, 0, math.max(0, #Rows * Slot))
+end
+
+function Explorer:_VTreeActiveRows()
+    if self._VTreeFilterActive and self._VTreeFilteredRows then
+        return self._VTreeFilteredRows
+    end
+    return self._VTreeRows or {}
+end
+
+function Explorer:_VTreeScheduleRebuild()
+    if self._VTreeRebuildScheduled then return end
+    self._VTreeRebuildScheduled = true
+
+    local RenderConn
+    RenderConn = Services.RunService.PreRender:Connect(function()
+        RenderConn:Disconnect()
+        self._VTreeRebuildScheduled = false
+        self:_VTreeRebuildVisible()
+    end)
+end
+
+function Explorer:_VTreeHookScroll()
+    if self._VTreeScrollConn then return end
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return end
+
+    self._VTreeScrollConn = Scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+        self:_VTreeScheduleRebuild()
+
+        if self._VTreeFilterActive
+            and self._VTreeFilteredResume
+            and not self._VTreeFilteredExhausted
+        then
+            local Y = Scroll.CanvasPosition.Y
+            local Bottom = Y + Scroll.AbsoluteSize.Y
+            local CanvasH = Scroll.AbsoluteCanvasSize.Y
+            if CanvasH - Bottom < Scroll.AbsoluteSize.Y * 1.5 then
+                if not self._VTreeStreamScheduled then
+                    self._VTreeStreamScheduled = true
+                    task.defer(function()
+                        self._VTreeStreamScheduled = false
+                        if self._VTreeFilteredResume then
+                            self._VTreeFilteredResume()
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+end
+
+function Explorer:_VTreeExpand(RowData)
+    if not RowData or RowData.Expanded then return end
+    if not RowData.HasChildren then return end
+
+    RowData.Expanded = true
+
+    if RowData.IsNilContainer then
+        self:_VTreeUpdateCanvasSize()
+        self:_VTreeScheduleRebuild()
+        return
+    end
+
+    local ParentInst = RowData.Instance
+    if not ParentInst then return end
+
+    self._VTreeExpanded[ParentInst] = true
+
+    local ParentIndex = self._VTreeRowsByInstance[ParentInst]
+    if not ParentIndex then return end
+
+    local Children = self:_VTreeGetSortedChildren(ParentInst)
+    if #Children == 0 then
+        RowData.HasChildren = false
+        self:_VTreeUpdateCanvasSize()
+        self:_VTreeScheduleRebuild()
+        return
+    end
+
+    local InsertAt = ParentIndex + 1
+    local Rows = self._VTreeRows
+    local Count = #Children
+
+    local OldLen = #Rows
+    for I = OldLen, InsertAt, -1 do
+        Rows[I + Count] = Rows[I]
+    end
+
+    for I, Child in Children do
+        local ChildRow = self:_VTreeMakeRowData(Child, RowData.Depth + 1, false)
+        self:_VTreeRefreshRowMeta(ChildRow)
+        Rows[InsertAt + I - 1] = ChildRow
+        self._VTreeRowsByInstance[Child] = InsertAt + I - 1
+
+        if self._VTreeExpanded[Child] and ChildRow.HasChildren then
+            task.defer(function()
+                if ChildRow.Instance and ChildRow.Instance.Parent then
+                    ChildRow.Expanded = false
+                    self:_VTreeExpand(ChildRow)
+                end
+            end)
+        end
+    end
+
+    self:_VTreeReindexRows(InsertAt + Count)
+
+    if self._VTreeFilterActive and not self._VTreeSuppressFilterRebuild then
+        self:_VTreeBuildFiltered()
+    end
+
+
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:_VTreeCollapse(RowData)
+    if not RowData or not RowData.Expanded then return end
+
+    RowData.Expanded = false
+
+    if RowData.IsNilContainer then
+        self:_VTreeUpdateCanvasSize()
+        self:_VTreeScheduleRebuild()
+
+        return
+    end
+
+    local ParentInst = RowData.Instance
+    if not ParentInst then return end
+
+    self._VTreeExpanded[ParentInst] = nil
+
+    local ParentIndex = self._VTreeRowsByInstance[ParentInst]
+    if not ParentIndex then return end
+
+    local Rows = self._VTreeRows
+    local ParentDepth = RowData.Depth
+    local RemoveStart = ParentIndex + 1
+    local RemoveEnd = ParentIndex
+
+    for I = ParentIndex + 1, #Rows do
+        if Rows[I].Depth > ParentDepth then
+            RemoveEnd = I
+        else
+            break
+        end
+    end
+
+    if RemoveEnd >= RemoveStart then
+        for I = RemoveStart, RemoveEnd do
+            local R = Rows[I]
+            if R.Instance then
+                self._VTreeRowsByInstance[R.Instance] = nil
             end
         end
 
-        Track(game.ChildAdded:Connect(function(Child)
-            if typeof(Child) ~= "Instance" then return end
-            if self.HiddenServices[Child.Name] then return end
+        local RemoveCount = RemoveEnd - RemoveStart + 1
+        local Len = #Rows
+        for I = RemoveEnd + 1, Len do
+            Rows[I - RemoveCount] = Rows[I]
+        end
+        for I = Len, Len - RemoveCount + 1, -1 do
+            Rows[I] = nil
+        end
 
-            if self.ExplorerFrozen then
-                self.FrozenPendingAdds[ClonerefInstance(Child)] = true
+        self:_VTreeReindexRows(RemoveStart)
+    end
+
+    if self._VTreeFilterActive and not self._VTreeSuppressFilterRebuild then
+        self:_VTreeBuildFiltered()
+    end
+
+
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:_VTreeRevealInstance(Inst, Options)
+    if not Inst then return end
+    Options = Options or {}
+
+    local Chain = {}
+
+    local GoodP, Cur = pcall(function() return Inst.Parent end)
+    if GoodP then Cur = Cur end
+    while Cur and Cur ~= game do
+        table.insert(Chain, 1, Cur)
+        local GoodCur, P = pcall(function() return Cur.Parent end)
+        if not GoodCur then break end
+        Cur = P
+    end
+
+    self._VTreeSuppressFilterRebuild = true
+    for _, Ancestor in Chain do
+        local Idx = self._VTreeRowsByInstance[Ancestor]
+            or self:_VTreeResolveRowIndex(Ancestor)
+        if Idx then
+            local Row = self._VTreeRows[Idx]
+            if Row and Row.HasChildren and not Row.Expanded then
+                self:_VTreeExpand(Row)
+            end
+        end
+    end
+    self._VTreeSuppressFilterRebuild = false
+
+    self:_VTreeUpdateCanvasSize()
+
+    if Options.Select then
+        self:SetSelection({Inst})
+        self.SelectionAnchor = Inst
+    end
+
+    local TargetIdx = self._VTreeRowsByInstance[Inst]
+        or self:_VTreeResolveRowIndex(Inst)
+
+    if not TargetIdx then
+        self:_VTreeScheduleRebuild()
+        return
+    end
+
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if Scroll then
+        local RowH = self._VTreeRowHeight or 22
+        local TargetY = (TargetIdx - 1) * RowH
+        local ViewH = Scroll.AbsoluteSize.Y
+        local CurTop = Scroll.CanvasPosition.Y
+        local CurBot = CurTop + ViewH
+
+        if TargetY < CurTop or TargetY + RowH > CurBot then
+            local NewY = math.max(0, TargetY - math.floor(ViewH / 2) + RowH)
+            Scroll.CanvasPosition = Vector2.new(Scroll.CanvasPosition.X, NewY)
+        end
+    end
+
+    if Options.Select then
+        self:SetSelection({Inst})
+        self.SelectionAnchor = Inst
+    end
+
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:_VTreeFindChildInsertIndex(ParentInst, NewChild)
+    local ParentIndex = self._VTreeRowsByInstance[ParentInst]
+    if not ParentIndex then return nil end
+
+    local Rows = self._VTreeRows
+    local ParentDepth = Rows[ParentIndex].Depth
+    local ChildDepth = ParentDepth + 1
+
+    local NewClass = NewChild.ClassName
+    local NewPriority = ClassPriority[NewClass] or 999
+    local NewName = (NewChild.Name or ""):lower()
+    local InsertAt = ParentIndex + 1
+
+    for I = ParentIndex + 1, #Rows do
+        local R = Rows[I]
+        if R.Depth <= ParentDepth then
+            return I
+        end
+        if R.Depth == ChildDepth then
+            local ExistingClass = R.ClassName
+            if not ExistingClass and R.Instance then
+                local Good, C = pcall(function() return R.Instance.ClassName end)
+                if Good then ExistingClass = C end
+            end
+            local ExistingPriority = ClassPriority[ExistingClass or ""] or 999
+            local ExistingName = (R.RawName or ""):lower()
+
+            local NewComesFirst
+            if NewPriority ~= ExistingPriority then
+                NewComesFirst = NewPriority < ExistingPriority
+            elseif NewName ~= ExistingName then
+                NewComesFirst = NewName < ExistingName
+            else
+                NewComesFirst = (NewClass or "") < (ExistingClass or "")
+            end
+
+            if NewComesFirst then
+                return I
+            end
+            InsertAt = I + 1
+        end
+    end
+
+    return InsertAt
+end
+
+function Explorer:_VTreeInsertChildRow(ParentInst, NewChild)
+    if not ParentInst or not NewChild then return end
+    if self._VTreeRowsByInstance[NewChild] then return end
+
+    local ParentIndex = self._VTreeRowsByInstance[ParentInst]
+    if not ParentIndex then return end
+
+    local ParentRow = self._VTreeRows[ParentIndex]
+    if not ParentRow then return end
+
+    if not ParentRow.HasChildren then
+        ParentRow.HasChildren = true
+    end
+
+    if not ParentRow.Expanded then
+        self:_VTreeScheduleRebuild()
+
+        return
+    end
+
+    local InsertAt = self:_VTreeFindChildInsertIndex(ParentInst, NewChild)
+    if not InsertAt then return end
+
+    local Rows = self._VTreeRows
+    local ChildRow = self:_VTreeMakeRowData(NewChild, ParentRow.Depth + 1, false)
+    self:_VTreeRefreshRowMeta(ChildRow)
+
+    local OldLen = #Rows
+    for I = OldLen, InsertAt, -1 do
+        Rows[I + 1] = Rows[I]
+    end
+    Rows[InsertAt] = ChildRow
+
+    self:_VTreeReindexRows(InsertAt)
+
+    if self._VTreeFilterActive then
+        self:_VTreeBuildFiltered()
+    end
+
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeStabiliseScrollAroundInsert(InsertAt, 1)
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:_VTreeRemoveInstanceRow(Inst)
+    if not Inst then return end
+
+    local Rows = self._VTreeRows
+    if not Rows then return end
+
+    local Index = self._VTreeRowsByInstance[Inst] or self:_VTreeResolveRowIndex(Inst)
+
+    if not Index then
+        local GoodParent, ParentInst = pcall(function() return Inst.Parent end)
+        if not GoodParent or not ParentInst then return end
+
+        local ParentIndex = self._VTreeRowsByInstance[ParentInst]
+            or self:_VTreeResolveRowIndex(ParentInst)
+        if not ParentIndex then return end
+
+        local ParentRow = Rows[ParentIndex]
+        if not ParentRow then return end
+
+        local StillHasKids = false
+        local PDepth = ParentRow.Depth
+        for I = ParentIndex + 1, #Rows do
+            local R = Rows[I]
+            if R.Depth <= PDepth then break end
+            if R.Depth == PDepth + 1 then StillHasKids = true; break end
+        end
+
+        if not StillHasKids then
+            local GoodKids, Kids = pcall(function() return WeakGetChildren(ParentInst) end)
+            local HasKids = false
+            if GoodKids and Kids then
+                for _, Child in Kids do
+                    if Child ~= Inst then HasKids = true; break end
+                end
+            end
+            if ParentRow.HasChildren ~= HasKids then
+                ParentRow.HasChildren = HasKids
+                if not HasKids then
+                    ParentRow.Expanded = false
+                    if self._VTreeExpanded then
+                        self._VTreeExpanded[ParentInst] = nil
+                    end
+                end
+                self:_VTreeInvalidateVisibleCache()
+                self:_VTreeScheduleRebuild()
+            end
+        end
+        return
+    end
+
+    local TargetRow = Rows[Index]
+    local TargetDepth = TargetRow.Depth
+
+    local RemoveEnd = Index
+    for I = Index + 1, #Rows do
+        if Rows[I].Depth > TargetDepth then
+            RemoveEnd = I
+        else
+            break
+        end
+    end
+
+    for I = Index, RemoveEnd do
+        local R = Rows[I]
+        if R.Instance then
+            self._VTreeRowsByInstance[R.Instance] = nil
+            self._VTreeExpanded[R.Instance] = nil
+        end
+    end
+
+    local RemoveCount = RemoveEnd - Index + 1
+    local Len = #Rows
+    for I = RemoveEnd + 1, Len do
+        Rows[I - RemoveCount] = Rows[I]
+    end
+    for I = Len, Len - RemoveCount + 1, -1 do
+        Rows[I] = nil
+    end
+
+    self:_VTreeReindexRows(Index)
+
+    local ParentInst
+    local GoodParent, P = pcall(function() return Inst.Parent end)
+    if GoodParent then ParentInst = P end
+    if ParentInst then
+        local ParentIndex = self._VTreeRowsByInstance[ParentInst]
+        if ParentIndex then
+            local ParentRow = Rows[ParentIndex]
+            if ParentRow then
+                local StillHasKids = false
+                local PDepth = ParentRow.Depth
+                for I = ParentIndex + 1, #Rows do
+                    local R = Rows[I]
+                    if R.Depth <= PDepth then break end
+                    if R.Depth == PDepth + 1 then StillHasKids = true; break end
+                end
+                if ParentRow.HasChildren ~= StillHasKids then
+                    ParentRow.HasChildren = StillHasKids
+                    if not StillHasKids then
+                        ParentRow.Expanded = false
+                        self._VTreeExpanded[ParentInst] = nil
+                    end
+                end
+            end
+        end
+    end
+
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeStabiliseScrollAroundRemove(Index, RemoveCount)
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:_VTreeUpdateInstanceName(Inst, NewName)
+    local Index = self._VTreeRowsByInstance[Inst]
+    if not Index then return end
+    local RowData = self._VTreeRows[Index]
+    if not RowData then return end
+
+    RowData.RawName = NewName
+
+    if self._VTreeFilterActive then
+        self:_VTreeBuildFiltered()
+        self:_VTreeUpdateCanvasSize()
+    end
+
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:_VTreeHookAncestryFor(Inst)
+    self._VTreeAncestryConns = self._VTreeAncestryConns or setmetatable({}, {__mode = "k"})
+    if self._VTreeAncestryConns[Inst] then return end
+
+    local GoodSig, Sig = pcall(function() return Inst.AncestryChanged end)
+    if not GoodSig or not Sig then return end
+
+    self._VTreeAncestryConns[Inst] = Track(Sig:Connect(function(_, NewParent)
+        task.defer(function()
+            local OldIdx = self._VTreeRowsByInstance[Inst]
+            if not OldIdx then return end
+
+            local GoodP, RealParent = pcall(function() return Inst.Parent end)
+            if not GoodP then return end
+
+            if not RealParent then
+                self:_VTreeRemoveInstanceRow(Inst)
                 return
             end
 
-            self:CreateRootNode(Child, self:ComputeOrderForService(Child))
-        end))
+            self:_VTreeRemoveInstanceRow(Inst)
 
-        Track(game.ChildRemoved:Connect(function(Child)
-            if typeof(Child) ~= "Instance" then return end
+            local ParentIdx = self._VTreeRowsByInstance[RealParent]
+                or self:_VTreeResolveRowIndex(RealParent)
+            if ParentIdx then
+                local CanonicalParent = self._VTreeRows[ParentIdx].Instance
+                self:_VTreeInsertChildRow(CanonicalParent or RealParent, Inst)
+            end
+        end)
+    end))
+end
 
-            if self.ExplorerFrozen then
-                self.FrozenPendingRemoves[ClonerefInstance(Child)] = true
+function Explorer:_VTreeHookGameSignals()
+    if self._VTreeGameSignalsHooked then return end
+    self._VTreeGameSignalsHooked = true
+
+    self._VTreeAddedConn = Track(game.DescendantAdded:Connect(function(Inst)
+        task.defer(function()
+            local GoodParent, Parent = pcall(function() return Inst.Parent end)
+            if not GoodParent or not Parent then return end
+
+            if Parent == game then
+                if self._VTreeRowsByInstance[Inst] then return end
+
+                local InsertAt = 1
+                local Rows = self._VTreeRows
+                local NewName = (Inst.Name or ""):lower()
+                for I = 1, #Rows do
+                    local R = Rows[I]
+                    if R.Depth == 0 and not R.IsNilContainer then
+                        if (R.RawName or ""):lower() > NewName then
+                            InsertAt = I
+                            break
+                        end
+                        InsertAt = I + 1
+                    end
+                end
+
+                local NewRow = self:_VTreeMakeRowData(Inst, 0, false)
+                self:_VTreeRefreshRowMeta(NewRow)
+                local OldLen = #Rows
+                for I = OldLen, InsertAt, -1 do
+                    Rows[I + 1] = Rows[I]
+                end
+
+                Rows[InsertAt] = NewRow
+                self:_VTreeReindexRows(InsertAt)
+                self:_VTreeStabiliseScrollAroundInsert(InsertAt, 1)
+                self:_VTreeUpdateCanvasSize()
+                self:_VTreeInvalidateVisibleCache()
+                self:_VTreeScheduleRebuild()
                 return
             end
 
-            local Node = self.NodesByInstance[Child]
-            if not Node then return end
+            if self._VTreeRowsByInstance[Inst] then return end
 
-            self:DestroyNode(Node)
-            for Index, Root in self.RootNodes do
-                if Root == Node then
-                    table.remove(self.RootNodes, Index)
+            local ParentIdx = self._VTreeRowsByInstance[Parent]
+                or self:_VTreeResolveRowIndex(Parent)
+            if ParentIdx then
+                local CanonicalParent = self._VTreeRows[ParentIdx].Instance
+                self:_VTreeInsertChildRow(CanonicalParent or Parent, Inst)
+            end
+        end)
+    end))
+
+    self._VTreeRemovingConn = Track(game.DescendantRemoving:Connect(function(Inst)
+        self:_VTreeRemoveInstanceRow(Inst)
+
+        if self._VTreeNameConns and self._VTreeNameConns[Inst] then
+            pcall(function() self._VTreeNameConns[Inst]:Disconnect() end)
+            self._VTreeNameConns[Inst] = nil
+        end
+
+        if self._VTreeAncestryConns and self._VTreeAncestryConns[Inst] then
+            pcall(function() self._VTreeAncestryConns[Inst]:Disconnect() end)
+            self._VTreeAncestryConns[Inst] = nil
+        end
+    end))
+end
+
+function Explorer:_VTreeResolveRowIndex(Inst)
+    local Idx = self._VTreeRowsByInstance[Inst]
+    if Idx then
+        return Idx
+    end
+
+    local GoodName, Name = pcall(function()
+        return Inst.Name
+    end)
+
+    if not GoodName or not Name then
+        return nil
+    end
+
+    local Chain = {Name}
+    local Cursor
+
+    local GoodParent, ParentInst = pcall(function()
+        return Inst.Parent
+    end)
+
+    Cursor = GoodParent and ParentInst or nil
+
+    local Safety = 0
+    while Cursor and Cursor ~= game and Safety < 64 do
+        local GoodCursorName, CursorName = pcall(function()
+            return Cursor.Name
+        end)
+
+        if not GoodCursorName or not CursorName then
+            return nil
+        end
+
+        Chain[#Chain + 1] = CursorName
+
+        local GoodCursorParent, CursorParent = pcall(function()
+            return Cursor.Parent
+        end)
+
+        Cursor = GoodCursorParent and CursorParent or nil
+        Safety += 1
+    end
+
+    if Cursor ~= game then
+        return nil
+    end
+
+    local CurrentIdx
+    local CurrentDepth = -1
+
+    for I = #Chain, 1, -1 do
+        local SegName = Chain[I]
+        local TargetDepth = CurrentDepth + 1
+
+        if not CurrentIdx then
+            for J = 1, #self._VTreeRows do
+                local Row = self._VTreeRows[J]
+                if Row.Depth == 0
+                    and not Row.IsNilContainer
+                    and Row.RawName == SegName
+                then
+                    CurrentIdx = J
+                    CurrentDepth = 0
                     break
                 end
             end
-        end))
-    end, "Function Explorer.RebuildExplorer")
+
+            if not CurrentIdx then
+                return nil
+            end
+        else
+            local Found
+
+            for J = CurrentIdx + 1, #self._VTreeRows do
+                local Row = self._VTreeRows[J]
+
+                if Row.Depth <= CurrentDepth then
+                    break
+                end
+
+                if Row.Depth == TargetDepth and Row.RawName == SegName then
+                    Found = J
+                    break
+                end
+            end
+
+            if not Found then
+                return nil
+            end
+
+            CurrentIdx = Found
+            CurrentDepth = TargetDepth
+        end
+    end
+
+    return CurrentIdx
+end
+
+function Explorer:_VTreeActivate()
+    if self.ExplorerColumn and self.ExplorerColumn.Clear then
+        self.ExplorerColumn:Clear()
+    end
+
+    self:_VTreeBuildRoots()
+
+    local Container = self:_VTreeEnsureContainer()
+    if not Container then return end
+    Container.Visible = true
+
+    self:_VTreeHookScroll()
+    self:_VTreeHookGameSignals()
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeRebuildVisible()
+end
+
+function Explorer:_VTreeDeactivate()
+    if self._VTreeContainer then
+        self._VTreeContainer.Visible = false
+    end
+end
+
+function Explorer:_VTreeReindexRows(StartIndex)
+    StartIndex = StartIndex or 1
+    local Rows = self._VTreeRows
+    local Map = self._VTreeRowsByInstance
+    for I = StartIndex, #Rows do
+        local RowData = Rows[I]
+        if RowData.Instance then
+            Map[RowData.Instance] = I
+        end
+    end
+end
+
+function Explorer:_VTreeGetSortedChildren(Parent)
+    if not Parent then return {} end
+
+    local Kids = WeakGetChildren(Parent)
+    if not Kids then return {} end
+
+    local Filtered = {}
+    for _, Child in Kids do
+        if Child ~= self.ScreenGui then
+            Filtered[#Filtered + 1] = Child
+        end
+    end
+
+    if Parent == game then
+        return SortServices(Filtered)
+    end
+
+    return SortExplorerChildren(Filtered)
+end
+
+function Explorer:_VTreeBuildFiltered()
+    local Query = self.SearchQuery or ""
+    self._VTreeFilterBuildToken = (self._VTreeFilterBuildToken or 0) + 1
+    local Token = self._VTreeFilterBuildToken
+
+    self._VTreeFilteredResume = nil
+    self._VTreeFilteredExhausted = false
+
+    if Query == "" then
+        self._VTreeFilterActive = false
+        self._VTreeFilteredRows = nil
+        return
+    end
+
+    local MatchSet = self.MatchSet
+    if not MatchSet then
+        self._VTreeFilterActive = true
+        self._VTreeFilteredRows = {}
+        return
+    end
+
+    self._VTreeFilterActive = true
+    self._VTreeFilteredRows = {}
+    self:_VTreeInvalidateVisibleCache()
+
+    local Include = {}
+    local ChildrenByParent = {}
+    local Roots = {}
+
+    local function AddChild(ParentInst, ChildInst)
+        local List = ChildrenByParent[ParentInst]
+        if not List then
+            List = {}
+            ChildrenByParent[ParentInst] = List
+        end
+        for _, Existing in List do
+            if Existing == ChildInst then return end
+        end
+        List[#List + 1] = ChildInst
+    end
+
+    for Inst in MatchSet do
+        if Inst then
+            local Cursor = Inst
+            local Prev
+            local Safety = 0
+            while Cursor and Cursor ~= game and Safety < 64 do
+                local Already = Include[Cursor]
+                Include[Cursor] = true
+                if Prev then AddChild(Cursor, Prev) end
+                if Already then break end
+                Prev = Cursor
+                local GoodP, P = pcall(function() return Cursor.Parent end)
+                Cursor = GoodP and P or nil
+                Safety += 1
+            end
+            if Cursor == game and Prev then
+                Roots[Prev] = true
+            end
+        end
+    end
+
+    local RootList = {}
+    for Inst in Roots do RootList[#RootList + 1] = Inst end
+    RootList = SortServices(RootList)
+
+    for _, List in ChildrenByParent do
+        table.sort(List, function(A, B)
+            local AN = (A.Name or ""):lower()
+            local BN = (B.Name or ""):lower()
+            if AN == BN then return tostring(A) < tostring(B) end
+            return AN < BN
+        end)
+    end
+
+    local Filtered = self._VTreeFilteredRows
+    local PageSize = self._VTreeFilteredPageSize or 150
+
+    local function MakeRow(Inst, Depth, HasKids)
+        local GoodN, N = pcall(function() return Inst.Name end)
+        local GoodC, C = pcall(function() return Inst.ClassName end)
+        return {
+            Instance = Inst;
+            Depth = Depth;
+            Expanded = true;
+            HasChildren = HasKids;
+            IsNilContainer = false;
+            RawName = (GoodN and N) or "?";
+            ClassName = (GoodC and C) or "Instance";
+        }
+    end
+
+    local Co = coroutine.create(function()
+        local Emitted = 0
+        local Threshold = PageSize
+
+        local Walk
+        Walk = function(Inst, Depth)
+            local Kids = ChildrenByParent[Inst]
+            local HasKids = Kids ~= nil and #Kids > 0
+            Filtered[#Filtered + 1] = MakeRow(Inst, Depth, HasKids)
+            Emitted += 1
+
+            if Emitted >= Threshold then
+                coroutine.yield()
+                Threshold = Emitted + PageSize
+            end
+
+            if Kids then
+                for _, Child in Kids do
+                    Walk(Child, Depth + 1)
+                end
+            end
+        end
+
+        for _, Root in RootList do
+            Walk(Root, 0)
+        end
+    end)
+
+    local Self = self
+    local function Resume()
+        if Token ~= Self._VTreeFilterBuildToken then return end
+        if coroutine.status(Co) == "dead" then
+            Self._VTreeFilteredExhausted = true
+            Self._VTreeFilteredResume = nil
+            Self:_VTreeUpdateCanvasSize()
+            Self:_VTreeScheduleRebuild()
+            return
+        end
+        coroutine.resume(Co)
+        if coroutine.status(Co) == "dead" then
+            Self._VTreeFilteredExhausted = true
+            Self._VTreeFilteredResume = nil
+        end
+        Self:_VTreeUpdateCanvasSize()
+        Self:_VTreeScheduleRebuild()
+    end
+
+    self._VTreeFilteredResume = Resume
+
+    Resume()
+end
+
+function Explorer:_VTreeApplyFilter()
+    local Query = self.SearchQuery or ""
+    local PrevQuery = self._VTreeLastQuery or ""
+
+    if PrevQuery == "" and Query ~= "" then
+        self:_VTreeSaveScroll()
+    end
+
+    self._VTreeLastQuery = Query
+
+    if PrevQuery ~= Query then
+        self._VTreeHighlightCache = {}
+    end
+
+    if Query == "" then
+        self._VTreeFilterActive = false
+        self._VTreeFilteredRows = nil
+        self._VTreeFilteredResume = nil
+        self._VTreeFilteredExhausted = false
+
+        if self.FlatSearchResults then
+            self:_FlatHideContainer()
+        end
+        if self._VTreeContainer then
+            self._VTreeContainer.Visible = true
+        end
+
+        self:_VTreeUpdateCanvasSize()
+        self:_VTreeInvalidateVisibleCache()
+        self:_VTreeRebuildVisible()
+        if PrevQuery ~= "" then
+            self:_VTreeRestoreScroll()
+        end
+        return
+    end
+
+    if self.FlatSearchResults then
+        self._VTreeFilterActive = false
+        self._VTreeFilteredRows = nil
+        if self._VTreeContainer then
+            self._VTreeContainer.Visible = false
+        end
+        return
+    end
+
+    if self._VTreeContainer then
+        self._VTreeContainer.Visible = true
+    end
+
+    self:_VTreeBuildFiltered()
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeRebuildVisible()
+end
+
+function Explorer:_VTreeSaveScroll()
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return end
+    self._VTreeSavedScrollY = Scroll.CanvasPosition.Y
+end
+
+function Explorer:_VTreeRestoreScroll()
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return end
+    if not self._VTreeSavedScrollY then return end
+    local Y = self._VTreeSavedScrollY
+    self._VTreeSavedScrollY = nil
+
+    task.defer(function()
+        if not Scroll or not Scroll.Parent then return end
+        local MaxY = math.max(0, Scroll.AbsoluteCanvasSize.Y - Scroll.AbsoluteSize.Y)
+        Scroll.CanvasPosition = Vector2.new(0, math.clamp(Y, 0, MaxY))
+    end)
+end
+
+function Explorer:_VTreeStabiliseScrollAroundInsert(InsertedAtRowIndex, NumInserted)
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return end
+
+    local Slot = self._VTreeRowHeight + (self._VTreeRowGap or 0)
+    local CurrentY = Scroll.CanvasPosition.Y
+    local FirstVisibleIdx = math.floor(CurrentY / Slot) + 1
+
+    if InsertedAtRowIndex < FirstVisibleIdx then
+        task.defer(function()
+            if not Scroll or not Scroll.Parent then return end
+            local MaxY = math.max(0, Scroll.AbsoluteCanvasSize.Y - Scroll.AbsoluteSize.Y)
+            Scroll.CanvasPosition = Vector2.new(0, math.clamp(CurrentY + Slot * NumInserted, 0, MaxY))
+        end)
+    end
+end
+
+function Explorer:_VTreeStabiliseScrollAroundRemove(RemovedAtRowIndex, NumRemoved)
+    local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+    if not Scroll then return end
+
+    local Slot = self._VTreeRowHeight + (self._VTreeRowGap or 0)
+    local CurrentY = Scroll.CanvasPosition.Y
+    local FirstVisibleIdx = math.floor(CurrentY / Slot) + 1
+
+    if RemovedAtRowIndex < FirstVisibleIdx then
+        task.defer(function()
+            if not Scroll or not Scroll.Parent then return end
+            local NewY = math.max(0, CurrentY - Slot * NumRemoved)
+            local MaxY = math.max(0, Scroll.AbsoluteCanvasSize.Y - Scroll.AbsoluteSize.Y)
+            Scroll.CanvasPosition = Vector2.new(0, math.clamp(NewY, 0, MaxY))
+        end)
+    end
+end
+
+function Explorer:ToggleMatchByClassName()
+    self.MatchByClassName = not self.MatchByClassName
+    self._FilterChangedSinceLastSearch = true
+    self:SaveConfig()
+
+    if self.SearchQuery ~= "" then
+        self:RefreshAllSearchFilters()
+    end
+end
+
+function Explorer:ToggleMatchByProperty()
+    self.MatchByProperty = not self.MatchByProperty
+    self._FilterChangedSinceLastSearch = true
+    self:SaveConfig()
+
+    if self.SearchQuery ~= "" then
+        self:RefreshAllSearchFilters()
+    end
 end
 
 function Explorer:ToggleClassFilter(ClassName)
@@ -8978,6 +9513,8 @@ function Explorer:ToggleClassFilter(ClassName)
     else
         self.ActiveClassFilters[ClassName] = true
     end
+
+    self._FilterChangedSinceLastSearch = true
 
     self:SaveConfig()
 
@@ -9004,729 +9541,479 @@ function Explorer:ToggleNilContainerFilter()
     self:RebuildExplorer()
 end
 
-function Explorer:BuildMatchSets(Query, Token)
-    local Matches = {}
-    local Subtree = {}
-    local Count = 0
-    local LowerQuery = Query
-    local Filters = self.ActiveClassFilters
-    local FilterActive = next(Filters) ~= nil
-
-    local NodesWalked = 0
-    local function Walk(Object)
-        local HasMatchInside = false
-        local Good, Children = pcall(WeakGetChildren, Object)
-        if Good and type(Children) == "table" then
-            for Index = 1, #Children do
-                local Child = ClonerefInstance(Children[Index])
-
-                if Child and Walk(Child) then
-                    HasMatchInside = true
-                end
-            end
-        end
-
-        if Object ~= game then
-            local Name = Object.Name
-            local PassesClass = (not FilterActive) or Filters[Object.ClassName]
-            if PassesClass and #Name > 0 and string.find(string.lower(Name), LowerQuery, 1, true) then
-                Matches[Object] = true
-                HasMatchInside = true
-                Count += 1
-            end
-        end
-
-        if HasMatchInside then
-            Subtree[Object] = true
-        end
-
-        NodesWalked += 1
-        if NodesWalked % 4000 == 0 then
-            task.wait()
-            if Token ~= self.SearchToken or KillScript then
-                return false
-            end
-        end
-
-        return HasMatchInside
-    end
-
-    Walk(game)
-    if Token ~= self.SearchToken
-        or KillScript
-    then
-        return nil
-    end
-
-    return Matches, Subtree, Count
+function Explorer:_EscapeRichText(Text)
+    Text = Text:gsub("&", "&amp;")
+    Text = Text:gsub("<", "&lt;")
+    Text = Text:gsub(">", "&gt;")
+    Text = Text:gsub("\"", "&quot;")
+    Text = Text:gsub("'", "&apos;")
+    return Text
 end
 
-function Explorer:StartProgressiveSearch(Query)
-    self.SearchToken = (self.SearchToken or 0) + 1
-    local Token = self.SearchToken
+local _ComparisonOperators = {">=", "<=", "==", "=", ">", "<", "~"}
 
-    self.MatchSet = {}
-    self.SubtreeMatchSet = {}
-    self.ForcedExpanded = {}
+function Explorer:_ParsePropertyQuery(Query)
+    for _, Op in _ComparisonOperators do
+        local SplitPos = string.find(Query, Op, 1, true)
+        if SplitPos then
+            local PropName = string.sub(Query, 1, SplitPos - 1):gsub("^%s+", ""):gsub("%s+$", "")
+            local RawValue = string.sub(Query, SplitPos + #Op):gsub("^%s+", ""):gsub("%s+$", "")
 
-    for _, Node in self.NodesByInstance do
-        self:ApplySearchFilterToNode(Node)
-    end
-
-    task.spawn(function()
-        self:RunProgressiveSearch(Query, Token)
-    end)
-end
-
-function Explorer:ApplySearchFilterToNode(Node)
-    if not Node then
-        return
-    end
-
-    local Query = self.SearchQuery or ""
-
-    if Query == "" then
-        local Visible = true
-
-        if Node.IsNilContainer then
-            Visible = not self.HideNilContainer
-        end
-
-        if Node.NodeFrame then
-            Node.NodeFrame.Visible = Visible
-        end
-
-        if Node.Row then
-            Node.Row.Visible = Visible
-
-            local Holder = Node.Row.Parent
-            if Holder then
-                Holder.Visible = Visible
-            end
-        end
-
-        if Node.ChildContainer then
-            Node.ChildContainer.Visible = Visible and Node.Expanded == true
-        end
-
-        if Node.Label and Node.Label.TextColor3 ~= Theme.Text then
-            Node.Label.TextColor3 = Theme.Text
-        end
-
-        return
-    end
-
-    if not Node.Row then
-        return
-    end
-
-    local Visible
-    local NewColor
-
-    if Node.IsNilContainer then
-        local IncludeNil = self.SearchIncludesNil ~= false
-        local Filtered = Node.NilFilteredItems
-        local HasResults = Filtered and #Filtered > 0
-
-        Visible = IncludeNil and HasResults == true
-        NewColor = Theme.Accent
-    else
-        local Object = Node.Instance
-
-        if self.MatchSet[Object] then
-            Visible = true
-            NewColor = Theme.Accent
-        elseif self.SubtreeMatchSet[Object] then
-            Visible = true
-            NewColor = Theme.TextDim
-        else
-            Visible = false
-            NewColor = Theme.TextFaded
-        end
-    end
-
-    if Node.NodeFrame then
-        Node.NodeFrame.Visible = Visible
-    end
-
-    local Holder = Node.Row.Parent
-    if Holder then
-        Holder.Visible = Visible
-    end
-
-    Node.Row.Visible = Visible
-
-    if Node.ChildContainer then
-        Node.ChildContainer.Visible = Visible and Node.Expanded == true
-    end
-
-    if Node.Label and Node.Label.TextColor3 ~= NewColor then
-        Node.Label.TextColor3 = NewColor
-    end
-end
-
-function Explorer:EnsureNodeRealised(Object)
-    if not Object or Object == game then
-        return nil
-    end
-
-    local Existing = self.NodesByInstance[Object]
-    if Existing then
-        return Existing
-    end
-
-    local Parent = ClonerefInstance(Object.Parent)
-    if not Parent or Parent == game then
-        return nil
-    end
-
-    local ParentNode = self:EnsureNodeRealised(Parent)
-    if not ParentNode then
-        return nil
-    end
-
-    if ParentNode.PendingChildren then
-        for Index, Pending in ParentNode.PendingChildren do
-            local PendingObject = Pending
-            local PendingOrder = 0
-
-            if type(Pending) == "table" then
-                PendingObject = Pending.Instance
-                PendingOrder = Pending.Order or 0
+            if PropName == "" then
+                return nil
             end
 
-            if PendingObject == Object then
-                table.remove(ParentNode.PendingChildren, Index)
-                self:CreateChildNode(ParentNode, Object, PendingOrder)
-
-                if #ParentNode.PendingChildren == 0 then
-                    ParentNode.PendingChildren = nil
-
-                    if self.PendingNodesSet then
-                        self.PendingNodesSet[ParentNode] = nil
-                    end
-                end
-
-                return self.NodesByInstance[Object]
-            end
+            return {
+                Property = PropName;
+                Operator = Op;
+                RawValue = RawValue;
+                LowerRawValue = RawValue:lower();
+                NumericValue = tonumber(RawValue);
+                BooleanValue = (RawValue:lower() == "true") and true
+                    or (RawValue:lower() == "false") and false
+                    or nil;
+            }
         end
     end
 
     return nil
 end
 
-function Explorer:ExpandAncestorsOf(Object)
-    local Chain = {}
+function Explorer:_CompareValues(Actual, Parsed)
+    local Op = Parsed.Operator
+    local ActualType = typeof(Actual)
 
-    local Cursor = ClonerefInstance(Object)
-    while Cursor and Cursor.Parent ~= nil and Cursor ~= game do
-        table.insert(Chain, 1, Cursor)
-        Cursor = ClonerefInstance(Cursor.Parent)
+    if Op == "~" then
+        if ActualType == "string" then
+            return string.find(Actual:lower(), Parsed.LowerRawValue, 1, true) ~= nil
+        end
+        return string.find(tostring(Actual):lower(), Parsed.LowerRawValue, 1, true) ~= nil
     end
 
-    if #Chain == 0 then
+    if Op == "=" or Op == "==" then
+        if ActualType == "boolean" and Parsed.BooleanValue ~= nil then
+            return Actual == Parsed.BooleanValue
+        end
+        if ActualType == "number" and Parsed.NumericValue ~= nil then
+            return Actual == Parsed.NumericValue
+        end
+        if ActualType == "string" then
+            return Actual:lower() == Parsed.LowerRawValue
+        end
+        if ActualType == "EnumItem" then
+            return Actual.Name:lower() == Parsed.LowerRawValue
+        end
+        return tostring(Actual):lower() == Parsed.LowerRawValue
+    end
+
+    if Parsed.NumericValue == nil then
         return false
     end
 
-    local PreviousNode = nil
-    local DidWork = false
-
-    for Index, Ancestor in Chain do
-        local IsLeaf = Index == #Chain
-        local Node = self.NodesByInstance[Ancestor]
-
-        if not Node and PreviousNode then
-            if not PreviousNode.Expanded then
-                self.ForcedExpanded[PreviousNode.Instance] = true
-                self:ExpandNode(PreviousNode)
-                DidWork = true
-            end
-
-            local PendingOrder = 0
-
-            if PreviousNode.PendingChildren then
-                for I, Pending in PreviousNode.PendingChildren do
-                    local PendingObject = Pending
-                    local Order = 0
-
-                    if type(Pending) == "table" then
-                        PendingObject = Pending.Instance
-                        Order = Pending.Order or 0
-                    end
-
-                    if PendingObject == Ancestor then
-                        PendingOrder = Order
-                        table.remove(PreviousNode.PendingChildren, I)
-                        break
-                    end
-                end
-
-                if #PreviousNode.PendingChildren == 0 then
-                    PreviousNode.PendingChildren = nil
-
-                    if self.PendingNodesSet then
-                        self.PendingNodesSet[PreviousNode] = nil
-                    end
-                end
-            end
-
-            Node = self:CreateChildNode(PreviousNode, Ancestor, PendingOrder)
-            DidWork = true
-        end
-
-        if not Node then
-            return DidWork
-        end
-
-        if not IsLeaf and not Node.Expanded then
-            self.ForcedExpanded[Ancestor] = true
-            self:ExpandNode(Node)
-            DidWork = true
-        end
-
-        PreviousNode = Node
-    end
-
-    return DidWork
-end
-
-function Explorer:ClearSearchVisualState()
-    self.SearchQuery = ""
-    self.MatchSet = {}
-    self.SubtreeMatchSet = {}
-
-    self.SearchExpansionQueue = {}
-    self.SearchExpansionQueued = {}
-    self._SearchExpansionQueueIndex = 1
-
-    self.SearchToken = (self.SearchToken or 0) + 1
-    self.NodeRealiserToken = (self.NodeRealiserToken or 0) + 1
-    self.NodeRealiserRunning = false
-
-    self._RefreshDebounceToken = (self._RefreshDebounceToken or 0) + 1
-    self._SearchTextToken = (self._SearchTextToken or 0) + 1
-    self._LastAppliedSearchQuery = ""
-
-    for _, Node in self.NodesByInstance do
-        if Node.NodeFrame then
-            Node.NodeFrame.Visible = true
-        end
-
-        if Node.Row then
-            Node.Row.Visible = true
-        end
-
-        if Node.ChildContainer then
-            Node.ChildContainer.Visible = Node.Expanded == true
-        end
-    end
-
-    for _, Root in self.RootNodes or {} do
-        if Root.NodeFrame then
-            Root.NodeFrame.Visible = true
-        end
-
-        if Root.Row then
-            Root.Row.Visible = true
-        end
-
-        if Root.ChildContainer then
-            Root.ChildContainer.Visible = Root.Expanded == true
-        end
-    end
-end
-
-function Explorer:ClearSearchExpansionState()
-    local ToCollapse = {}
-
-    for Object in self.ForcedExpanded or {} do
-        local Node = self.NodesByInstance[Object]
-        if Node and Node.Expanded then
-            table.insert(ToCollapse, Node)
-        end
-    end
-
-    self.ForcedExpanded = {}
-
-    table.sort(ToCollapse, function(A, B)
-        return (A.Depth or 0) > (B.Depth or 0)
-    end)
-
-    for _, Node in ToCollapse do
-        if Node and Node.Row and Node.Expanded then
-            self:CollapseNode(Node)
-        end
-    end
-end
-
-function Explorer:QueueSearchExpansion(Object)
-    if not Object then
-        return
-    end
-
-    self.SearchExpansionQueue = self.SearchExpansionQueue or {}
-    self.SearchExpansionQueued = self.SearchExpansionQueued or {}
-
-    if self.SearchExpansionQueued[Object] then
-        return
-    end
-
-    local Budgets = self:GetSearchBudgets(self.SearchQuery)
-    local MaxQueued = Budgets.MaxQueuedMatches or 300
-
-    if #self.SearchExpansionQueue >= MaxQueued then
-        return
-    end
-
-    self.SearchExpansionQueued[Object] = true
-    table.insert(self.SearchExpansionQueue, Object)
-end
-
-function Explorer:IsNodeNearExplorerViewport(Node, Overscan)
-    if not Node or not Node.NodeFrame or not Node.NodeFrame.Parent then
+    local Numeric
+    if ActualType == "number" then
+        Numeric = Actual
+    elseif ActualType == "boolean" then
+        Numeric = Actual and 1 or 0
+    else
         return false
     end
 
-    local ScrollFrame = self.ExplorerColumn and self.ExplorerColumn.Content
-    if not ScrollFrame then
+    if Op == ">" then return Numeric > Parsed.NumericValue end
+    if Op == "<" then return Numeric < Parsed.NumericValue end
+    if Op == ">=" then return Numeric >= Parsed.NumericValue end
+    if Op == "<=" then return Numeric <= Parsed.NumericValue end
+
+    return false
+end
+
+function Explorer:_EntryMatchesPropertyQuery(Entry, Parsed)
+    local Inst = Entry.Instance
+    if not Inst or Inst.Parent == nil then
+        return false
+    end
+
+    local PropName = Parsed.Property
+
+    if PropName:lower() == "classname" then
+        if Parsed.Operator == "~" then
+            return string.find(Entry.ClassName:lower(), Parsed.LowerRawValue, 1, true) ~= nil
+        end
+        return Entry.ClassName:lower() == Parsed.LowerRawValue
+    end
+
+    if PropName:lower() == "name" then
+        if Parsed.Operator == "~" then
+            return string.find(Entry.LowerName, Parsed.LowerRawValue, 1, true) ~= nil
+        end
+        return Entry.LowerName == Parsed.LowerRawValue
+    end
+
+    local Good, Value = pcall(function() return Inst[PropName] end)
+    if not Good then
+        return false
+    end
+
+    return self:_CompareValues(Value, Parsed)
+end
+
+function Explorer:_EntryMatchesQuery(Entry, LowerQuery, ParsedProperty)
+    if ParsedProperty then
+        return self:_EntryMatchesPropertyQuery(Entry, ParsedProperty)
+    end
+
+    local NameMatches = string.find(Entry.LowerName, LowerQuery, 1, true) ~= nil
+    if NameMatches then
         return true
     end
 
-    Overscan = Overscan or 300
-
-    local ViewTop = ScrollFrame.AbsolutePosition.Y
-    local ViewBottom = ViewTop + ScrollFrame.AbsoluteSize.Y
-
-    local NodeTop = Node.NodeFrame.AbsolutePosition.Y
-    local NodeBottom = NodeTop + Node.NodeFrame.AbsoluteSize.Y
-
-    return NodeBottom >= ViewTop - Overscan and NodeTop <= ViewBottom + Overscan
-end
-
-function Explorer:GetBestExistingAncestorNode(Object)
-    local BestNode = nil
-    local Cursor = ClonerefInstance(Object)
-
-    while Cursor and Cursor ~= game do
-        local Node = self.NodesByInstance[Cursor]
-        if Node then
-            BestNode = Node
-            break
+    if self.MatchByClassName then
+        local ClassMatches = string.find(Entry.ClassName:lower(), LowerQuery, 1, true) ~= nil
+        if ClassMatches then
+            return true
         end
-
-        Cursor = ClonerefInstance(Cursor.Parent)
     end
 
-    return BestNode
+    return false
 end
 
-function Explorer:ProcessSearchExpansionQueue(Token, Budget)
+function Explorer:_BuildHighlightedName(Name, Query)
+    if not Query or Query == "" then
+        return self:_EscapeRichText(Name), false
+    end
+
+    local LowerName = Name:lower()
+    local LowerQuery = Query:lower()
+    local MatchStart, MatchEnd = string.find(LowerName, LowerQuery, 1, true)
+
+    if not MatchStart then
+        return self:_EscapeRichText(Name), false
+    end
+
+    local Before = self:_EscapeRichText(Name:sub(1, MatchStart - 1))
+    local Match = self:_EscapeRichText(Name:sub(MatchStart, MatchEnd))
+    local After = self:_EscapeRichText(Name:sub(MatchEnd + 1))
+
+    local AccentColor = Theme.Accent
+    local Hex = string.format("#%02X%02X%02X",
+        math.floor(AccentColor.R * 255 + 0.5),
+        math.floor(AccentColor.G * 255 + 0.5),
+        math.floor(AccentColor.B * 255 + 0.5))
+
+    return `{Before}<font color="{Hex}"><b>{Match}</b></font>{After}`, true
+end
+
+function Explorer:BuildSearchIndex()
+    if self.SearchIndexBuilt then
+        return
+    end
+
+    self.SearchIndex = {}
+    self.SearchIndexByInstance = setmetatable({}, {__mode = "k"})
+
+    local Descendants = WeakGetDescendants(game)
+    for Index = 1, #Descendants do
+        local Inst = Descendants[Index]
+        if typeof(Inst) ~= "Instance" then
+            continue
+        end
+
+        local GoodName, Name = pcall(function() return Inst.Name end)
+        local GoodClass, ClassName = pcall(function() return Inst.ClassName end)
+        if not GoodName or not GoodClass or type(Name) ~= "string" then
+            continue
+        end
+
+        local Entry = {
+            Instance = Inst;
+            LowerName = Name:lower();
+            ClassName = ClassName;
+        }
+
+        local NewLength = #self.SearchIndex + 1
+        self.SearchIndex[NewLength] = Entry
+        self.SearchIndexByInstance[Inst] = NewLength
+
+        if Index % 5000 == 0 then
+            task.wait()
+            if KillScript then
+                return
+            end
+        end
+    end
+
+    self.SearchIndexBuilt = true
+    self:HookSearchIndexEvents()
+end
+
+function Explorer:_AddToSearchIndex(Inst)
+    if typeof(Inst) ~= "Instance" or self.SearchIndexByInstance[Inst] then
+        return
+    end
+
+    local GoodName, Name = pcall(function() return Inst.Name end)
+    local GoodClass, ClassName = pcall(function() return Inst.ClassName end)
+    if not GoodName or not GoodClass or type(Name) ~= "string" then
+        return
+    end
+
+    local Entry = {
+        Instance = Inst;
+        LowerName = Name:lower();
+        ClassName = ClassName;
+    }
+
+    local NewLength = #self.SearchIndex + 1
+    self.SearchIndex[NewLength] = Entry
+    self.SearchIndexByInstance[Inst] = NewLength
+end
+
+function Explorer:_RemoveFromSearchIndex(Inst)
+    if typeof(Inst) ~= "Instance" then
+        return
+    end
+
+    local Idx = self.SearchIndexByInstance[Inst]
+    if not Idx then
+        return
+    end
+
+    local Last = #self.SearchIndex
+    if Idx ~= Last then
+        local Moved = self.SearchIndex[Last]
+        self.SearchIndex[Idx] = Moved
+        if Moved and Moved.Instance then
+            self.SearchIndexByInstance[Moved.Instance] = Idx
+        end
+    end
+
+    self.SearchIndex[Last] = nil
+    self.SearchIndexByInstance[Inst] = nil
+end
+
+function Explorer:_UpdateSearchIndexName(Inst, NewName)
+    if typeof(Inst) ~= "Instance" or type(NewName) ~= "string" then
+        return
+    end
+
+    local Idx = self.SearchIndexByInstance[Inst]
+    if not Idx then
+        return
+    end
+
+    local Entry = self.SearchIndex[Idx]
+    if Entry then
+        Entry.LowerName = NewName:lower()
+    end
+end
+
+function Explorer:HookSearchIndexEvents()
+    if self._SearchIndexHooked then
+        return
+    end
+    self._SearchIndexHooked = true
+
+    Track(game.DescendantAdded:Connect(function(RawInst)
+        if typeof(RawInst) ~= "Instance" then
+            return
+        end
+
+        local Inst = ClonerefInstance(RawInst)
+        self:_AddToSearchIndex(Inst)
+    end))
+
+    Track(game.DescendantRemoving:Connect(function(RawInst)
+        if typeof(RawInst) ~= "Instance" then
+            return
+        end
+
+        local Inst = ClonerefInstance(RawInst)
+        self:_RemoveFromSearchIndex(Inst)
+    end))
+end
+
+function Explorer:_MarkAncestorsForSearch(Object)
+    local Cursor = ClonerefInstance(Object)
+    while Cursor and Cursor ~= game do
+        self.SubtreeMatchSet[Cursor] = true
+        Cursor = ClonerefInstance(Cursor.Parent)
+    end
+end
+
+function Explorer:RunIndexedSearch(Query, Token)
+    if not self.SearchIndexBuilt then
+        self:BuildSearchIndex()
+    end
+
     if Token ~= self.SearchToken or KillScript then
         return
     end
 
-    local Queue = self.SearchExpansionQueue
-    if not Queue or #Queue == 0 then
-        return
-    end
-
-    Budget = Budget or 2
-
-    local DidExpand = false
-    local Processed = 0
-    local Checked = 0
-    local MaxChecks = math.max(20, Budget * 20)
-
-    local Index = self._SearchExpansionQueueIndex or 1
-    if Index > #Queue then
-        Index = 1
-    end
-
-    while #Queue > 0 and Processed < Budget and Checked < MaxChecks do
-        if Token ~= self.SearchToken or KillScript then
-            return
-        end
-
-        if Index > #Queue then
-            Index = 1
-        end
-
-        local Object = Queue[Index]
-        Checked += 1
-
-        if not Object
-            or not self.MatchSet
-            or not self.MatchSet[Object]
-        then
-            if Object and self.SearchExpansionQueued then
-                self.SearchExpansionQueued[Object] = nil
-            end
-
-            table.remove(Queue, Index)
-        else
-            local AnchorNode = self:GetBestExistingAncestorNode(Object)
-
-            if AnchorNode and self:IsNodeNearExplorerViewport(AnchorNode, 350) then
-                self:ExpandAncestorsOf(Object)
-                DidExpand = true
-
-                if self.SearchExpansionQueued then
-                    self.SearchExpansionQueued[Object] = nil
-                end
-
-                table.remove(Queue, Index)
-                Processed += 1
-            else
-                Index += 1
-            end
-        end
-    end
-
-    self._SearchExpansionQueueIndex = Index
-
-    if DidExpand then
-        self:ScheduleNodeRealiser()
-    end
-end
-
-function Explorer:GetSearchBudgets(Query)
-    local Length = #(Query or "")
-
-    if Length <= 1 then
-        return {
-            ProcessBatchSize = 50;
-            VisualFlushDelay = 0.35;
-            QueueBudget = 1;
-            RealiserBudget = 1;
-            Overscan = 10;
-            MaxQueuedMatches = 60;
-        }
-    elseif Length == 2 then
-        return {
-            ProcessBatchSize = 80;
-            VisualFlushDelay = 0.3;
-            QueueBudget = 1;
-            RealiserBudget = 1;
-            Overscan = 20;
-            MaxQueuedMatches = 120;
-        }
-    elseif Length == 3 then
-        return {
-            ProcessBatchSize = 150;
-            VisualFlushDelay = 0.22;
-            QueueBudget = 2;
-            RealiserBudget = 2;
-            Overscan = 45;
-            MaxQueuedMatches = 300;
-        }
-    else
-        return {
-            ProcessBatchSize = 300;
-            VisualFlushDelay = 0.15;
-            QueueBudget = 4;
-            RealiserBudget = 3;
-            Overscan = 80;
-            MaxQueuedMatches = 800;
-        }
-    end
-end
-
-function Explorer:RefreshAllSearchFilters()
-    local Query = self.SearchQuery
-
-    if Query ~= "" and #Query < 1 then
-        self.SearchToken = (self.SearchToken or 0) + 1
-
-        self:CancelPendingNodeRealiser()
-        self:ClearSearchExpansionState()
-
-        self.MatchSet = {}
-        self.SubtreeMatchSet = {}
-        self._SearchExpansionQueueIndex = 1
-        self.SearchExpansionQueue = {}
-        self.SearchExpansionQueued = {}
-
-        for _, Node in self.NodesByInstance do
-            self:ApplySearchFilterToNode(Node)
-        end
-
-        return
-    end
-
-    self.SearchToken = (self.SearchToken or 0) + 1
-    local Token = self.SearchToken
-
-    self:CancelPendingNodeRealiser()
-    self:ClearSearchExpansionState()
-
-    if Query == "" then
-        self.MatchSet = {}
-        self.SubtreeMatchSet = {}
-
-        for _, Node in self.NodesByInstance do
-            self:ApplySearchFilterToNode(Node)
-        end
-
-        return
-    end
-
-    self.MatchSet = {}
-    self.SubtreeMatchSet = {}
-    self.ForcedExpanded = {}
-    self.SearchExpansionQueue = {}
-    self.SearchExpansionQueued = {}
-
-    for _, Node in self.NodesByInstance do
-        self:ApplySearchFilterToNode(Node)
-    end
-
-    task.spawn(function()
-        self:RunProgressiveSearch(Query, Token)
-    end)
-end
-
-function Explorer:RunProgressiveSearch(Query, Token)
     local LowerQuery = Query:lower()
     local Filters = self.ActiveClassFilters or {}
     local FilterActive = next(Filters) ~= nil
 
-    local Queue = {}
-    local QueueRead = 1
-    local QueueWrite = 0
-
-    local function PushQueue(Object)
-        if not Object then
-            return
-        end
-
-        QueueWrite += 1
-        Queue[QueueWrite] = Object
+    local ParsedProperty = nil
+    if self.MatchByProperty then
+        ParsedProperty = self:_ParsePropertyQuery(Query)
     end
 
-    local Root = ClonerefInstance(game)
+    local Source
+    local PrevQuery = self._LastIndexedQuery
+    local PrevResults = self._LastIndexedResults
+    local PrevWasProperty = self._LastIndexedWasProperty
+    local UsePrefix = false
 
-    local Good, Children = pcall(WeakGetChildren, Root)
-    if Good and type(Children) == "table" then
-        for _, Child in Children do
-            PushQueue(ClonerefInstance(Child))
-        end
+    local IsPropertyNow = ParsedProperty ~= nil
+
+    if PrevQuery
+        and PrevResults
+        and #PrevQuery > 0
+        and not IsPropertyNow
+        and not PrevWasProperty
+        and string.find(LowerQuery, PrevQuery, 1, true) == 1
+        and not self._FilterChangedSinceLastSearch
+    then
+        Source = PrevResults
+        UsePrefix = true
+    else
+        Source = self.SearchIndex
     end
 
-    local Budgets = self:GetSearchBudgets(Query)
-    local ProcessBatchSize = Budgets.ProcessBatchSize
-    local VisualFlushDelay = Budgets.VisualFlushDelay
-    local MaxQueuedMatches = Budgets.MaxQueuedMatches
-    local QueueBudget = Budgets.QueueBudget
+    local Matches = {}
+    local SourceLength = #Source
+    local Scanned = 0
 
-    local Processed = 0
-    local MatchesFound = 0
-    local LastVisualFlush = os.clock()
+    for Index = 1, SourceLength do
+        local Entry = Source[Index]
+        if Entry and Entry.Instance and Entry.Instance.Parent ~= nil then
+            local NameOk = self:_EntryMatchesQuery(Entry, LowerQuery, ParsedProperty)
+            local ClassOk = (not FilterActive) or Filters[Entry.ClassName]
 
-    local function MarkAncestors(Object)
-        local Cursor = ClonerefInstance(Object)
-
-        while Cursor and Cursor ~= game do
-            self.SubtreeMatchSet[Cursor] = true
-            Cursor = ClonerefInstance(Cursor.Parent)
-        end
-    end
-
-    local function PassesClassFilter(Object)
-        if not FilterActive then
-            return true
-        end
-
-        local GoodClass, ClassName = pcall(function()
-            return Object.ClassName
-        end)
-
-        return GoodClass and Filters[ClassName] == true
-    end
-
-    local function AddChildren(Object)
-        local GoodChildren, Children = pcall(WeakGetChildren, Object)
-        if not GoodChildren or type(Children) ~= "table" then
-            return
-        end
-
-        for _, Child in Children do
-            PushQueue(ClonerefInstance(Child))
-        end
-    end
-
-    while QueueRead <= QueueWrite do
-        if Token ~= self.SearchToken or KillScript then
-            return
-        end
-
-        local Object = Queue[QueueRead]
-        Queue[QueueRead] = nil
-        QueueRead += 1
-
-        if Object and Object ~= game then
-            AddChildren(Object)
-
-            local GoodName, Name = pcall(function()
-                return Object.Name
-            end)
-
-            if GoodName
-                and type(Name) == "string"
-                and Name:lower():find(LowerQuery, 1, true)
-                and PassesClassFilter(Object)
-            then
-                self.MatchSet[Object] = true
-                MarkAncestors(Object)
-
-                MatchesFound += 1
-
-                if MatchesFound <= MaxQueuedMatches then
-                    self:QueueSearchExpansion(Object)
-                end
-
-                if MatchesFound <= 12 then
-                    self:ProcessSearchExpansionQueue(Token, QueueBudget)
-                end
+            if NameOk and ClassOk then
+                self.MatchSet[Entry.Instance] = true
+                self:_MarkAncestorsForSearch(Entry.Instance)
+                Matches[#Matches + 1] = Entry
             end
         end
 
-        Processed += 1
-
-        if Processed % ProcessBatchSize == 0 then
-            for _, Node in self.NodesByInstance do
-                self:ApplySearchFilterToNode(Node)
-            end
-
-            self:ProcessSearchExpansionQueue(Token, QueueBudget)
-            self:ScheduleNodeRealiser()
-
+        Scanned += 1
+        if Scanned % 8000 == 0 then
             task.wait()
-
             if Token ~= self.SearchToken or KillScript then
                 return
             end
-        elseif os.clock() - LastVisualFlush > VisualFlushDelay then
-            LastVisualFlush = os.clock()
-
-            for _, Node in self.NodesByInstance do
-                self:ApplySearchFilterToNode(Node)
-            end
-
-            self:ProcessSearchExpansionQueue(Token, QueueBudget)
-            self:ScheduleNodeRealiser()
         end
     end
 
-    if Token ~= self.SearchToken or KillScript then
+    self._LastIndexedQuery = LowerQuery
+    self._LastIndexedResults = Matches
+    self._LastIndexedWasProperty = IsPropertyNow
+    self._FilterChangedSinceLastSearch = false
+
+    if self.FlatSearchResults then
+        self:_FlatHookScroll()
+        self:_FlatApplyResults(Matches)
+    else
+        self:_FlatHideContainer()
+    end
+
+    self:_VTreeApplyFilter()
+end
+
+function Explorer:RefreshAllSearchFilters()
+    local Query = self.SearchQuery or ""
+
+    self.SearchToken = (self.SearchToken or 0) + 1
+    local Token = self.SearchToken
+
+    self.MatchSet = {}
+    self.SubtreeMatchSet = {}
+
+    if Query == "" then
+        self._LastIndexedQuery = nil
+        self._LastIndexedResults = nil
+
+        self:_FlatHideContainer()
+        self:_VTreeApplyFilter()
         return
     end
 
-    for _, Node in self.NodesByInstance do
-        self:ApplySearchFilterToNode(Node)
+    task.spawn(function()
+        self:RunIndexedSearch(Query, Token)
+    end)
+end
+
+function Explorer:ClearSearchAndJumpTo()
+    local Target = self.SelectedInstance
+    if typeof(Target) ~= "Instance" then return end
+
+    self._SearchTextToken = (self._SearchTextToken or 0) + 1
+    self._SuppressSearchBoxChanged = true
+    if self.SearchBox then
+        self.SearchBox.Text = ""
+    end
+    self._SuppressSearchBoxChanged = false
+    self._LastAppliedSearchQuery = ""
+    self.SearchQuery = ""
+
+    self:ClearSearchStateWithoutRebuild()
+    self._VTreeFilterActive = false
+    self._VTreeFilteredRows = nil
+    self._VTreeLastQuery = ""
+    self._VTreeSavedScrollY = nil
+
+    local Chain = {}
+    local Cursor = Target
+    local Safety = 0
+    while Cursor and Cursor ~= game and Safety < 64 do
+        Chain[#Chain + 1] = Cursor
+        local GoodP, P = pcall(function() return Cursor.Parent end)
+        Cursor = GoodP and P or nil
+        Safety += 1
+    end
+    if Cursor ~= game then
+        self:_VTreeUpdateCanvasSize()
+        self:_VTreeRebuildVisible()
+        return
     end
 
-    self:ProcessSearchExpansionQueue(Token, QueueBudget)
-    self:ScheduleNodeRealiser()
+    for I = #Chain, 2, -1 do
+        local Ancestor = Chain[I]
+        local Idx = self._VTreeRowsByInstance[Ancestor]
+            or self:_VTreeResolveRowIndex(Ancestor)
+        if not Idx then break end
+        local Row = self._VTreeRows[Idx]
+        if Row and Row.HasChildren and not Row.Expanded then
+            self:_VTreeExpand(Row)
+        end
+    end
+
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeRebuildVisible()
+
+    task.defer(function()
+        if KillScript then return end
+        local Idx = self._VTreeRowsByInstance[Target]
+            or self:_VTreeResolveRowIndex(Target)
+        if not Idx then return end
+
+        self:SetSelection({Target})
+        self.SelectionAnchor = Target
+
+        local Scroll = self.ExplorerColumn and self.ExplorerColumn.Content
+        if Scroll then
+            local Slot = self._VTreeRowHeight + (self._VTreeRowGap or 0)
+            local RowY = (Idx - 1) * Slot
+            local Center = RowY - Scroll.AbsoluteSize.Y / 2 + Slot
+            local MaxY = math.max(0, Scroll.AbsoluteCanvasSize.Y - Scroll.AbsoluteSize.Y)
+            Scroll.CanvasPosition = Vector2.new(0, math.clamp(Center, 0, MaxY))
+        end
+
+        self:_VTreeRefreshVisibleSelection()
+    end)
+
+    return
 end
 
 function Explorer:ClearSearchStateWithoutRebuild()
@@ -9735,189 +10022,49 @@ function Explorer:ClearSearchStateWithoutRebuild()
     self.MatchSet = {}
     self.SubtreeMatchSet = {}
 
-    self.SearchExpansionQueue = {}
-    self.SearchExpansionQueued = {}
-    self._SearchExpansionQueueIndex = 1
-
     self.SearchToken = (self.SearchToken or 0) + 1
-    self.NodeRealiserToken = (self.NodeRealiserToken or 0) + 1
-    self.NodeRealiserRunning = false
 
     self._RefreshDebounceToken = (self._RefreshDebounceToken or 0) + 1
     self._SearchTextToken = (self._SearchTextToken or 0) + 1
     self._LastAppliedSearchQuery = ""
 
-    for _, Node in self.NodesByInstance do
-        self:ApplySearchFilterToNode(Node)
+    self._VTreeFilterActive = false
+    self._VTreeFilteredRows = nil
+    self._VTreeFilteredResume = nil
+    self._VTreeFilteredExhausted = false
+    self._VTreeFilterBuildToken = (self._VTreeFilterBuildToken or 0) + 1
 
-        if Node.NodeFrame then
-            Node.NodeFrame.Visible = true
-        end
-
-        if Node.Row then
-            Node.Row.Visible = true
-
-            local Holder = Node.Row.Parent
-            if Holder then
-                Holder.Visible = true
-            end
-        end
-
-        if Node.ChildContainer then
-            Node.ChildContainer.Visible = Node.Expanded == true
-        end
-
-        if Node.Label then
-            Node.Label.TextColor3 = Theme.Text
-        end
+    if self._VTreeHighlightCache then
+        self._VTreeHighlightCache = {}
     end
 
-    for _, Root in self.RootNodes or {} do
-        if Root.NodeFrame then
-            Root.NodeFrame.Visible = true
-        end
-
-        if Root.Row then
-            Root.Row.Visible = true
-
-            local Holder = Root.Row.Parent
-            if Holder then
-                Holder.Visible = true
-            end
-        end
-
-        if Root.ChildContainer then
-            Root.ChildContainer.Visible = Root.Expanded == true
-        end
-
-        if Root.Label then
-            Root.Label.TextColor3 = Theme.Text
-        end
-    end
-end
-
-function Explorer:CollapseAllExceptPath(Target)
-    if typeof(Target) ~= "Instance" then
-        return
+    if self._VTreeInvalidateVisibleCache then
+        self:_VTreeInvalidateVisibleCache()
     end
 
-    local PathSet = setmetatable({}, {__mode = "k"})
-    local Cursor = ClonerefInstance(Target)
-    while Cursor and Cursor.Parent ~= nil and Cursor ~= game do
-        PathSet[Cursor] = true
-        Cursor = ClonerefInstance(Cursor.Parent)
+    if self._VTreeUpdateCanvasSize then
+        self:_VTreeUpdateCanvasSize()
     end
 
-    for _, Node in self.NodesByInstance do
-        if not Node or not Node.Instance then
-            continue
-        end
-
-        if Node.IsNilContainer then
-            continue
-        end
-
-        if PathSet[Node.Instance] then
-            continue
-        end
-
-        if not Node.Expanded then
-            continue
-        end
-
-        Node.Expanded = false
-
-        if self.ExpandedInstances then
-            self.ExpandedInstances[Node.Instance] = nil
-        end
-
-        if self.ForcedExpanded then
-            self.ForcedExpanded[Node.Instance] = nil
-        end
-
-        if Node.ChildContainer then
-            Node.ChildContainer.Visible = false
-        end
-
-        self:UpdateArrow(Node)
+    if self._VTreeScheduleRebuild then
+        self:_VTreeScheduleRebuild()
     end
-end
-
-function Explorer:ClearSearchAndJumpTo()
-    local Target = self.SelectedInstance
-    if typeof(Target) ~= "Instance" then
-        return
-    end
-
-    self._SearchTextToken = (self._SearchTextToken or 0) + 1
-    self._SuppressSearchBoxChanged = true
-
-    if self.SearchBox then
-        self.SearchBox.Text = ""
-    end
-
-    self._SuppressSearchBoxChanged = false
-    self._LastAppliedSearchQuery = ""
-
-    self:ClearSearchStateWithoutRebuild()
-
-    self.ExpandedInstances = setmetatable({}, {__mode = "k"})
-    self.ForcedExpanded = setmetatable({}, {__mode = "k"})
-
-    self:RebuildExplorer()
-
-    task.defer(function()
-        if KillScript then
-            return
-        end
-
-        task.wait(0.5)
-
-        if KillScript then
-            return
-        end
-
-        self:JumpToInstance(Target)
-    end)
 end
 
 function Explorer:HandleSearchSubmit()
     local Query = self.SearchQuery
-    if Query == "" then
-        return
-    end
+    if Query == "" then return end
 
     local Now = os.clock()
-
     if self._LastSearchSubmitQuery == Query
         and self._LastSearchSubmitTime
         and Now - self._LastSearchSubmitTime < 0.4
-    then
-        return
-    end
+    then return end
 
     self._LastSearchSubmitQuery = Query
     self._LastSearchSubmitTime = Now
 
-    self:ProcessSearchExpansionQueue(self.SearchToken, 1)
-    self:ScheduleNodeRealiser()
-end
-
-function Explorer:UpdateNodeVisual(Object)
-    local Node = self.NodesByInstance[Object]
-    if not Node or not Node.Row then
-        return
-    end
-
-    local InSelection = self.SelectedSet[Object] == true
-    Node.SelectionAccent.Visible = InSelection
-    Node.Row.BackgroundTransparency = InSelection and 0.3 or 1
-end
-
-function Explorer:RefreshAllNodeVisuals()
-    for Object in self.NodesByInstance do
-        self:UpdateNodeVisual(Object)
-    end
+    return
 end
 
 function Explorer:CollectVisibleFlatOrder()
@@ -9959,22 +10106,36 @@ function Explorer:CollectVisibleFlatOrder()
 end
 
 function Explorer:RangeSelect(AnchorInstance, EndInstance)
-    local Order, Index = self:CollectVisibleFlatOrder()
-    local AnchorPosition = Index[AnchorInstance]
-    local EndPosition = Index[EndInstance]
-    if not AnchorPosition
-        or not EndPosition
-    then
+    local Rows = self._VTreeFilterActive
+        and self._VTreeFilteredRows
+        or self._VTreeRows
+    if not Rows then
         self:SetSelection({EndInstance})
         self.SelectionAnchor = EndInstance
-
         return
     end
-    local Low = math.min(AnchorPosition, EndPosition)
-    local High = math.max(AnchorPosition, EndPosition)
+
+    local AnchorIdx, EndIdx
+    for I, Row in Rows do
+        if Row.Instance == AnchorInstance then AnchorIdx = I end
+        if Row.Instance == EndInstance then EndIdx = I end
+        if AnchorIdx and EndIdx then break end
+    end
+
+    if not AnchorIdx or not EndIdx then
+        self:SetSelection({EndInstance})
+        self.SelectionAnchor = EndInstance
+        return
+    end
+
+    local Low = math.min(AnchorIdx, EndIdx)
+    local High = math.max(AnchorIdx, EndIdx)
     local Range = {}
     for Position = Low, High do
-        table.insert(Range, Order[Position])
+        local Row = Rows[Position]
+        if Row and Row.Instance then
+            table.insert(Range, Row.Instance)
+        end
     end
 
     self:SetSelection(Range)
@@ -9994,20 +10155,14 @@ function Explorer:SetSelection(InstanceList)
         if not self.SelectedSet[Object] then
             self.SelectedSet[Object] = true
             table.insert(self.SelectedOrder, Object)
-            self:EnsureNodeVisible(Object)
         end
     end
 
     self.SelectedInstance = self.SelectedOrder[#self.SelectedOrder]
-    for Object in Old do
-        self:UpdateNodeVisual(Object)
-    end
-
-    for Object in self.SelectedSet do
-        self:UpdateNodeVisual(Object)
-    end
 
     self:OnSelectionChanged()
+
+    self:_VTreeRefreshVisibleSelection()
 end
 
 function Explorer:ToggleInSelection(Object)
@@ -10028,10 +10183,8 @@ function Explorer:ToggleInSelection(Object)
         self.SelectedSet[Object] = true
         table.insert(self.SelectedOrder, Object)
         self.SelectedInstance = Object
-        self:EnsureNodeVisible(Object)
     end
 
-    self:UpdateNodeVisual(Object)
     self:OnSelectionChanged()
 end
 
@@ -10040,12 +10193,23 @@ function Explorer:GetSelectionList()
 end
 
 function Explorer:OnSelectionChanged()
+    local Count = 0
+    if self.SelectedOrder then
+        for _ in self.SelectedOrder do Count += 1 end
+    end
+
     if self.SelectedInstance then
         self:RenderProperties(self.SelectedInstance)
         self:UpdateSelectionHighlights()
 
         if self.PropertiesTitleLabel then
-            self.PropertiesTitleLabel.Text = `{self.SelectedInstance.ClassName}  -  {self.SelectedInstance.Name}`
+            if Count > 1 then
+                self.PropertiesTitleLabel.Text =
+                    `{self.SelectedInstance.ClassName}  -  {self.SelectedInstance.Name}  ({Count} selected)`
+            else
+                self.PropertiesTitleLabel.Text =
+                    `{self.SelectedInstance.ClassName}  -  {self.SelectedInstance.Name}`
+            end
         end
     else
         self:ClearPropertyConnections()
@@ -10059,27 +10223,6 @@ function Explorer:OnSelectionChanged()
         self:AddPropertiesLabel("Select an instance.")
     end
 end
-
-local ReadOnlyProperties = {
-    ClassName = true;
-    AccountAge = true;
-    UserId = true;
-    MembershipType = true;
-    FollowUserId = true;
-    LocalPlayer = true;
-    NumPlayers = true;
-    MaxPlayers = true;
-    PreferredPlayers = true;
-    IsLoaded = true;
-    IsPlaying = true;
-    IsPaused = true;
-    TimeLength = true;
-    Occupant = true;
-    AssemblyLinearVelocity = true;
-    AssemblyAngularVelocity = true;
-    WorldCFrame = true;
-    WorldPosition = true;
-}
 
 function Explorer:ClearPropertiesContent()
     if not self.PropertiesContent then
@@ -11388,6 +11531,88 @@ function Explorer:CreateModalWindow(Title, Width, Height, Options)
         self.ModalBlocker = Blocker
     end
 
+    if Options.Resizable then
+        local MinW = Options.MinWidth or 320
+        local MinH = Options.MinHeight or 240
+        local EdgeThickness = 6
+
+        local function BringToFront() end
+
+        local function MakeEdge(Position, Size, DirX, DirY)
+            local Edge = VexUI:CreateInstance("Frame", {
+                Position = Position;
+                Size = Size;
+                BackgroundTransparency = 1;
+                ZIndex = 210;
+                Active = true;
+                Parent = Window;
+            })
+
+            local Resizing = false
+            local StartInput, StartSize, StartPosition
+
+            Edge.InputBegan:Connect(function(Input)
+                if Input.UserInputType == Enum.UserInputType.MouseButton1
+                    or Input.UserInputType == Enum.UserInputType.Touch
+                then
+                    Resizing = true
+                    StartInput = Input.Position
+                    StartSize = Window.AbsoluteSize
+                    StartPosition = Window.Position
+                end
+            end)
+
+            Track(Services.UserInputService.InputChanged:Connect(function(Input)
+                if not Resizing or not Window.Parent then return end
+                if Input.UserInputType ~= Enum.UserInputType.MouseMovement
+                    and Input.UserInputType ~= Enum.UserInputType.Touch
+                then return end
+
+                local Delta = Input.Position - StartInput
+                local NewW = StartSize.X
+                local NewH = StartSize.Y
+                local NewX = StartPosition.X.Offset
+                local NewY = StartPosition.Y.Offset
+
+                if DirX == 1 then
+                    NewW = math.max(MinW, StartSize.X + Delta.X)
+                elseif DirX == -1 then
+                    local Width = math.max(MinW, StartSize.X - Delta.X)
+                    NewX = StartPosition.X.Offset + (StartSize.X - Width)
+                    NewW = Width
+                end
+
+                if DirY == 1 then
+                    NewH = math.max(MinH, StartSize.Y + Delta.Y)
+                elseif DirY == -1 then
+                    local Height = math.max(MinH, StartSize.Y - Delta.Y)
+                    NewY = StartPosition.Y.Offset + (StartSize.Y - Height)
+                    NewH = Height
+                end
+
+                Window.Size = UDim2.fromOffset(NewW, NewH)
+                Window.Position = UDim2.new(StartPosition.X.Scale, NewX, StartPosition.Y.Scale, NewY)
+            end))
+
+            Track(Services.UserInputService.InputEnded:Connect(function(Input)
+                if Input.UserInputType == Enum.UserInputType.MouseButton1
+                    or Input.UserInputType == Enum.UserInputType.Touch
+                then
+                    Resizing = false
+                end
+            end))
+        end
+
+        MakeEdge(UDim2.new(1, -EdgeThickness, 0, EdgeThickness), UDim2.new(0, EdgeThickness, 1, -EdgeThickness * 2), 1, 0)
+        MakeEdge(UDim2.new(0, 0, 0, EdgeThickness), UDim2.new(0, EdgeThickness, 1, -EdgeThickness * 2), -1, 0)
+        MakeEdge(UDim2.new(0, EdgeThickness, 1, -EdgeThickness), UDim2.new(1, -EdgeThickness * 2, 0, EdgeThickness), 0, 1)
+        MakeEdge(UDim2.new(0, EdgeThickness, 0, 0), UDim2.new(1, -EdgeThickness * 2, 0, EdgeThickness), 0, -1)
+        MakeEdge(UDim2.new(1, -EdgeThickness, 1, -EdgeThickness), UDim2.fromOffset(EdgeThickness, EdgeThickness), 1, 1)
+        MakeEdge(UDim2.new(0, 0, 1, -EdgeThickness), UDim2.fromOffset(EdgeThickness, EdgeThickness), -1, 1)
+        MakeEdge(UDim2.new(1, -EdgeThickness, 0, 0), UDim2.fromOffset(EdgeThickness, EdgeThickness), 1, -1)
+        MakeEdge(UDim2.new(0, 0, 0, 0), UDim2.fromOffset(EdgeThickness, EdgeThickness), -1, -1)
+    end
+
     return Window, Body
 end
 
@@ -11432,6 +11657,23 @@ function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
     })
 
     VexUI:AddListLayout(Body, 8, Enum.FillDirection.Vertical)
+
+    local PickerConns = {}
+    local function PConn(Signal, Fn)
+        local C = Signal:Connect(Fn)
+        table.insert(PickerConns, C)
+        Track(C)
+        return C
+    end
+
+    Window.AncestryChanged:Connect(function(_, Parent)
+        if Parent == nil then
+            for _, C in PickerConns do
+                pcall(function() C:Disconnect() end)
+            end
+            table.clear(PickerConns)
+        end
+    end)
 
     local H, S, V = Color3.toHSV(InitialColor)
     local R = math.floor(InitialColor.R * 255 + 0.5)
@@ -11572,7 +11814,7 @@ function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
         end
     end)
 
-    Services.UserInputService.InputChanged:Connect(function(Input)
+    PConn(Services.UserInputService.InputChanged, function(Input)
         if SVDrag and (Input.UserInputType == Enum.UserInputType.MouseMovement
             or Input.UserInputType == Enum.UserInputType.Touch)
         then
@@ -11580,7 +11822,7 @@ function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
         end
     end)
 
-    Services.UserInputService.InputEnded:Connect(function(Input)
+    PConn(Services.UserInputService.InputEnded, function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1
             or Input.UserInputType == Enum.UserInputType.Touch
         then
@@ -11604,7 +11846,7 @@ function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
         end
     end)
 
-    Services.UserInputService.InputChanged:Connect(function(Input)
+    PConn(Services.UserInputService.InputChanged, function(Input)
         if HueDrag and (Input.UserInputType == Enum.UserInputType.MouseMovement
             or Input.UserInputType == Enum.UserInputType.Touch)
         then
@@ -11612,7 +11854,7 @@ function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
         end
     end)
 
-    Services.UserInputService.InputEnded:Connect(function(Input)
+    PConn(Services.UserInputService.InputEnded, function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1
             or Input.UserInputType == Enum.UserInputType.Touch
         then
@@ -11699,7 +11941,7 @@ function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
             end
         end)
 
-        Services.UserInputService.InputChanged:Connect(function(I)
+        PConn(Services.UserInputService.InputChanged, function(I)
             if Drag
                 and (I.UserInputType == Enum.UserInputType.MouseMovement or I.UserInputType == Enum.UserInputType.Touch)
             then
@@ -11707,7 +11949,7 @@ function Explorer:OpenColorPicker(CurrentColor, Callback, Options)
             end
         end)
 
-        Services.UserInputService.InputEnded:Connect(function(I)
+        PConn(Services.UserInputService.InputEnded, function(I)
             if I.UserInputType == Enum.UserInputType.MouseButton1
                 or I.UserInputType == Enum.UserInputType.Touch
             then
@@ -12034,78 +12276,41 @@ function Explorer:SelectChildrenOfSelection()
         table.insert(Sources, self.SelectedInstance)
     end
 
-    if #Sources == 0 then
-        return
+    if #Sources == 0 then return end
+
+    for _, Parent in Sources do
+        local Idx = self._VTreeRowsByInstance[Parent]
+            or self:_VTreeResolveRowIndex(Parent)
+        if Idx then
+            local Row = self._VTreeRows[Idx]
+            if Row and Row.HasChildren and not Row.Expanded then
+                self:_VTreeExpand(Row)
+            end
+        end
     end
 
     local Collected = {}
     local Seen = setmetatable({}, {__mode = "k"})
 
-    local function UnpackPending(Pending)
-        if type(Pending) == "table" then
-            return Pending.Instance, Pending.Order or 0
-        end
-
-        return Pending, 0
-    end
-
     for _, Parent in Sources do
-        if typeof(Parent) ~= "Instance" then
-            continue
-        end
-
-        local ParentNode = self.NodesByInstance[Parent]
-
-        if ParentNode then
-            if not ParentNode.Expanded then
-                self:ExpandNode(ParentNode)
-            end
-
-            if ParentNode.PendingChildren then
-                local PendingCopy = {table.unpack(ParentNode.PendingChildren)}
-
-                for _, Pending in PendingCopy do
-                    local Child, Order = UnpackPending(Pending)
-
-                    if typeof(Child) == "Instance" and not self.NodesByInstance[Child] then
-                        self:CreateChildNode(ParentNode, Child, Order)
-                    end
-                end
-
-                ParentNode.PendingChildren = nil
-
-                if self.PendingNodesSet then
-                    self.PendingNodesSet[ParentNode] = nil
-                end
-            end
-        end
-
         local Good, Children = pcall(function()
             return WeakGetChildren(Parent)
         end)
 
-        if not Good or type(Children) ~= "table" then
-            continue
-        end
-
-        SortExplorerChildren(Children)
-
-        for _, Child in Children do
-            if typeof(Child) == "Instance" and not Seen[Child] then
-                Seen[Child] = true
-                table.insert(Collected, Child)
+        if Good and type(Children) == "table" then
+            SortExplorerChildren(Children)
+            for _, Child in Children do
+                if typeof(Child) == "Instance" and not Seen[Child] then
+                    Seen[Child] = true
+                    table.insert(Collected, Child)
+                end
             end
         end
     end
 
     if #Collected == 0 then
         self:Notify("Selected instance has no children")
-
         return
-    end
-
-    for _, Child in Collected do
-        self:EnsureNodeVisible(Child)
     end
 
     self:SetSelection(Collected)
@@ -12222,7 +12427,7 @@ function Explorer:StartViewObject(Instance)
     Camera.CameraType = Enum.CameraType.Scriptable
     self.ViewedObject = Instance
 
-    self.ViewConnection = Track(Services.RunService.RenderStepped:Connect(function()
+    self.ViewConnection = Track(Services.RunService.PreRender:Connect(function()
         local ViewedObject = self.ViewedObject
         if not ViewedObject or not Camera.Parent then
             return
@@ -12341,37 +12546,30 @@ function Explorer:OpenInsertObject()
             return ClassName
         end,
         function(ClassName)
+            if self._InsertingObject then return end
+            self._InsertingObject = true
+
             local Count = 0
+            local LastInserted
             for _, Object in Selection do
                 local NewObject
                 local Good = pcall(function()
                     NewObject = Instance.new(ClassName)
                     NewObject.Parent = Object
                 end)
-
                 if Good and NewObject then
                     Count += 1
-
-                    local ParentNode = self.NodesByInstance[Object]
-                    if ParentNode then
-                        self:UpdateArrow(ParentNode)
-
-                        if ParentNode.Expanded
-                            and not self.NodesByInstance[NewObject]
-                        then
-                            if self.SearchQuery == ""
-                                or (self.MatchSet and self.MatchSet[NewObject])
-                                or (self.SubtreeMatchSet and self.SubtreeMatchSet[NewObject])
-                            then
-                                self:CreateChildNode(ParentNode, NewObject)
-                            end
-                        end
-                    end
+                    LastInserted = NewObject
                 end
+            end
+
+            if LastInserted then
+                self:_VTreeRevealInstance(LastInserted, {Select = true})
             end
 
             self:Notify(`Inserted {ClassName} into {Count} target(s)`)
             self:CloseModal()
+            self._InsertingObject = false
         end,
         true,
         24,
@@ -12663,7 +12861,7 @@ function Explorer:OpenAttributeModal(Title, ExistingName, ExistingValue)
             DropdownFollowConnection = nil
         end
 
-        DropdownFollowConnection = Services.RunService.RenderStepped:Connect(function()
+        DropdownFollowConnection = Services.RunService.PreRender:Connect(function()
             if TypeDropdown and TypeDropdown.Parent and TypeDropdown.Visible then
                 PositionTypeDropdown()
             end
@@ -13056,6 +13254,14 @@ function Explorer:Open3DPreview(Instance)
 
     local WindowBody = PreviewWindow.Body
 
+    local PreviewConns = {}
+    local function PConn(Signal, Fn)
+        local C = Signal:Connect(Fn)
+        table.insert(PreviewConns, C)
+        Track(C)
+        return C
+    end
+
     local ViewportContainer = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, -16, 1, -16);
         Position = UDim2.new(0, 8, 0, 8);
@@ -13064,8 +13270,6 @@ function Explorer:Open3DPreview(Instance)
         ClipsDescendants = true;
         Parent = WindowBody;
     })
-
-    
 
     local ViewportFrame = VexUI:CreateInstance("ViewportFrame", {
         Size = UDim2.fromScale(1, 1);
@@ -13142,7 +13346,7 @@ function Explorer:Open3DPreview(Instance)
 
     UpdateCamera()
 
-    local RenderConnection = Track(Services.RunService.RenderStepped:Connect(function(DeltaTime)
+    local RenderConnection = Track(Services.RunService.PreRender:Connect(function(DeltaTime)
         if AutoRotate then
             Yaw += DeltaTime * 0.5
             UpdateCamera()
@@ -13151,9 +13355,11 @@ function Explorer:Open3DPreview(Instance)
 
     PreviewWindow.Frame.AncestryChanged:Connect(function(_, Parent)
         if not Parent then
-            pcall(function()
-                RenderConnection:Disconnect()
-            end)
+            pcall(function() RenderConnection:Disconnect() end)
+            for _, C in PreviewConns do
+                pcall(function() C:Disconnect() end)
+            end
+            table.clear(PreviewConns)
         end
     end)
 
@@ -13169,7 +13375,7 @@ function Explorer:Open3DPreview(Instance)
         end
     end)
 
-    Track(Services.UserInputService.InputChanged:Connect(function(Input)
+    PConn(Services.UserInputService.InputChanged, function(Input)
         if not IsDragging or not PreviewWindow.Frame.Parent then
             return
         end
@@ -13189,15 +13395,15 @@ function Explorer:Open3DPreview(Instance)
         Pitch = math.clamp(Pitch + DeltaY * 0.01, -math.rad(85), math.rad(85))
 
         UpdateCamera()
-    end))
+    end)
 
-    Track(Services.UserInputService.InputEnded:Connect(function(Input)
+    PConn(Services.UserInputService.InputEnded, function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1
             or Input.UserInputType == Enum.UserInputType.Touch
         then
             IsDragging = false
         end
-    end))
+    end)
 end
 
 function Explorer:OpenCallFunction()
@@ -14854,14 +15060,25 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
         Parent = self.ScreenGui;
     })
     
-    local WindowStroke = VexUI:AddStroke(Window, "Border", 1)
     BindTheme("Window", function(Color)
         Window.BackgroundColor3 = Color
     end)
 
+    local WindowStroke = VexUI:AddStroke(Window, "Border", 1)
     BindTheme("Border", function(Color)
         WindowStroke.Color = Color
     end)
+
+    VexUI:CreateInstance("TextButton", {
+        Size = UDim2.fromScale(1, 1);
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Text = "";
+        Modal = false;
+        ZIndex = 50;
+        Parent = Window;
+    })
 
     if BindTransparency then
         BindTransparency("Window", function(Value)
@@ -15273,11 +15490,17 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     end
 
     local function BringToFront()
+        local MaxZ = 50
         for _, Item in self.ScriptViewerWindows do
-            if Item.Window and Item.Window.Parent then Item.Window.ZIndex = 50 end
+            if Item.Window and Item.Window.Parent and Item ~= Entry then
+                Item.Window.ZIndex = 50
+                if Item.Window.ZIndex > MaxZ then
+                    MaxZ = Item.Window.ZIndex
+                end
+            end
         end
-
-        Window.ZIndex = 55
+        Window.ZIndex = MaxZ + 5
+        Window.Parent = Window.Parent
     end
 
     Window.InputBegan:Connect(function(Input)
@@ -15432,11 +15655,56 @@ function Explorer:ToggleConsole()
     self:OpenConsole()
 end
 
+local MAX_CONSOLE_ENTRIES = 2000
+local CONSOLE_DROP_BATCH = 500
+function Explorer:_EnsureConsoleLog()
+    if self._ConsoleLogReady then return end
+    self._ConsoleLogReady = true
+
+    self.ConsoleLog = self.ConsoleLog or {}
+    self._ConsoleClearedAt = self._ConsoleClearedAt or 0
+    self._ConsoleSubscribers = self._ConsoleSubscribers or {}
+
+    local function Push(Text, MessageType)
+        local Entry = {
+            Text = tostring(Text),
+            Type = MessageType,
+            Time = os.clock(),
+        }
+        table.insert(self.ConsoleLog, Entry)
+
+        if #self.ConsoleLog > MAX_CONSOLE_ENTRIES then
+            for I = 1, CONSOLE_DROP_BATCH do
+                table.remove(self.ConsoleLog, 1)
+            end
+        end
+
+        for Sub in self._ConsoleSubscribers do
+            pcall(Sub, Entry)
+        end
+    end
+
+    self._ConsolePush = Push
+
+    local LogService = GetService("LogService")
+    pcall(function()
+        for _, Entry in LogService:GetLogHistory() do
+            Push(Entry.message, Entry.messageType)
+        end
+    end)
+
+    Track(LogService.MessageOut:Connect(function(Message, MessageType)
+        Push(Message, MessageType)
+    end))
+end
+
 function Explorer:OpenConsole()
+    self:_EnsureConsoleLog()
+
     local ConsoleWindow = VexUI:CreateWindow({
         Parent = self.ScreenGui;
         Title = "Console";
-        Size = UDim2.fromOffset(560, 380);
+        Size = UDim2.fromOffset(620, 400);
         Position = UDim2.fromOffset(80, 80);
     })
 
@@ -15450,7 +15718,17 @@ function Explorer:OpenConsole()
 
     local IsAutoScrollEnabled = true
     local ConsoleTextSize = 12
-    local LogEntries = {}
+
+    local Filters = self._ConsoleFilters or {
+        [Enum.MessageType.MessageOutput]  = true;
+        [Enum.MessageType.MessageInfo]    = true;
+        [Enum.MessageType.MessageWarning] = true;
+        [Enum.MessageType.MessageError]   = true;
+    }
+    self._ConsoleFilters = Filters
+
+    local LogLabels = {}
+    local SubscriberFn
 
     local TopBar = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, -16, 0, 26);
@@ -15459,12 +15737,7 @@ function Explorer:OpenConsole()
         Parent = WindowBody;
     })
 
-    local TopBarLayout = VexUI:AddListLayout(
-        TopBar,
-        6,
-        Enum.FillDirection.Horizontal
-    )
-
+    local TopBarLayout = VexUI:AddListLayout(TopBar, 6, Enum.FillDirection.Horizontal)
     TopBarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
     local function CreateTopBarButton(ButtonText, Callback)
@@ -15477,34 +15750,61 @@ function Explorer:OpenConsole()
             Font = Fonts.SemiBold;
             Text = ButtonText;
             TextColor3 = Theme.TextDim;
-            TextSize = 14;
+            TextSize = 12;
             Parent = TopBar;
         })
-
-        
         VexUI:AddStroke(Button, "Border", 1)
         VexUI:AddPadding(Button, 0, 8, 0, 8)
-
         Button.MouseButton1Click:Connect(Callback)
-
         return Button
     end
 
     local AutoScrollButton
-
     local function UpdateAutoScrollButton()
         AutoScrollButton.Text = IsAutoScrollEnabled and "Auto-Scroll: ON" or "Auto-Scroll: OFF"
-        AutoScrollButton.TextSize = 12
-
         AutoScrollButton.TextColor3 = IsAutoScrollEnabled and Theme.Green or Theme.TextDim
     end
-
     AutoScrollButton = CreateTopBarButton("Auto-Scroll: ON", function()
         IsAutoScrollEnabled = not IsAutoScrollEnabled
         UpdateAutoScrollButton()
     end)
-
     UpdateAutoScrollButton()
+
+    local function ColorForType(MessageType)
+        if MessageType == Enum.MessageType.MessageError then return Theme.Red end
+        if MessageType == Enum.MessageType.MessageWarning then return Theme.Yellow end
+        if MessageType == Enum.MessageType.MessageInfo then return Theme.Blue end
+        return Theme.Text
+    end
+
+    local function EntryVisible(Entry)
+        return Filters[Entry.Type] == true
+    end
+
+    local function RefreshVisibility()
+        for Entry, Label in LogLabels do
+            if Label.Parent then
+                Label.Visible = EntryVisible(Entry)
+            end
+        end
+    end
+
+    local FilterButtons = {}
+    local function MakeFilterButton(LabelText, MessageType)
+        local Btn = CreateTopBarButton(LabelText, function()
+            Filters[MessageType] = not Filters[MessageType]
+            FilterButtons[MessageType].TextColor3 =
+                Filters[MessageType] and ColorForType(MessageType) or Theme.TextFaded
+            RefreshVisibility()
+        end)
+        Btn.TextColor3 = Filters[MessageType] and ColorForType(MessageType) or Theme.TextFaded
+        FilterButtons[MessageType] = Btn
+    end
+
+    MakeFilterButton("Out",  Enum.MessageType.MessageOutput)
+    MakeFilterButton("Info", Enum.MessageType.MessageInfo)
+    MakeFilterButton("Warn", Enum.MessageType.MessageWarning)
+    MakeFilterButton("Err",  Enum.MessageType.MessageError)
 
     local SizeLabel = VexUI:CreateInstance("TextLabel", {
         Size = UDim2.new(0, 60, 1, 0);
@@ -15517,12 +15817,11 @@ function Explorer:OpenConsole()
     })
 
     local function ApplyConsoleTextSize()
-        for _, LogLabel in LogEntries do
-            if LogLabel.Parent then
-                LogLabel.TextSize = ConsoleTextSize
+        for _, Label in LogLabels do
+            if Label.Parent then
+                Label.TextSize = ConsoleTextSize
             end
         end
-
         SizeLabel.Text = `Size: {ConsoleTextSize}`
     end
 
@@ -15537,13 +15836,12 @@ function Explorer:OpenConsole()
     end)
 
     CreateTopBarButton("Clear", function()
-        for _, LogLabel in LogEntries do
-            if LogLabel.Parent then
-                LogLabel:Destroy()
-            end
+        table.clear(self.ConsoleLog)
+        self._ConsoleClearedAt = os.clock()
+        for _, Label in LogLabels do
+            if Label.Parent then Label:Destroy() end
         end
-
-        LogEntries = {}
+        table.clear(LogLabels)
     end)
 
     local LogScrollFrame = VexUI:CreateInstance("ScrollingFrame", {
@@ -15558,28 +15856,26 @@ function Explorer:OpenConsole()
         ScrollingDirection = Enum.ScrollingDirection.Y;
         Parent = WindowBody;
     })
-
-    
     VexUI:AddPadding(LogScrollFrame, 4, 6, 4, 6)
     VexUI:AddListLayout(LogScrollFrame, 1, Enum.FillDirection.Vertical)
 
-    local function AppendLog(LogText, LogColor)
-        local LogLabel = VexUI:CreateInstance("TextLabel", {
+    local function RenderEntry(Entry)
+        local Label = VexUI:CreateInstance("TextLabel", {
             Size = UDim2.new(1, 0, 0, 0);
             AutomaticSize = Enum.AutomaticSize.Y;
             BackgroundTransparency = 1;
             Font = Fonts.Mono;
-            Text = tostring(LogText);
-            TextColor3 = LogColor or Theme.Text;
+            Text = Entry.Text;
+            TextColor3 = ColorForType(Entry.Type);
             TextSize = ConsoleTextSize;
             TextXAlignment = Enum.TextXAlignment.Left;
             TextWrapped = true;
+            Visible = EntryVisible(Entry);
             Parent = LogScrollFrame;
         })
+        LogLabels[Entry] = Label
 
-        table.insert(LogEntries, LogLabel)
-
-        if IsAutoScrollEnabled then
+        if IsAutoScrollEnabled and Label.Visible then
             task.defer(function()
                 if LogScrollFrame.Parent then
                     LogScrollFrame.CanvasPosition =
@@ -15589,41 +15885,24 @@ function Explorer:OpenConsole()
         end
     end
 
-    local LogService = GetService("LogService")
+    for _, Entry in self.ConsoleLog do
+        if Entry.Time >= (self._ConsoleClearedAt or 0) then
+            RenderEntry(Entry)
+        end
+    end
 
-    pcall(function()
-        for _, Entry in LogService:GetLogHistory() do
-            local Color
+    SubscriberFn = function(Entry)
+        if LogScrollFrame.Parent then
+            RenderEntry(Entry)
+        end
+    end
+    self._ConsoleSubscribers[SubscriberFn] = true
 
-            if Entry.messageType == Enum.MessageType.MessageError then
-                Color = Theme.Red
-            elseif Entry.messageType == Enum.MessageType.MessageWarning then
-                Color = Theme.Yellow
-            elseif Entry.messageType == Enum.MessageType.MessageInfo then
-                Color = Theme.Blue
-            else
-                Color = Theme.Text
-            end
-
-            AppendLog(Entry.message, Color)
+    ConsoleWindow.Frame.AncestryChanged:Connect(function(_, Parent)
+        if Parent == nil then
+            self._ConsoleSubscribers[SubscriberFn] = nil
         end
     end)
-
-    self.ConsoleConnection = Track(LogService.MessageOut:Connect(function(Message, MessageType)
-        local Color
-
-        if MessageType == Enum.MessageType.MessageError then
-            Color = Theme.Red
-        elseif MessageType == Enum.MessageType.MessageWarning then
-            Color = Theme.Yellow
-        elseif MessageType == Enum.MessageType.MessageInfo then
-            Color = Theme.Blue
-        else
-            Color = Theme.Text
-        end
-
-        AppendLog(Message, Color)
-    end))
 
     local CommandRow = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, -16, 0, 28);
@@ -15631,13 +15910,7 @@ function Explorer:OpenConsole()
         BackgroundTransparency = 1;
         Parent = WindowBody;
     })
-
-    local CommandLayout = VexUI:AddListLayout(
-        CommandRow,
-        6,
-        Enum.FillDirection.Horizontal
-    )
-
+    local CommandLayout = VexUI:AddListLayout(CommandRow, 6, Enum.FillDirection.Horizontal)
     CommandLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
     local CommandBox = VexUI:CreateInstance("TextBox", {
@@ -15654,8 +15927,6 @@ function Explorer:OpenConsole()
         ClearTextOnFocus = false;
         Parent = CommandRow;
     })
-
-    
     VexUI:AddStroke(CommandBox, "Border", 1)
     VexUI:AddPadding(CommandBox, 0, 8, 0, 8)
 
@@ -15671,139 +15942,91 @@ function Explorer:OpenConsole()
         TextSize = 12;
         Parent = CommandRow;
     })
-
-    
     VexUI:AddStroke(RunButton, Theme.Accent, 1)
+
+    local function PushSynthetic(Text, MessageType)
+        self._ConsolePush(Text, MessageType or Enum.MessageType.MessageOutput)
+    end
 
     local function FormatArgument(Value)
         local ValueType = typeof(Value)
-
-        if ValueType == "string" then
-            return Value
-        end
-
+        if ValueType == "string" then return Value end
         if ValueType == "Instance" then
             return `{Value.ClassName}({Value:GetFullName()})`
         end
-
         if ValueType == "table" then
-            local Success, EncodedJson = pcall(function()
+            local Success, Encoded = pcall(function()
                 return Services.HttpService:JSONEncode(Value)
             end)
-
-            if Success then
-                return EncodedJson
-            end
-
+            if Success then return Encoded end
             return tostring(Value)
         end
-
         return tostring(Value)
     end
 
     local function FormatArguments(...)
-        local ArgumentCount = select("#", ...)
-
-        if ArgumentCount == 0 then
-            return ""
-        end
-
-        local FormattedParts = {}
-
-        for Index = 1, ArgumentCount do
-            FormattedParts[Index] = FormatArgument(select(Index, ...))
-        end
-
-        return table.concat(FormattedParts, "  ")
+        local N = select("#", ...)
+        if N == 0 then return "" end
+        local Parts = {}
+        for I = 1, N do Parts[I] = FormatArgument(select(I, ...)) end
+        return table.concat(Parts, "  ")
     end
 
-        local function ExecuteCommand()
-            local Code = CommandBox.Text
-            if Code == "" then
-                return
-            end
+    local function ExecuteCommand()
+        local Code = CommandBox.Text
+        if Code == "" then return end
 
-            AppendLog(`> {Code}`, Theme.Accent)
+        PushSynthetic(`> {Code}`, Enum.MessageType.MessageInfo)
 
-            local function CapturedPrint(...)
-                AppendLog(FormatArguments(...), Theme.Text)
-            end
-
-            local function CapturedWarn(...)
-                AppendLog(FormatArguments(...), Theme.Yellow)
-            end
-
-            local function CapturedError(Message, Level)
-                AppendLog(`error: {tostring(Message)}`, Theme.Red)
-                error(Message, (Level or 1) + 1)
-            end
-
-            local OriginalLoadstring = loadstring
-
-            local function CapturedLoadstring(Source, ChunkName)
-                if type(Source) ~= "string" then
-                    return nil, "loadstring: source must be a string"
-                end
-
-                local InjectedSource =
-                    "local print, warn, error, loadstring = ...\n" .. Source
-
-                local CompiledFunction, CompileError =
-                    OriginalLoadstring(InjectedSource, ChunkName or "VexConsoleChunk")
-
-                if not CompiledFunction then
-                    return nil, CompileError
-                end
-
-                return function(...)
-                    return CompiledFunction(
-                        CapturedPrint,
-                        CapturedWarn,
-                        CapturedError,
-                        CapturedLoadstring,
-                        ...
-                    )
-                end
-            end
-
-            local IsExpression = Code:sub(1, 1) == "="
-            local Body = IsExpression and ("return " .. Code:sub(2)) or Code
-
-            local CompiledFunction, CompileError = CapturedLoadstring(Body, "VexConsole")
-
-            if not CompiledFunction then
-                AppendLog(`compile: {CompileError}`, Theme.Red)
-                return
-            end
-
-            local Results = table.pack(pcall(CompiledFunction))
-            local Success = Results[1]
-
-            if not Success then
-                AppendLog(`runtime: {tostring(Results[2])}`, Theme.Red)
-                return
-            end
-
-            if IsExpression and Results.n > 1 then
-                local OutputParts = {}
-
-                for Index = 2, Results.n do
-                    OutputParts[#OutputParts + 1] =
-                        FormatArgument(Results[Index])
-                end
-
-                AppendLog(table.concat(OutputParts, "  "), Theme.Green)
-            end
-
-            CommandBox.Text = ""
+        local function CapturedPrint(...) PushSynthetic(FormatArguments(...), Enum.MessageType.MessageOutput) end
+        local function CapturedWarn(...)  PushSynthetic(FormatArguments(...), Enum.MessageType.MessageWarning) end
+        local function CapturedError(Message, Level)
+            PushSynthetic(`error: {tostring(Message)}`, Enum.MessageType.MessageError)
+            error(Message, (Level or 1) + 1)
         end
+
+        local OriginalLoadstring = loadstring
+        local function CapturedLoadstring(Source, ChunkName)
+            if type(Source) ~= "string" then
+                return nil, "loadstring: source must be a string"
+            end
+            local Injected = "local print, warn, error, loadstring = ...\n" .. Source
+            local Fn, Err = OriginalLoadstring(Injected, ChunkName or "VexConsoleChunk")
+            if not Fn then return nil, Err end
+            return function(...)
+                return Fn(CapturedPrint, CapturedWarn, CapturedError, CapturedLoadstring, ...)
+            end
+        end
+
+        local IsExpression = Code:sub(1, 1) == "="
+        local Body = IsExpression and ("return " .. Code:sub(2)) or Code
+
+        local Fn, Err = CapturedLoadstring(Body, "VexConsole")
+        if not Fn then
+            PushSynthetic(`compile: {Err}`, Enum.MessageType.MessageError)
+            return
+        end
+
+        local Results = table.pack(pcall(Fn))
+        if not Results[1] then
+            PushSynthetic(`runtime: {tostring(Results[2])}`, Enum.MessageType.MessageError)
+            return
+        end
+
+        if IsExpression and Results.n > 1 then
+            local Parts = {}
+            for I = 2, Results.n do
+                Parts[#Parts + 1] = FormatArgument(Results[I])
+            end
+            PushSynthetic(table.concat(Parts, "  "), Enum.MessageType.MessageOutput)
+        end
+
+        CommandBox.Text = ""
+    end
 
     RunButton.MouseButton1Click:Connect(ExecuteCommand)
-
     CommandBox.FocusLost:Connect(function(EnterPressed)
-        if EnterPressed then
-            ExecuteCommand()
-        end
+        if EnterPressed then ExecuteCommand() end
     end)
 end
 
@@ -16041,7 +16264,6 @@ function Explorer:OpenSettings()
         Swatch.MouseButton1Click:Connect(function()
             self:OpenColorPicker(Theme[ThemeKey], function(NewColor)
                 SetThemeColor(ThemeKey, NewColor)
-                self:RefreshAllNodeVisuals()
 
                 if self.SelectedInstance then
                     self:RenderProperties(self.SelectedInstance)
@@ -16193,8 +16415,6 @@ function Explorer:OpenSettings()
 
                 PresetButton.Text = `{Preset.Name}`
 
-                self:RefreshAllNodeVisuals()
-
                 if self.SaveConfig then
                     self:SaveConfig()
                 end
@@ -16263,6 +16483,120 @@ function Explorer:OpenSettings()
     CreateColorRow("Enum", "PropEnum", 24)
     CreateColorRow("Nil", "PropNil", 25)
     CreateColorRow("Default", "PropDefault", 26)
+
+    CreateHeader("Fonts", 30)
+
+    local FontRoles = {
+        {Key = "Bold",     Label = "Bold"},
+        {Key = "SemiBold", Label = "Semi-Bold"},
+        {Key = "Medium",   Label = "Medium"},
+        {Key = "Regular",  Label = "Regular"},
+        {Key = "Mono",     Label = "Mono"},
+        {Key = "Code",     Label = "Code"},
+        {Key = "Heading",  Label = "Heading"},
+    }
+
+    local AllFonts = {}
+    for _, FontEnum in Enum.Font:GetEnumItems() do
+        if FontEnum ~= Enum.Font.Unknown then
+            AllFonts[#AllFonts + 1] = FontEnum
+        end
+    end
+    table.sort(AllFonts, function(A, B) return A.Name < B.Name end)
+
+    local function CreateFontRow(RoleKey, RoleLabel, OrderIndex)
+        local Row = CreateRow(OrderIndex)
+        VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(0.4, 0, 1, 0);
+            BackgroundTransparency = 1;
+            Font = Fonts.Medium;
+            Text = RoleLabel;
+            TextColor3 = Theme.Text;
+            TextSize = 12;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ZIndex = 203;
+            Parent = Row;
+        })
+
+        local Button = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.new(0.6, -4, 0, 22);
+            Position = UDim2.new(0.4, 4, 0.5, -11);
+            BackgroundColor3 = Theme.Field;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts[RoleKey];
+            Text = Fonts[RoleKey].Name;
+            TextColor3 = Theme.Accent;
+            TextSize = 11;
+            ZIndex = 203;
+            Parent = Row;
+        })
+        VexUI:AddStroke(Button, "Border", 1)
+        VexUI:AddPadding(Button, 0, 8, 0, 8)
+
+        Button.MouseButton1Click:Connect(function()
+            self:OpenListModal("Select Font", AllFonts,
+                function(FontEnum) return FontEnum.Name end,
+                function(FontEnum)
+                    local Old = Fonts[RoleKey]
+                    Fonts[RoleKey] = FontEnum
+                    RebindFont(Old, FontEnum)
+                    Button.Text = FontEnum.Name
+                    Button.Font = FontEnum
+                    self:CloseModal()
+                    if self.SaveConfig then self:SaveConfig() end
+                end,
+                true,
+                nil,
+                function(FontEnum) return FontEnum.Name end,
+                {
+                    Floating = true;
+                    AnchorWindow = self.SettingsWindow;
+                    Width = 280;
+                    Height = 360;
+                }
+            )
+        end)
+    end
+
+    for I, Role in FontRoles do
+        CreateFontRow(Role.Key, Role.Label, 30 + I * 0.1)
+    end
+
+    local ResetRow = CreateRow(30 + (#FontRoles + 1) * 0.1)
+    local ResetButton = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(1, 0, 0, 24);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Font = Fonts.Medium;
+        Text = "Reset Fonts to Default";
+        TextColor3 = Theme.TextDim;
+        TextSize = 12;
+        ZIndex = 203;
+        Parent = ResetRow;
+    })
+    VexUI:AddStroke(ResetButton, "Border", 1)
+
+    ResetButton.MouseEnter:Connect(function()
+        VexUI:Tween(ResetButton, {TextColor3 = Theme.Text})
+    end)
+    ResetButton.MouseLeave:Connect(function()
+        VexUI:Tween(ResetButton, {TextColor3 = Theme.TextDim})
+    end)
+
+    ResetButton.MouseButton1Click:Connect(function()
+        for K, DefaultEnum in DefaultFonts do
+            local Old = Fonts[K]
+            if Old ~= DefaultEnum then
+                Fonts[K] = DefaultEnum
+                RebindFont(Old, DefaultEnum)
+            end
+        end
+        if self.SaveConfig then self:SaveConfig() end
+        self:CloseModal()
+        self:OpenSettings()
+    end)
 end
 
 function Explorer:FormatFilterValue(Value)
@@ -16724,7 +17058,66 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
         table.insert(self._FreezeUiRefreshers, Refresh)
     end)
 
-    CreateSection("Search - ClassName Filter", 3, function(Container)
+    CreateSection("Search Behaviour", 3, function(Container)
+        local Inner = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 0);
+            AutomaticSize = Enum.AutomaticSize.Y;
+            BackgroundTransparency = 1;
+            ZIndex = 152;
+            Parent = Container;
+        })
+        VexUI:AddListLayout(Inner, 4, Enum.FillDirection.Vertical)
+
+        CreateToggleRow(Inner, "Match by ClassName", true, 1, nil,
+            function()
+                return self.MatchByClassName == true
+            end,
+            function()
+                self:ToggleMatchByClassName()
+            end
+        )
+
+        CreateToggleRow(Inner, "Match by Property (use Prop=Value syntax)", true, 2, nil,
+            function()
+                return self.MatchByProperty == true
+            end,
+            function()
+                self:ToggleMatchByProperty()
+            end
+        )
+
+        CreateToggleRow(Inner, "Show only matches (flat list)", true, 3, nil,
+            function()
+                return self.FlatSearchResults == true
+            end,
+            function()
+                self.FlatSearchResults = not self.FlatSearchResults
+                self:SaveConfig()
+
+                if self.SearchQuery ~= "" then
+                    self:RefreshAllSearchFilters()
+                end
+            end
+        )
+
+        local Hint = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 14);
+            BackgroundTransparency = 1;
+            Font = Fonts.Medium;
+            Text = "Examples: WalkSpeed>10  Anchored=true  Name~Dio";
+            TextColor3 = Theme.TextFaded;
+            TextSize = 10;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            LayoutOrder = 3;
+            ZIndex = 153;
+            Parent = Inner;
+        })
+        BindTheme("TextFaded", function(Color)
+            if Hint and Hint.Parent then Hint.TextColor3 = Color end
+        end)
+    end)
+
+    CreateSection("Search - ClassName Filter", 4, function(Container)
         local Grid = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 0);
             AutomaticSize = Enum.AutomaticSize.Y;
@@ -16750,7 +17143,7 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
         end
     end)
 
-    CreateSection("Hidden Services", 4, function(Container)
+    CreateSection("Hidden Services", 5, function(Container)
         local Inner = VexUI:CreateInstance("Frame", {
             Size = UDim2.new(1, 0, 0, 0);
             AutomaticSize = Enum.AutomaticSize.Y;
@@ -16865,24 +17258,6 @@ function Explorer:SetExplorerFrozen(Frozen, Reason)
         self.FrozenPendingAdds = {}
         self.FrozenPendingRemoves = {}
 
-        for Object in Removes do
-            local Node = self.NodesByInstance[Object]
-            if Node then
-                self:DestroyNode(Node)
-            end
-        end
-
-        for Object in Adds do
-            if typeof(Object) == "Instance" and Object.Parent then
-                local ParentNode = self.NodesByInstance[ClonerefInstance(Object.Parent)]
-                if ParentNode and ParentNode.Expanded then
-                    pcall(function()
-                        self:CreateChildNode(ParentNode, Object)
-                    end)
-                end
-            end
-        end
-
         self:Notify("Explorer unfrozen")
     else
         local Suffix = Reason and ` ({Reason})` or ""
@@ -16965,19 +17340,12 @@ function Explorer:_StartFreezeSearchWatcher()
             local Cloned = ClonerefInstance(RawDescendant)
 
             pcall(function()
-                self:ExpandAncestorsOf(Cloned)
-            end)
-
-            pcall(function()
-                local Parent = ClonerefInstance(Cloned.Parent)
-                if not Parent then return end
-
-                local ParentNode = self.NodesByInstance[Parent]
-                if ParentNode
-                    and ParentNode.Expanded
-                    and not self.NodesByInstance[Cloned]
-                then
-                    self:CreateChildNode(ParentNode, Cloned)
+                if self._VTreeRevealInstance then
+                    self:_VTreeRevealInstance(Cloned, {
+                        Select = false;
+                        Scroll = false;
+                        Expand = true;
+                    })
                 end
             end)
 
@@ -17784,6 +18152,179 @@ function Explorer:_StopClickPartToSelect()
     end
 end
 
+function Explorer:_PinPath(Inst)
+    if not Inst then return nil end
+    local Good, Path = pcall(function() return Inst:GetFullName() end)
+    if Good and type(Path) == "string" and Path ~= "" then
+        return Path
+    end
+    return nil
+end
+
+function Explorer:_ResolvePinPath(Path)
+    if type(Path) ~= "string" or Path == "" then return nil end
+    local Segments = string.split(Path, ".")
+    local Cur = game
+    for I, Seg in Segments do
+        if I == 1 and Seg == "game" then
+            continue
+        end
+        local Good, Next = pcall(function() return Cur:FindFirstChild(Seg) end)
+        if not Good or not Next then return nil end
+        Cur = Next
+    end
+    return Cur
+end
+
+function Explorer:IsPinned(Inst)
+    local Path = self:_PinPath(Inst)
+    if not Path then return false end
+    self.PinnedPaths = self.PinnedPaths or {}
+    for _, P in self.PinnedPaths do
+        if P == Path then return true end
+    end
+    return false
+end
+
+function Explorer:PinInstance(Inst)
+    local Path = self:_PinPath(Inst)
+    if not Path then return end
+    self.PinnedPaths = self.PinnedPaths or {}
+    for _, P in self.PinnedPaths do
+        if P == Path then return end
+    end
+    table.insert(self.PinnedPaths, Path)
+    if self.SaveConfig then self:SaveConfig() end
+    if self._RebuildPinBar then self:_RebuildPinBar() end
+end
+
+function Explorer:UnpinInstance(Inst)
+    local Path = self:_PinPath(Inst)
+    if not Path then return end
+    self.PinnedPaths = self.PinnedPaths or {}
+    for I, P in self.PinnedPaths do
+        if P == Path then
+            table.remove(self.PinnedPaths, I)
+            if self.SaveConfig then self:SaveConfig() end
+            if self._RebuildPinBar then self:_RebuildPinBar() end
+            return
+        end
+    end
+end
+
+function Explorer:_RebuildPinBar()
+    local Bar = self.PinBar
+    if not Bar then return end
+
+    for _, Child in Bar:GetChildren() do
+        if Child:IsA("GuiObject") then
+            Child:Destroy()
+        end
+    end
+
+    self.PinnedPaths = self.PinnedPaths or {}
+    self:_ApplyExplorerLayout()
+    if #self.PinnedPaths == 0 then
+        return
+    end
+
+    for I, Path in self.PinnedPaths do
+        local Inst = self:_ResolvePinPath(Path)
+        local DisplayName
+        local ClassName
+        if Inst then
+            local GN, N = pcall(function() return Inst.Name end)
+            DisplayName = GN and N or "?"
+            local GC, C = pcall(function() return Inst.ClassName end)
+            ClassName = GC and C or "Instance"
+        else
+            local Segments = string.split(Path, ".")
+            DisplayName = Segments[#Segments] or "?"
+            ClassName = "Instance"
+        end
+
+        local Pill = VexUI:CreateInstance("TextButton", {
+            Size = UDim2.new(0, 0, 1, 0);
+            AutomaticSize = Enum.AutomaticSize.X;
+            BackgroundColor3 = Theme.Field;
+            BorderSizePixel = 0;
+            AutoButtonColor = false;
+            Font = Fonts.Medium;
+            Text = "";
+            LayoutOrder = I;
+            Parent = Bar;
+        })
+        VexUI:AddStroke(Pill, "Border", 1)
+        VexUI:AddPadding(Pill, 0, 6, 0, 6)
+
+        local Icon = VexUI:CreateInstance("ImageLabel", {
+            Size = UDim2.new(0, 14, 0, 14);
+            Position = UDim2.new(0, 0, 0.5, -7);
+            BackgroundTransparency = 1;
+            Parent = Pill;
+        })
+        VexUI:ApplyClassIcon(Icon, ClassName)
+
+        local Label = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(0, 0, 1, 0);
+            Position = UDim2.new(0, 18, 0, 0);
+            AutomaticSize = Enum.AutomaticSize.X;
+            BackgroundTransparency = 1;
+            Font = Fonts.Medium;
+            Text = DisplayName;
+            TextColor3 = Inst and Theme.Text or Theme.TextFaded;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            Parent = Pill;
+        })
+
+        Pill.MouseButton1Click:Connect(function()
+            local Target = self:_ResolvePinPath(Path)
+            if not Target then
+                self:Notify("Pinned instance no longer exists")
+                return
+            end
+            self:JumpToInstance(Target)
+        end)
+
+        Pill.MouseButton2Click:Connect(function()
+            local Target = self:_ResolvePinPath(Path)
+            self:UnpinInstance(Target or {GetFullName = function() return Path end})
+
+            if not Target then
+                for J, P in self.PinnedPaths do
+                    if P == Path then
+                        table.remove(self.PinnedPaths, J)
+                        if self.SaveConfig then self:SaveConfig() end
+                        self:_RebuildPinBar()
+                        break
+                    end
+                end
+            end
+        end)
+    end
+end
+
+function Explorer:_ApplyExplorerLayout()
+    local HasPins = self.PinnedPaths and #self.PinnedPaths > 0
+    local PinBarHeight = HasPins and 22 or 0
+    local PinBarGap = HasPins and 4 or 0
+
+    if self._PinBar then
+        self._PinBar.Visible = HasPins
+    end
+
+    if self._SearchHolder then
+        self._SearchHolder.Position = UDim2.new(0, 0, 0, 38 + PinBarHeight + PinBarGap)
+    end
+
+    if self._TreeHolder then
+        local Offset = 74 + PinBarHeight + PinBarGap
+        self._TreeHolder.Position = UDim2.new(0, 0, 0, Offset)
+        self._TreeHolder.Size = UDim2.new(1, 0, 1, -Offset)
+    end
+end
+
 function Explorer:BuildExplorerWindow()
     local Camera = workspace.CurrentCamera
     local Viewport = Camera and Camera.ViewportSize or Vector2.new(1366, 768)
@@ -17945,20 +18486,42 @@ function Explorer:BuildExplorerWindow()
         end)
     end)
 
+    local PinBar = VexUI:CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, -16, 0, 22);
+        Position = UDim2.new(0, 8, 0, 36);
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        ScrollBarThickness = 0;
+        ScrollingDirection = Enum.ScrollingDirection.X;
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        AutomaticCanvasSize = Enum.AutomaticSize.X;
+        Visible = false;
+        Parent = Window.Body;
+    })
+
+    local PinLayout = VexUI:AddListLayout(PinBar, 4, Enum.FillDirection.Horizontal)
+    PinLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    self.PinBar = PinBar
+
     local SearchHolder = VexUI:CreateInstance("Frame", {
         Size = UDim2.new(1, 0, 0, 36);
-        Position = UDim2.new(0, 0, 0, 38);
+        Position = UDim2.new(0, 0, 0, 62);
         BackgroundTransparency = 1;
         Parent = Window.Body;
     })
     self.ExplorerHeader = SearchHolder
 
     local TreeHolder = VexUI:CreateInstance("Frame", {
-        Size = UDim2.new(1, 0, 1, -74);
-        Position = UDim2.new(0, 0, 0, 74);
+        Size = UDim2.new(1, 0, 1, -98);
+        Position = UDim2.new(0, 0, 0, 98);
         BackgroundTransparency = 1;
         Parent = Window.Body;
     })
+
+    self._PinBar = PinBar
+    self._SearchHolder = SearchHolder
+    self._TreeHolder = TreeHolder
 
     local Tree = VexUI:CreateInstance("ScrollingFrame", {
         Size = UDim2.new(1, 0, 1, 0);
@@ -17976,12 +18539,14 @@ function Explorer:BuildExplorerWindow()
     VexUI:AddPadding(Tree, 4, 8, 8, 8)
     VexUI:AddListLayout(Tree, 1, Enum.FillDirection.Vertical)
 
-    local StickyHeader = VexUI:CreateInstance("Frame", {
+    local StickyHeader = VexUI:CreateInstance("TextButton", {
         Size = UDim2.new(1, -8, 0, 22);
         Position = UDim2.new(0, 4, 0, 0);
         BackgroundColor3 = Theme.Window;
         BackgroundTransparency = UITransparency.Window;
         BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Text = "";
         Visible = false;
         ZIndex = 10;
         Parent = TreeHolder;
@@ -17993,6 +18558,18 @@ function Explorer:BuildExplorerWindow()
 
     BindTransparency("Window", function(Value)
         StickyHeader.BackgroundTransparency = Value
+    end)
+    
+    StickyHeader.MouseButton1Click:Connect(function()
+        local Target = self._StickyHeaderTarget
+        if not Target then return end
+
+        local Idx = self._VTreeRowsByInstance[Target]
+        if Idx then
+            local RowH = self._VTreeRowHeight or 22
+            local TargetY = math.max(0, (Idx - 1) * RowH)
+            Tree.CanvasPosition = Vector2.new(Tree.CanvasPosition.X, TargetY)
+        end
     end)
 
     local StickyDivider = VexUI:CreateInstance("Frame", {
@@ -18039,46 +18616,52 @@ function Explorer:BuildExplorerWindow()
     self.StickyHeaderLabel = StickyLabel
 
     local function UpdateStickyHeader()
-        if not self.RootNodes or #self.RootNodes == 0 then
+        local Rows = self._VTreeFilterActive and self._VTreeFilteredRows or self._VTreeRows
+        if not Rows or #Rows == 0 then
             StickyHeader.Visible = false
-
             return
         end
 
-        local ScrollY = Tree.AbsolutePosition.Y
-        local CurrentTop
-        for _, Root in self.RootNodes do
-            if Root.NodeFrame and Root.NodeFrame.Visible and Root.Expanded then
-                local FrameTop = Root.NodeFrame.AbsolutePosition.Y
-                local FrameBottom = FrameTop + Root.NodeFrame.AbsoluteSize.Y
-                if FrameTop < ScrollY and FrameBottom > ScrollY + 22 then
-                    CurrentTop = Root
+        local RowH = self._VTreeRowHeight or 22
+        local ScrollY = Tree.CanvasPosition.Y
+        if ScrollY <= 0 then
+            StickyHeader.Visible = false
+            return
+        end
 
-                    break
-                end
+        local TopIdx = math.floor(ScrollY / RowH) + 1
+        if TopIdx > #Rows then TopIdx = #Rows end
+
+        local AnchorIdx
+        for I = TopIdx, 1, -1 do
+            local R = Rows[I]
+            if R and R.Depth == 0 and not R.IsTruncationNotice and not R.IsNilContainer then
+                Anchor = R
+                AnchorIdx = I
+                break
             end
         end
 
-        if not CurrentTop then
+        if not Anchor or not Anchor.Instance or not AnchorIdx then
             StickyHeader.Visible = false
+            return
+        end
 
+        local AnchorTopY = (AnchorIdx - 1) * RowH
+        if AnchorTopY >= ScrollY then
+            StickyHeader.Visible = false
             return
         end
 
         StickyHeader.Visible = true
-        local GoodName, Name = pcall(function()
-            return CurrentTop.Instance.Name
-        end)
-        StickyLabel.Text = GoodName and Name or "?"
+        StickyLabel.Text = Anchor.RawName or "?"
 
-        if CurrentTop.Icon and CurrentTop.Icon:IsA("ImageLabel") then
-            StickyIcon.Image = CurrentTop.Icon.Image
-            StickyIcon.ImageRectOffset = CurrentTop.Icon.ImageRectOffset
-            StickyIcon.ImageRectSize = CurrentTop.Icon.ImageRectSize
-            StickyIcon.Visible = true
-        else
-            StickyIcon.Visible = false
-        end
+        VexUI:ApplyClassIcon(StickyIcon, Anchor.ClassName)
+        StickyIcon.Visible = true
+
+        self._StickyHeaderTarget = Anchor.Instance
+
+        return
     end
 
     self.UpdateStickyHeader = UpdateStickyHeader
@@ -18128,31 +18711,12 @@ function Explorer:BuildExplorerWindow()
     VexUI:BindThemeColor(self.ReparentIndicator, "BackgroundColor3", "Accent")
 
     Track(Tree:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-        if self.SearchQuery ~= "" then
-            if not self._SearchScrollWorkQueued then
-                self._SearchScrollWorkQueued = true
-
-                task.delay(0.08, function()
-                    self._SearchScrollWorkQueued = false
-
-                    if KillScript then
-                        return
-                    end
-
-                    if self.SearchQuery ~= "" then
-                        self:ProcessSearchExpansionQueue(self.SearchToken, 1)
-                        self:ScheduleNodeRealiser()
-                    end
-                end)
-            end
-        else
-            self:ScheduleNodeRealiser()
-        end
-
         if self.UpdateStickyHeader then
             self.UpdateStickyHeader()
         end
     end))
+
+    self:_RebuildPinBar()
 end
 
 function Explorer:SetupDragHandlers()
@@ -18234,31 +18798,25 @@ function Explorer:SetupDragHandlers()
         local MouseX, MouseY = Input.Position.X, Input.Position.Y
         local TargetInstance
 
-        for Instance, Node in self.NodesByInstance do
-            if Node.Row
-                and Node.Row.Parent
-                and Node.Row.Visible
-                and Node.Row.AbsoluteSize.Y > 0
-            then
-                local AbsolutePosition = Node.Row.AbsolutePosition
-                local AbsoluteSize = Node.Row.AbsoluteSize
-
-                if MouseX >= AbsolutePosition.X
-                    and MouseX <= AbsolutePosition.X + AbsoluteSize.X
-                    and MouseY >= AbsolutePosition.Y
-                    and MouseY <= AbsolutePosition.Y + AbsoluteSize.Y
-                then
-                    TargetInstance = Instance
-                    break
+        if self._VTreePool then
+            for _, PoolEntry in self._VTreePool do
+                local Row = PoolEntry.Row
+                local RowData = PoolEntry.Bound
+                if Row and Row.Visible and RowData and RowData.Instance and not RowData.IsNilContainer then
+                    local AP = Row.AbsolutePosition
+                    local AS = Row.AbsoluteSize
+                    if AS.Y > 0
+                        and MouseX >= AP.X and MouseX <= AP.X + AS.X
+                        and MouseY >= AP.Y and MouseY <= AP.Y + AS.Y
+                    then
+                        TargetInstance = RowData.Instance
+                        break
+                    end
                 end
             end
         end
 
-        if not TargetInstance then
-            return
-        end
-
-        if TargetInstance == self.NilContainerPlaceholder then
+        if TargetInstance == nil then
             return
         end
 
@@ -18385,6 +18943,231 @@ function Explorer:CloseContextMenu()
     end
 
     self.ContextMenuFrame = nil
+end
+
+function Explorer:_GetReadableProperties(Inst)
+    local Result = {}
+    if not Inst then return Result end
+
+    local Props
+    if getproperties then
+        local Good, List = pcall(getproperties, Inst)
+        if Good and type(List) == "table" then
+            Props = List
+        end
+    end
+
+    if not Props and gethiddenproperties then
+        local Good, List = pcall(gethiddenproperties, Inst)
+        if Good and type(List) == "table" then
+            Props = List
+        end
+    end
+
+    if not Props then
+        Props = {
+            "Name", "ClassName", "Parent", "Archivable",
+        }
+    end
+
+    for _, PropName in Props do
+        local Good, Value = pcall(function() return Inst[PropName] end)
+        if Good then
+            Result[PropName] = Value
+        end
+    end
+
+    return Result
+end
+
+function Explorer:SnapshotForDiff(Inst)
+    if not Inst then return end
+    self._DiffSnapshots = self._DiffSnapshots or setmetatable({}, {__mode = "k"})
+    self._DiffSnapshots[Inst] = {
+        Time = os.clock();
+        Props = self:_GetReadableProperties(Inst);
+    }
+    self:Notify(`Snapshot saved for {Inst.Name}`)
+end
+
+function Explorer:HasSnapshot(Inst)
+    return self._DiffSnapshots and self._DiffSnapshots[Inst] ~= nil
+end
+
+function Explorer:_FormatDiffValue(Value)
+    local T = typeof(Value)
+    if T == "string" then
+        return `"{Value}"`
+    elseif T == "Instance" then
+        local Good, Path = pcall(function() return Value:GetFullName() end)
+        return Good and Path or "Instance"
+    elseif T == "nil" then
+        return "nil"
+    elseif T == "Color3" then
+        return string.format("Color3(%.2f, %.2f, %.2f)", Value.R, Value.G, Value.B)
+    elseif T == "Vector3" or T == "Vector2" or T == "UDim2" or T == "UDim" or T == "CFrame" then
+        return tostring(Value)
+    elseif T == "EnumItem" then
+        return tostring(Value)
+    elseif T == "boolean" or T == "number" then
+        return tostring(Value)
+    end
+    return `<{T}>`
+end
+
+function Explorer:_ValuesEqual(A, B)
+    if A == B then return true end
+    if typeof(A) ~= typeof(B) then return false end
+    local T = typeof(A)
+    if T == "Color3" or T == "Vector3" or T == "Vector2"
+        or T == "UDim2" or T == "UDim" or T == "CFrame"
+    then
+        return tostring(A) == tostring(B)
+    end
+    return false
+end
+
+function Explorer:OpenDiffViewer(Inst)
+    if not Inst then return end
+    local Snap = self._DiffSnapshots and self._DiffSnapshots[Inst]
+    if not Snap then
+        self:Notify("No snapshot for this instance")
+        return
+    end
+
+    local Window, Body = self:CreateModalWindow(`Diff: {Inst.Name}`, 540, 480, {
+        Resizable = true;
+        MinWidth = 360;
+        MinHeight = 260;
+    })
+
+    local Header = VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(1, -16, 0, 22);
+        Position = UDim2.new(0, 8, 0, 4);
+        BackgroundTransparency = 1;
+        Font = Fonts.Medium;
+        Text = string.format("Snapshot taken %.1fs ago", os.clock() - Snap.Time);
+        TextColor3 = Theme.TextDim;
+        TextSize = 11;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        Parent = Body;
+    })
+
+    local List = VexUI:CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, -16, 1, -34);
+        Position = UDim2.new(0, 8, 0, 30);
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        ScrollBarThickness = 4;
+        ScrollBarImageColor3 = Theme.Border;
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        AutomaticCanvasSize = Enum.AutomaticSize.Y;
+        ScrollingDirection = Enum.ScrollingDirection.Y;
+        Parent = Body;
+    })
+    VexUI:AddListLayout(List, 2, Enum.FillDirection.Vertical)
+    VexUI:AddPadding(List, 4, 4, 4, 4)
+
+    local Current = self:_GetReadableProperties(Inst)
+    local Changes = {}
+
+    for PropName, OldValue in Snap.Props do
+        local NewValue = Current[PropName]
+        if not self:_ValuesEqual(OldValue, NewValue) then
+            table.insert(Changes, {
+                Name = PropName;
+                Old = OldValue;
+                New = NewValue;
+                Type = "changed";
+            })
+        end
+    end
+
+    for PropName, NewValue in Current do
+        if Snap.Props[PropName] == nil then
+            table.insert(Changes, {
+                Name = PropName;
+                Old = nil;
+                New = NewValue;
+                Type = "added";
+            })
+        end
+    end
+
+    table.sort(Changes, function(A, B)
+        if A.Type ~= B.Type then return A.Type < B.Type end
+        return A.Name < B.Name
+    end)
+
+    if #Changes == 0 then
+        VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 32);
+            BackgroundTransparency = 1;
+            Font = Fonts.Medium;
+            Text = "No changes detected";
+            TextColor3 = Theme.TextDim;
+            TextSize = 12;
+            Parent = List;
+        })
+        return
+    end
+
+    Header.Text = string.format("%d change(s) - snapshot %.1fs ago", #Changes, os.clock() - Snap.Time)
+
+    for _, Change in Changes do
+        local Row = VexUI:CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 42);
+            BackgroundColor3 = Theme.Field;
+            BackgroundTransparency = 0.6;
+            BorderSizePixel = 0;
+            Parent = List;
+        })
+        VexUI:AddPadding(Row, 4, 8, 4, 8)
+
+        local TypeTag = VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(0, 60, 0, 14);
+            Position = UDim2.new(0, 0, 0, 0);
+            BackgroundTransparency = 1;
+            Font = Fonts.Bold;
+            Text = Change.Type:upper();
+            TextColor3 = Change.Type == "added" and Theme.PropNumber or Theme.Accent;
+            TextSize = 10;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            Parent = Row;
+        })
+
+        VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, -68, 0, 14);
+            Position = UDim2.new(0, 64, 0, 0);
+            BackgroundTransparency = 1;
+            Font = Fonts.SemiBold;
+            Text = Change.Name;
+            TextColor3 = Theme.Text;
+            TextSize = 12;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            Parent = Row;
+        })
+
+        local DiffText
+        if Change.Type == "added" then
+            DiffText = `+ {self:_FormatDiffValue(Change.New)}`
+        else
+            DiffText = `{self:_FormatDiffValue(Change.Old)}  ->  {self:_FormatDiffValue(Change.New)}`
+        end
+
+        VexUI:CreateInstance("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 16);
+            Position = UDim2.new(0, 0, 0, 18);
+            BackgroundTransparency = 1;
+            Font = Fonts.Mono;
+            Text = DiffText;
+            TextColor3 = Theme.TextDim;
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextTruncate = Enum.TextTruncate.AtEnd;
+            Parent = Row;
+        })
+    end
 end
 
 function Explorer:OpenContextMenu(AnchorX, AnchorY)
@@ -18544,6 +19327,27 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
 
     MakeItem("Reparent", false, function()
         self:BeginReparent()
+    end)
+
+    local FocusedInst = self.SelectedInstance
+    local IsPinnedNow = FocusedInst and self:IsPinned(FocusedInst)
+    MakeItem(IsPinnedNow and "Unpin" or "Pin", not FocusedInst, function()
+        if IsPinnedNow then
+            self:UnpinInstance(FocusedInst)
+            self:Notify("Unpinned")
+        else
+            self:PinInstance(FocusedInst)
+            self:Notify("Pinned")
+        end
+    end)
+
+    MakeItem("Snapshot for Differences", not FocusedInst, function()
+        self:SnapshotForDiff(FocusedInst)
+    end)
+
+    local HasSnap = FocusedInst and self:HasSnapshot(FocusedInst)
+    MakeItem("Show Differences", not HasSnap, function()
+        self:OpenDiffViewer(FocusedInst)
     end)
 
     MakeItem("Select Children", false, function()
@@ -18706,6 +19510,19 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
 
     MakeSeparator()
 
+    local ExpandTargets = self:GetSelectionList()
+    local HasTargets = #ExpandTargets > 0
+
+    MakeItem("Collapse All Under Selection", not HasTargets, function()
+        local Collapsed = self:CollapseAllUnder(ExpandTargets)
+        self:Notify(`Collapsed {Collapsed} node(s)`)
+    end)
+
+    MakeItem("Collapse Entire Tree", false, function()
+        local Collapsed = self:CollapseAllRoots()
+        self:Notify(`Collapsed {Collapsed} node(s)`)
+    end)
+
     MakeItem("Refresh Properties", false, function()
         if self.SelectedInstance then
             self:RenderProperties(self.SelectedInstance)
@@ -18739,6 +19556,100 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
 
         Menu.Position = UDim2.fromOffset(NewX, NewY)
     end)
+end
+
+function Explorer:CollapseAllUnder(Targets)
+    if typeof(Targets) == "Instance" then
+        Targets = {Targets}
+    end
+    if type(Targets) ~= "table" or #Targets == 0 then
+        return 0
+    end
+
+    local TargetSet = {}
+    for _, Inst in Targets do
+        if typeof(Inst) == "Instance" then
+            TargetSet[Inst] = true
+        end
+    end
+
+    for Inst in self._VTreeExpanded do
+        if not TargetSet[Inst] then
+            local Cursor = Inst
+            local Safety = 0
+            while Cursor and Safety < 128 do
+                local Good, Parent = pcall(function() return Cursor.Parent end)
+                Cursor = Good and Parent or nil
+                if Cursor and TargetSet[Cursor] then
+                    self._VTreeExpanded[Inst] = nil
+                    break
+                end
+                Safety += 1
+            end
+        end
+    end
+
+    self._VTreeSuppressFilterRebuild = true
+
+    local Collapsed = 0
+    for _, Inst in Targets do
+        local Idx = self._VTreeRowsByInstance[Inst]
+        if Idx then
+            local Row = self._VTreeRows[Idx]
+            if Row and Row.Expanded then
+                self:_VTreeCollapse(Row)
+                Collapsed += 1
+            end
+        end
+    end
+
+    self._VTreeSuppressFilterRebuild = false
+
+    if self._VTreeFilterActive then
+        self:_VTreeBuildFiltered()
+    end
+
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+
+    return Collapsed
+end
+
+function Explorer:CollapseAllRoots()
+    local Collapsed = 0
+    self._VTreeSuppressFilterRebuild = true
+
+    local TopLevel = {}
+    for _, Row in self._VTreeRows do
+        if Row.Depth == 0 and Row.Expanded and Row.Instance then
+            TopLevel[#TopLevel + 1] = Row.Instance
+        end
+    end
+
+    for _, Inst in TopLevel do
+        local Idx = self._VTreeRowsByInstance[Inst]
+        if Idx then
+            local Row = self._VTreeRows[Idx]
+            if Row and Row.Expanded then
+                self:_VTreeCollapse(Row)
+                Collapsed += 1
+            end
+        end
+    end
+
+    self._VTreeExpanded = {}
+    self._VTreeSuppressFilterRebuild = false
+
+    if self._VTreeFilterActive then
+        self:_VTreeBuildFiltered()
+    end
+
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeInvalidateVisibleCache()
+    self:_VTreeScheduleRebuild()
+
+    return Collapsed
 end
 
 function Explorer:ShowNotification(Title, Message, Variant)
@@ -18883,6 +19794,11 @@ function Explorer:BuildConfigData()
         TransparencyData[Key] = Value
     end
 
+    local FontData = {}
+    for K, V in Fonts do
+        FontData[K] = V.Name
+    end
+
     return {
         Version = self.Version;
         ToggleKey = self.ToggleKey.Name;
@@ -18897,7 +19813,11 @@ function Explorer:BuildConfigData()
         ThemePresetName = self.ThemePresetName or "Custom";
         Theme = ThemeData;
         UITransparency = TransparencyData;
-        UnlimitedFPS = self.UnlimitedFPS
+        UnlimitedFPS = self.UnlimitedFPS;
+        MatchByClassName = self.MatchByClassName == true;
+        MatchByProperty = self.MatchByProperty == true;
+        FlatSearchResults = self.FlatSearchResults == true;
+        PinnedPaths = self.PinnedPaths or {};
     }
 end
 
@@ -18947,6 +19867,38 @@ function Explorer:ApplyConfigData(Data)
                 self.HiddenServices[HiddenService] = true
             end
         end
+    end
+
+    if typeof(Data.Fonts) == "table" then
+        for Key, Name in Data.Fonts do
+            if Fonts[Key] and typeof(Name) == "string" then
+                local Good, FontEnum = pcall(function() return Enum.Font[Name] end)
+                if Good and FontEnum then
+                    Fonts[Key] = FontEnum
+                end
+            end
+        end
+    end
+
+    if typeof(Data.PinnedPaths) == "table" then
+        self.PinnedPaths = {}
+        for _, P in Data.PinnedPaths do
+            if typeof(P) == "string" then
+                table.insert(self.PinnedPaths, P)
+            end
+        end
+    end
+
+    if typeof(Data.MatchByClassName) == "boolean" then
+        self.MatchByClassName = Data.MatchByClassName
+    end
+
+    if typeof(Data.FlatSearchResults) == "boolean" then
+        self.FlatSearchResults = Data.FlatSearchResults
+    end
+
+    if typeof(Data.MatchByProperty) == "boolean" then
+        self.MatchByProperty = Data.MatchByProperty
     end
 
     if typeof(Data.HideNilContainer) == "boolean" then
@@ -19104,6 +20056,7 @@ function Explorer:Kill()
     end
     Connections = {}
 
+    CompactConnections()
     self:_StopClickPartToSelect()
     self:_StopClickUiToSelect()
     self:ClearPropertyConnections()
@@ -19118,12 +20071,6 @@ function Explorer:Kill()
     end
     self.SelectionHighlights = setmetatable({}, {__mode = "k"})
 
-    for _, Node in {table.unpack(self.RootNodes)} do
-        pcall(function()
-            self:DestroyNode(Node)
-        end)
-    end
-
     if self.ScriptViewerWindows then
         for _, Item in self.ScriptViewerWindows do
             if Item.Window and Item.Window.Parent then
@@ -19133,12 +20080,6 @@ function Explorer:Kill()
         self.ScriptViewerWindows = {}
     end
 
-    pcall(function()
-        if self.NilContainerPlaceholder then
-            self.NilContainerPlaceholder:Destroy()
-            self.NilContainerPlaceholder = nil
-        end
-    end)
 
     pcall(function()
         if self.NotificationHolder then
@@ -19152,8 +20093,6 @@ function Explorer:Kill()
         end
     end)
 
-    self.NodesByInstance = setmetatable({}, {__mode = "k"})
-    self.RootNodes = {}
     self.SelectedSet = setmetatable({}, {__mode = "k"})
     self.SelectedOrder = {}
     self.SelectedInstance = nil
@@ -19174,10 +20113,8 @@ function ExplorerClass:Create()
         self:InitConfig()
         self.ScreenGui = VexUI:CreateScreenGui()
 
-        self.NodesByInstance = setmetatable({}, {__mode = "k"})
         self.MatchSet = {}
         self.SubtreeMatchSet = {}
-        self.ForcedExpanded = setmetatable({}, {__mode = "k"})
         self.SelectedSet = setmetatable({}, {__mode = "k"})
 
         self:BuildQuickAccessBar()
@@ -19189,6 +20126,8 @@ function ExplorerClass:Create()
 
         self:RebuildExplorer()
         self:AddPropertiesLabel("Select an instance.")
+
+        self:_EnsureConsoleLog()
 
         BindTheme("Accent", function(Color)
             for _, Highlight in Explorer.SelectionHighlights or {} do
@@ -19289,40 +20228,23 @@ Explorer:SpawnTask("AutoRefreshProperties", function()
     end
 end)
 
-Explorer:SpawnTask("NilInstancesPoll", function()
-    while true do
-        if KillScript then
-            break
-        end
-
-        task.wait(3)
+Explorer:SpawnTask("ConnectionsCompact", function()
+    while not KillScript do
+        task.wait(600)
 
         if KillScript then
             break
         end
 
-        Handle(function()
-            local Node = Explorer.NilContainerNode
-            if not Node then
-                return
-            end
-
-            if Node.Expanded and Node.NilVirtualInner then
-                Explorer:RefreshNilVirtualList()
-            else
-                local Total = Explorer:CountNilInstancesLite()
-
-                if Node.Label and Node.Label.Parent then
-                    Node.Label.Text = `Nil Instances ({Total})`
-                end
-            end
-        end, "NilInstancesPoll")
+        CompactConnections()
     end
 end)
 
 Explorer:SpawnTask("ScriptExecutedAgainCheck", function()
     VexExecutedCheck = true
-    while task.wait(0.1) do
+    while not KillScript do
+        task.wait()
+
         if KillScript then
             break
         end
