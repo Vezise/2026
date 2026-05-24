@@ -6,10 +6,11 @@
 
 Built from scratch with a custom UI framework, virtualized trees, live property editing, syntax-highlighted script viewer, and persistent configuration.
 
+### THESE ARE OUTDATED DOCS
+
 </div>
 
 ---
-
 ## Table of Contents
 
 - [Overview](#overview)
