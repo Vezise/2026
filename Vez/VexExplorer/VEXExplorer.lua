@@ -7928,15 +7928,20 @@ function Explorer:_VTreeMakeRowData(Instance, Depth, IsNilContainerSlot)
 end
 
 function Explorer:_VTreeRefreshRowMeta(RowData)
-    local Inst = RowData.Instance
-    if not Inst then return end
-
     if RowData.IsNilContainer then
-        RowData.RawName = "Nil Instances"
+        local Count = 0
+        local Good, List = pcall(function() return self:_CollectNilInstances() end)
+        if Good and type(List) == "table" then
+            Count = #List
+        end
+        RowData.RawName = `Nil Instances ({Count})`
         RowData.ClassName = "Folder"
-        RowData.HasChildren = true
+        RowData.HasChildren = Count > 0
         return
     end
+
+    local Inst = RowData.Instance
+    if not Inst then return end
 
     local GoodName, Name = pcall(function() return Inst.Name end)
     RowData.RawName = (GoodName and Name) or "?"
@@ -8565,6 +8570,23 @@ function Explorer:_VTreeHookScroll()
                 end
             end
         end
+
+        if self._VTreeNilResume and not self._VTreeNilExhausted then
+            local Y = Scroll.CanvasPosition.Y
+            local Bottom = Y + Scroll.AbsoluteSize.Y
+            local CanvasH = Scroll.AbsoluteCanvasSize.Y
+            if CanvasH - Bottom < Scroll.AbsoluteSize.Y * 1.5 then
+                if not self._VTreeNilStreamScheduled then
+                    self._VTreeNilStreamScheduled = true
+                    task.defer(function()
+                        self._VTreeNilStreamScheduled = false
+                        if self._VTreeNilResume then
+                            self._VTreeNilResume()
+                        end
+                    end)
+                end
+            end
+        end
     end)
 end
 
@@ -8575,8 +8597,7 @@ function Explorer:_VTreeExpand(RowData)
     RowData.Expanded = true
 
     if RowData.IsNilContainer then
-        self:_VTreeUpdateCanvasSize()
-        self:_VTreeScheduleRebuild()
+        self:_VTreeStartNilStream(RowData)
         return
     end
 
@@ -8627,7 +8648,6 @@ function Explorer:_VTreeExpand(RowData)
         self:_VTreeBuildFiltered()
     end
 
-
     self:_VTreeUpdateCanvasSize()
     self:_VTreeInvalidateVisibleCache()
     self:_VTreeScheduleRebuild()
@@ -8639,7 +8659,58 @@ function Explorer:_VTreeCollapse(RowData)
     RowData.Expanded = false
 
     if RowData.IsNilContainer then
+        self._VTreeNilStreamToken = (self._VTreeNilStreamToken or 0) + 1
+        self._VTreeNilResume = nil
+        self._VTreeNilExhausted = false
+
+        local ContainerIdx
+        for I, R in self._VTreeRows do
+            if R == RowData then
+                ContainerIdx = I
+                break
+            end
+        end
+        if not ContainerIdx then
+            self:_VTreeUpdateCanvasSize()
+            self:_VTreeScheduleRebuild()
+            return
+        end
+
+        local Rows = self._VTreeRows
+        local RemoveStart = ContainerIdx + 1
+        local RemoveEnd = ContainerIdx
+        local ParentDepth = RowData.Depth
+
+        for I = ContainerIdx + 1, #Rows do
+            if Rows[I].Depth > ParentDepth then
+                RemoveEnd = I
+            else
+                break
+            end
+        end
+
+        if RemoveEnd >= RemoveStart then
+            for I = RemoveStart, RemoveEnd do
+                local R = Rows[I]
+                if R.Instance then
+                    self._VTreeRowsByInstance[R.Instance] = nil
+                end
+            end
+
+            local RemoveCount = RemoveEnd - RemoveStart + 1
+            local Len = #Rows
+            for I = RemoveEnd + 1, Len do
+                Rows[I - RemoveCount] = Rows[I]
+            end
+            for I = Len, Len - RemoveCount + 1, -1 do
+                Rows[I] = nil
+            end
+
+            self:_VTreeReindexRows(RemoveStart)
+        end
+
         self:_VTreeUpdateCanvasSize()
+        self:_VTreeInvalidateVisibleCache()
         self:_VTreeScheduleRebuild()
 
         return
@@ -8689,7 +8760,6 @@ function Explorer:_VTreeCollapse(RowData)
     if self._VTreeFilterActive and not self._VTreeSuppressFilterRebuild then
         self:_VTreeBuildFiltered()
     end
-
 
     self:_VTreeUpdateCanvasSize()
     self:_VTreeInvalidateVisibleCache()
@@ -9264,6 +9334,7 @@ function Explorer:_VTreeBuildFiltered()
     local Include = {}
     local ChildrenByParent = {}
     local Roots = {}
+    local NilRootChildren = {}
 
     local function AddChild(ParentInst, ChildInst)
         local List = ChildrenByParent[ParentInst]
@@ -9282,6 +9353,7 @@ function Explorer:_VTreeBuildFiltered()
             local Cursor = Inst
             local Prev
             local Safety = 0
+
             while Cursor and Cursor ~= game and Safety < 64 do
                 local Already = Include[Cursor]
                 Include[Cursor] = true
@@ -9292,8 +9364,11 @@ function Explorer:_VTreeBuildFiltered()
                 Cursor = GoodP and P or nil
                 Safety += 1
             end
+
             if Cursor == game and Prev then
                 Roots[Prev] = true
+            elseif Prev then
+                NilRootChildren[Prev] = true
             end
         end
     end
@@ -9301,6 +9376,19 @@ function Explorer:_VTreeBuildFiltered()
     local RootList = {}
     for Inst in Roots do RootList[#RootList + 1] = Inst end
     RootList = SortServices(RootList)
+
+    local NilChildList = {}
+    for Inst in NilRootChildren do
+        NilChildList[#NilChildList + 1] = Inst
+    end
+    if #NilChildList > 0 then
+        table.sort(NilChildList, function(A, B)
+            local AN = (A.Name or ""):lower()
+            local BN = (B.Name or ""):lower()
+            if AN == BN then return tostring(A) < tostring(B) end
+            return AN < BN
+        end)
+    end
 
     for _, List in ChildrenByParent do
         table.sort(List, function(A, B)
@@ -9353,6 +9441,27 @@ function Explorer:_VTreeBuildFiltered()
 
         for _, Root in RootList do
             Walk(Root, 0)
+        end
+
+        if #NilChildList > 0 then
+            Filtered[#Filtered + 1] = {
+                Instance = nil;
+                Depth = 0;
+                Expanded = true;
+                HasChildren = true;
+                IsNilContainer = true;
+                RawName = `Nil Instances ({#NilChildList})`;
+                ClassName = "Folder";
+            }
+            Emitted += 1
+            if Emitted >= Threshold then
+                coroutine.yield()
+                Threshold = Emitted + PageSize
+            end
+
+            for _, Child in NilChildList do
+                Walk(Child, 1)
+            end
         end
     end)
 
@@ -9487,6 +9596,158 @@ function Explorer:_VTreeStabiliseScrollAroundRemove(RemovedAtRowIndex, NumRemove
             Scroll.CanvasPosition = Vector2.new(0, math.clamp(NewY, 0, MaxY))
         end)
     end
+end
+
+function Explorer:_CollectNilInstances()
+    local Result = {}
+    local Seen = {}
+    local Getter = getnilinstances
+
+    if type(Getter) ~= "function" then
+        return Result
+    end
+
+    local Good, List = pcall(Getter)
+    if not Good or type(List) ~= "table" then
+        return Result
+    end
+
+    local ClassFilter = (self.NilFilterClass or ""):lower()
+    if ClassFilter == "" then ClassFilter = nil end
+
+    for _, Inst in List do
+        if typeof(Inst) ~= "Instance" or Seen[Inst] or Inst == game then
+            continue
+        end
+
+        local GoodP, Parent = pcall(function() return Inst.Parent end)
+        if not GoodP or Parent ~= nil then
+            continue
+        end
+
+        if Inst:IsA("ServiceProvider")
+            or Inst:IsA("Workspace")
+            or Inst:IsA("Players")
+            or Inst:IsA("Lighting")
+            or Inst:IsA("StarterGui")
+            or Inst:IsA("StarterPack")
+            or Inst:IsA("StarterPlayer")
+            or Inst:IsA("ReplicatedStorage")
+            or Inst:IsA("ReplicatedFirst")
+            or Inst:IsA("ServerStorage")
+            or Inst:IsA("ServerScriptService")
+            or Inst:IsA("CoreGui")
+            or Inst:IsA("Teams")
+            or Inst:IsA("Player")
+        then
+            continue
+        end
+
+        local ReachableFromGame = false
+        local GoodAnc, IsDesc = pcall(function() return Inst:IsDescendantOf(game) end)
+        if GoodAnc and IsDesc then
+            ReachableFromGame = true
+        end
+
+        if ReachableFromGame then
+            continue
+        end
+
+        if ClassFilter then
+            local GoodC, ClassName = pcall(function() return Inst.ClassName end)
+            if not GoodC or not ClassName then continue end
+            if not string.find(ClassName:lower(), ClassFilter, 1, true) then
+                continue
+            end
+        end
+
+        Seen[Inst] = true
+        Result[#Result + 1] = Inst
+    end
+
+    table.sort(Result, function(A, B)
+        local AN = (A.Name or ""):lower()
+        local BN = (B.Name or ""):lower()
+        if AN == BN then return tostring(A) < tostring(B) end
+        return AN < BN
+    end)
+
+    return Result
+end
+
+function Explorer:_VTreeStartNilStream(ContainerRow)
+    self._VTreeNilStreamToken = (self._VTreeNilStreamToken or 0) + 1
+    local Token = self._VTreeNilStreamToken
+
+    local NilInsts = self:_CollectNilInstances()
+    local PageSize = self._VTreeFilteredPageSize or 150
+    local Cursor = 1
+    local Self = self
+
+    local function FindContainerIdx()
+        for I, R in Self._VTreeRows do
+            if R == ContainerRow then
+                return I
+            end
+        end
+        return nil
+    end
+
+    local function EmitPage()
+        if Token ~= Self._VTreeNilStreamToken then return end
+        if not ContainerRow.Expanded then return end
+
+        local ContainerIdx = FindContainerIdx()
+        if not ContainerIdx then return end
+
+        local Rows = Self._VTreeRows
+        local Depth = ContainerRow.Depth
+        local InsertAt = ContainerIdx + 1
+        for I = ContainerIdx + 1, #Rows do
+            if Rows[I].Depth > Depth then
+                InsertAt = I + 1
+            else
+                break
+            end
+        end
+
+        local Limit = math.min(Cursor + PageSize - 1, #NilInsts)
+        local Count = Limit - Cursor + 1
+        if Count <= 0 then
+            Self._VTreeNilResume = nil
+            Self._VTreeNilExhausted = true
+            return
+        end
+
+        local OldLen = #Rows
+        for I = OldLen, InsertAt, -1 do
+            Rows[I + Count] = Rows[I]
+        end
+
+        for I = 0, Count - 1 do
+            local Inst = NilInsts[Cursor + I]
+            local ChildRow = Self:_VTreeMakeRowData(Inst, Depth + 1, false)
+            Self:_VTreeRefreshRowMeta(ChildRow)
+            Rows[InsertAt + I] = ChildRow
+            Self._VTreeRowsByInstance[Inst] = InsertAt + I
+        end
+
+        Cursor = Limit + 1
+        Self:_VTreeReindexRows(InsertAt + Count)
+        Self:_VTreeUpdateCanvasSize()
+        Self:_VTreeInvalidateVisibleCache()
+        Self:_VTreeScheduleRebuild()
+
+        if Cursor > #NilInsts then
+            Self._VTreeNilResume = nil
+            Self._VTreeNilExhausted = true
+        end
+    end
+
+    self._VTreeNilResume = EmitPage
+    self._VTreeNilExhausted = false
+
+    EmitPage()
 end
 
 function Explorer:ToggleMatchByClassName()
@@ -9888,11 +10149,11 @@ function Explorer:RunIndexedSearch(Query, Token)
 
     for Index = 1, SourceLength do
         local Entry = Source[Index]
-        if Entry and Entry.Instance and Entry.Instance.Parent ~= nil then
-            local NameOk = self:_EntryMatchesQuery(Entry, LowerQuery, ParsedProperty)
-            local ClassOk = (not FilterActive) or Filters[Entry.ClassName]
+        if Entry and Entry.Instance and (Entry.Instance.Parent ~= nil or self.SearchIncludesNil) then
+            local NameGood = self:_EntryMatchesQuery(Entry, LowerQuery, ParsedProperty)
+            local ClassGood = (not FilterActive) or Filters[Entry.ClassName]
 
-            if NameOk and ClassOk then
+            if NameGood and ClassGood then
                 self.MatchSet[Entry.Instance] = true
                 self:_MarkAncestorsForSearch(Entry.Instance)
                 Matches[#Matches + 1] = Entry
@@ -9904,6 +10165,59 @@ function Explorer:RunIndexedSearch(Query, Token)
             task.wait()
             if Token ~= self.SearchToken or KillScript then
                 return
+            end
+        end
+    end
+
+    if self.SearchIncludesNil then
+        local NilRoots = self:_CollectNilInstances()
+        local SeenNil = {}
+
+        local Stack = {}
+        for _, Inst in NilRoots do
+            Stack[#Stack + 1] = Inst
+        end
+
+        local NilScanned = 0
+        while #Stack > 0 do
+            local Inst = table.remove(Stack)
+            if not SeenNil[Inst] then
+                SeenNil[Inst] = true
+
+                local GoodName, Name = pcall(function() return Inst.Name end)
+                local GoodClass, ClassName = pcall(function() return Inst.ClassName end)
+                if GoodName and GoodClass and type(Name) == "string" then
+                    local Entry = {
+                        Instance = Inst;
+                        LowerName = Name:lower();
+                        ClassName = ClassName;
+                    }
+
+                    local NameOk = self:_EntryMatchesQuery(Entry, LowerQuery, ParsedProperty)
+                    local ClassOk = (not FilterActive) or Filters[ClassName]
+                    if NameOk and ClassOk then
+                        self.MatchSet[Inst] = true
+                        self:_MarkAncestorsForSearch(Inst)
+                        Matches[#Matches + 1] = Entry
+                    end
+                end
+
+                local GoodKids, Kids = pcall(function() return WeakGetChildren(Inst) end)
+                if GoodKids and Kids then
+                    for _, Child in Kids do
+                        if not SeenNil[Child] then
+                            Stack[#Stack + 1] = Child
+                        end
+                    end
+                end
+            end
+
+            NilScanned += 1
+            if NilScanned % 4000 == 0 then
+                task.wait()
+                if Token ~= self.SearchToken or KillScript then
+                    return
+                end
             end
         end
     end
@@ -17170,7 +17484,9 @@ function Explorer:OpenFiltersDropdown(AnchorButton)
             end,
             function()
                 self.SearchIncludesNil = not self.SearchIncludesNil
+                self._FilterChangedSinceLastSearch = true
                 self:SaveConfig()
+
                 if self.SearchQuery ~= "" then
                     self:RefreshAllSearchFilters()
                 end
