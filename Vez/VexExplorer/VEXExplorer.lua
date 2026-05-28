@@ -181,7 +181,7 @@ local Services = {
     HttpService = GetService("HttpService");
     CoreGui = GetService("CoreGui");
     TeleportService = GetService("TeleportService");
-    CollectionService = game:GetService("CollectionService");
+    CollectionService = GetService("CollectionService");
     GuiService = GetService("GuiService");
 }
 
