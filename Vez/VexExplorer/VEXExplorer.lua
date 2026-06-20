@@ -206,7 +206,13 @@ do
     end
 end
 
-local LocalPlayer = cloneref(Services.Players.LocalPlayer)
+local LocalPlayer = Services.Players.LocalPlayer
+while not LocalPlayer do
+	Services.Players.PlayerAdded:Wait()
+	LocalPlayer = Services.Players.LocalPlayer
+end
+LocalPlayer = cloneref(LocalPlayer)
+
 local RawGetChildren = game.GetChildren
 local RawGetDescendants = game.GetDescendants
 
@@ -7616,7 +7622,7 @@ function Explorer:_FlatAllocateRow(Container)
             self:SetSelection({Item})
             self.SelectionAnchor = Item
         end
-        local Mouse = self.LocalPlayer:GetMouse()
+        local Mouse = Services.UserInputService:GetMouseLocation()
         self:OpenContextMenu(Mouse.X, Mouse.Y)
         self:_FlatRefreshVisibleSelection()
     end)
@@ -8287,7 +8293,7 @@ function Explorer:_VTreeAllocateRow(Container)
             self:SetSelection({RowData.Instance})
             self.SelectionAnchor = RowData.Instance
         end
-        local Mouse = self.LocalPlayer:GetMouse()
+        local Mouse = Services.UserInputService:GetMouseLocation()
         self:OpenContextMenu(Mouse.X, Mouse.Y)
         self:_VTreeRefreshVisibleSelection()
     end)
@@ -18626,8 +18632,6 @@ end
 function Explorer:_StartClickUiToSelect()
     self:_StopClickUiToSelect()
 
-    local Mouse = self.LocalPlayer:GetMouse()
-
     local function GatherHits(X, Y)
         local Hits = {}
 
@@ -18656,7 +18660,8 @@ function Explorer:_StartClickUiToSelect()
     end
 
     self._ClickUiConnection = Track(Mouse.Button1Down:Connect(function()
-        local Hits = GatherHits(Mouse.X, Mouse.Y)
+        local Mouse = Services.UserInputService:GetMouseLocation()
+		local Hits = GatherHits(Mouse.X, Mouse.Y)
         if #Hits == 0 then
             return
         end
@@ -18719,7 +18724,7 @@ function Explorer:_StartClickPartToSelect()
             return
         end
 
-        local Mouse = self.LocalPlayer:GetMouse()
+        local Mouse = Services.UserInputService:GetMouseLocation()
         if self:IsPointOverVexUi(Mouse.X, Mouse.Y) then
             return
         end
