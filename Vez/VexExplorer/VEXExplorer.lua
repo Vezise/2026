@@ -185,8 +185,6 @@ local Services = {
     GuiService = GetService("GuiService");
 }
 
-task.wait(0.2)
-
 do
     local Hosts = {}
     local Good, GuiHolder = pcall(gethui)
@@ -859,12 +857,12 @@ local ClassToAsset = {
 
 local AssetCache = {}
 local AssetsEnabled =
-    (getcustomasset and getcustomasset or nil)
-    and (writefile and writefile or nil)
-    and (readfile and readfile or nil)
-    and (isfile and isfile or nil)
-    and (makefolder and makefolder or nil)
-    and (isfolder and isfolder or nil)
+    (getcustomasset or false)
+    and (writefile or false)
+    and (readfile or false)
+    and (isfile or false)
+    and (makefolder or false)
+    and (isfolder or false)
 
 local function EnsureAssetFolders()
     if not AssetsEnabled then
