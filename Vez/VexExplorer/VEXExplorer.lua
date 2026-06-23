@@ -181,7 +181,7 @@ local Services = {
     HttpService = GetService("HttpService");
     CoreGui = GetService("CoreGui");
     TeleportService = GetService("TeleportService");
-    CollectionService = GetService("CollectionService");
+    CollectionService = game:GetService("CollectionService");
     GuiService = GetService("GuiService");
 }
 
@@ -14059,7 +14059,7 @@ function Explorer:OpenMethodCaller(Method)
     end
 
     local ResultScroll = VexUI:CreateInstance("ScrollingFrame", {
-        Size = UDim2.new(1, 0, 0, 140);
+        Size = UDim2.new(1, 0, 0, 40);
         BackgroundColor3 = Theme.Field;
         BorderSizePixel = 0;
         ScrollBarThickness = 4;
