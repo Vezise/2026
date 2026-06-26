@@ -771,190 +771,1348 @@ local AvailableAssets = {
     UnionOperation = true; Unspecified = true; Weld = true; Workspace = true;
 }
 
-local ClassToAsset = {
-    Workspace = "Workspace"; Terrain = "Terrain";
-    Players = "Players"; Player = "Player";
-    Lighting = "Lighting";
-    ReplicatedFirst = "ReplicatedFirst"; ReplicatedStorage = "ReplicatedStorage";
-    StarterPlayer = "StarterPlayer";
-    StarterPlayerScripts = "Folder"; StarterCharacterScripts = "Folder";
-    StarterPack = "Backpack"; StarterGui = "StarterGui";
-    CoreGui = "CoreGui"; PlayerGui = "ScreenGui";
-    ServerScriptService = "Folder"; ServerStorage = "Folder";
-    SoundService = "Sound";
-    Chat = "Chat"; TextChatService = "TextChatService";
-    Teams = "Teams"; Team = "Team";
-    TestService = "TestService";
-    InsertService = "InsertService"; JointsService = "JointsService";
-    NetworkClient = "NetworkClient";
-    Folder = "Folder"; Configuration = "Configuration";
-    Backpack = "Backpack"; Model = "Model";
-    Part = "Part"; MeshPart = "MeshPart"; UnionOperation = "UnionOperation";
-    WedgePart = "Part"; CornerWedgePart = "Part"; TrussPart = "Part";
-    SpawnLocation = "SpawnLocation";
-    Seat = "Seat"; VehicleSeat = "Seat";
-    Script = "Script"; LocalScript = "LocalScript"; ModuleScript = "ModuleScript";
-    Camera = "Camera";
-    Humanoid = "Humanoid"; HumanoidDescription = "Humanoid";
-    HumanoidRootPart = "Part";
-    Animation = "AnimationTrack"; AnimationTrack = "AnimationTrack";
-    Animator = "AnimationTrack"; AnimationController = "AnimationTrack";
-    KeyframeSequence = "AnimationTrack"; Keyframe = "AnimationTrack";
-    Tool = "Tool"; HopperBin = "Tool";
-    Accessory = "Accessory"; Hat = "Accessory";
-    Shirt = "Shirt"; Pants = "Pants";
-    ShirtGraphic = "TShirt"; TShirt = "TShirt";
-    BodyColors = "Configuration"; CharacterMesh = "MeshPart";
-    Decal = "Texture"; Texture = "Texture";
-    SurfaceGui = "SurfaceGui"; ScreenGui = "ScreenGui"; BillboardGui = "ScreenGui";
-    Frame = "Frame"; ScrollingFrame = "Frame";
-    TextLabel = "TextLabel"; TextButton = "TextButton"; TextBox = "TextLabel";
-    ImageLabel = "ImageLabel"; ImageButton = "ImageButton";
-    VideoFrame = "ImageFrame";
-    UICorner = "Frame"; UIStroke = "Frame"; UIPadding = "Frame";
-    UIListLayout = "UIListLayout"; UIGridLayout = "UIListLayout";
-    UIScale = "Frame"; UIAspectRatioConstraint = "Frame";
-    Sound = "Sound"; SoundGroup = "Sound";
-    Attachment = "Attachment";
-    Weld = "Weld"; WeldConstraint = "Weld"; Snap = "Weld";
-    Motor6D = "Motor6D";
-    BallSocketConstraint = "HingeConstraint"; HingeConstraint = "HingeConstraint";
-    RopeConstraint = "HingeConstraint"; SpringConstraint = "HingeConstraint";
-    RodConstraint = "HingeConstraint"; PrismaticConstraint = "HingeConstraint";
-    RemoteEvent = "RemoteEvent"; RemoteFunction = "RemoteFunction";
-    UnreliableRemoteEvent = "RemoteEvent";
-    BindableEvent = "BindableEvent"; BindableFunction = "BindableFunction";
-    StringValue = "StringValue";
-    IntValue = "NumberValue"; NumberValue = "NumberValue";
-    BoolValue = "NumberValue"; ObjectValue = "NumberValue";
-    CFrameValue = "NumberValue"; Vector3Value = "NumberValue";
-    Color3Value = "NumberValue"; BrickColorValue = "NumberValue";
-    RayValue = "NumberValue";
-    ParticleEmitter = "ParticleEffect"; Beam = "ParticleEffect";
-    Trail = "ParticleEffect"; Sparkles = "ParticleEffect";
-    Fire = "Fire"; Smoke = "Smoke"; Explosion = "Explosion";
-    PointLight = "Lighting"; SpotLight = "Lighting"; SurfaceLight = "Lighting";
-    Atmosphere = "Sky"; Sky = "Sky"; Clouds = "Sky";
-    BloomEffect = "ColorCorrectionEffect"; BlurEffect = "ColorCorrectionEffect";
-    ColorCorrectionEffect = "ColorCorrectionEffect";
-    DepthOfFieldEffect = "ColorCorrectionEffect";
-    SunRaysEffect = "ColorCorrectionEffect";
-    BodyVelocity = "BodyVelocity"; BodyPosition = "BodyVelocity";
-    BodyGyro = "BodyVelocity"; BodyAngularVelocity = "BodyVelocity";
-    BodyForce = "BodyVelocity"; BodyThrust = "BodyVelocity";
-    AlignPosition = "BodyVelocity"; AlignOrientation = "BodyVelocity";
-    VectorForce = "BodyVelocity"; Torque = "BodyVelocity"; LineForce = "BodyVelocity";
-    Dialog = "Chat"; DialogChoice = "Chat";
-    ClickDetector = "ClickDetector"; ProximityPrompt = "ClickDetector";
-    Highlight = "Highlight"; SelectionBox = "Selection";
-    BoxHandleAdornment = "BoxHandleAdornment";
-    ConeHandleAdornment = "ConeHandleAdornment";
-    CylinderHandleAdornment = "CylinderHandleAdornment";
-    SphereHandleAdornment = "SphereHandleAdornment";
-    LineHandleAdornment = "LineHandleAdornment";
-    ImageHandleAdornment = "ImageHandleAdornment";
-    TouchInterest = "TouchInterest";
-    FlagStand = "FlagStand"; Flag = "Flag";
-}
+local Lib = Lib or {}
+Lib.IconMap = (function()
+		local funcs = {}
+		local IconList = {
+			Old = {
+				MapId = 483448923,
+				IconSize = 16,
+				Witdh = 16,
+				Height = 16,
+				Icons = {
+					["Accessory"] = 32;
+					["Accoutrement"] = 32;
+					["AdService"] = 73;
+					["Animation"] = 60;
+					["AnimationController"] = 60;
+					["AnimationTrack"] = 60;
+					["Animator"] = 60;
+					["ArcHandles"] = 56;
+					["AssetService"] = 72;
+					["Attachment"] = 34;
+					["Backpack"] = 20;
+					["BadgeService"] = 75;
+					["BallSocketConstraint"] = 89;
+					["BillboardGui"] = 64;
+					["BinaryStringValue"] = 4;
+					["BindableEvent"] = 67;
+					["BindableFunction"] = 66;
+					["BlockMesh"] = 8;
+					["BloomEffect"] = 90;
+					["BlurEffect"] = 90;
+					["BodyAngularVelocity"] = 14;
+					["BodyForce"] = 14;
+					["BodyGyro"] = 14;
+					["BodyPosition"] = 14;
+					["BodyThrust"] = 14;
+					["BodyVelocity"] = 14;
+					["BoolValue"] = 4;
+					["BoxHandleAdornment"] = 54;
+					["BrickColorValue"] = 4;
+					["Camera"] = 5;
+					["CFrameValue"] = 4;
+					["CharacterMesh"] = 60;
+					["Chat"] = 33;
+					["ClickDetector"] = 41;
+					["CollectionService"] = 30;
+					["Color3Value"] = 4;
+					["ColorCorrectionEffect"] = 90;
+					["ConeHandleAdornment"] = 54;
+					["Configuration"] = 58;
+					["ContentProvider"] = 72;
+					["ContextActionService"] = 41;
+					["CoreGui"] = 46;
+					["CoreScript"] = 18;
+					["CornerWedgePart"] = 1;
+					["CustomEvent"] = 4;
+					["CustomEventReceiver"] = 4;
+					["CylinderHandleAdornment"] = 54;
+					["CylinderMesh"] = 8;
+					["CylindricalConstraint"] = 89;
+					["Debris"] = 30;
+					["Decal"] = 7;
+					["Dialog"] = 62;
+					["DialogChoice"] = 63;
+					["DoubleConstrainedValue"] = 4;
+					["Explosion"] = 36;
+					["FileMesh"] = 8;
+					["Fire"] = 61;
+					["Flag"] = 38;
+					["FlagStand"] = 39;
+					["FloorWire"] = 4;
+					["Folder"] = 70;
+					["ForceField"] = 37;
+					["Frame"] = 48;
+					["GamePassService"] = 19;
+					["Glue"] = 34;
+					["GuiButton"] = 52;
+					["GuiMain"] = 47;
+					["GuiService"] = 47;
+					["Handles"] = 53;
+					["HapticService"] = 84;
+					["Hat"] = 45;
+					["HingeConstraint"] = 89;
+					["Hint"] = 33;
+					["HopperBin"] = 22;
+					["HttpService"] = 76;
+					["Humanoid"] = 9;
+					["ImageButton"] = 52;
+					["ImageLabel"] = 49;
+					["InsertService"] = 72;
+					["IntConstrainedValue"] = 4;
+					["IntValue"] = 4;
+					["JointInstance"] = 34;
+					["JointsService"] = 34;
+					["Keyframe"] = 60;
+					["KeyframeSequence"] = 60;
+					["KeyframeSequenceProvider"] = 60;
+					["Lighting"] = 13;
+					["LineHandleAdornment"] = 54;
+					["LocalScript"] = 18;
+					["LogService"] = 87;
+					["MarketplaceService"] = 46;
+					["Message"] = 33;
+					["Model"] = 2;
+					["ModuleScript"] = 71;
+					["Motor"] = 34;
+					["Motor6D"] = 34;
+					["MoveToConstraint"] = 89;
+					["NegateOperation"] = 78;
+					["NetworkClient"] = 16;
+					["NetworkReplicator"] = 29;
+					["NetworkServer"] = 15;
+					["NumberValue"] = 4;
+					["ObjectValue"] = 4;
+					["Pants"] = 44;
+					["ParallelRampPart"] = 1;
+					["Part"] = 1;
+					["ParticleEmitter"] = 69;
+					["PartPairLasso"] = 57;
+					["PathfindingService"] = 37;
+					["Platform"] = 35;
+					["Player"] = 12;
+					["PlayerGui"] = 46;
+					["Players"] = 21;
+					["PlayerScripts"] = 82;
+					["PointLight"] = 13;
+					["PointsService"] = 83;
+					["Pose"] = 60;
+					["PrismaticConstraint"] = 89;
+					["PrismPart"] = 1;
+					["PyramidPart"] = 1;
+					["RayValue"] = 4;
+					["ReflectionMetadata"] = 86;
+					["ReflectionMetadataCallbacks"] = 86;
+					["ReflectionMetadataClass"] = 86;
+					["ReflectionMetadataClasses"] = 86;
+					["ReflectionMetadataEnum"] = 86;
+					["ReflectionMetadataEnumItem"] = 86;
+					["ReflectionMetadataEnums"] = 86;
+					["ReflectionMetadataEvents"] = 86;
+					["ReflectionMetadataFunctions"] = 86;
+					["ReflectionMetadataMember"] = 86;
+					["ReflectionMetadataProperties"] = 86;
+					["ReflectionMetadataYieldFunctions"] = 86;
+					["RemoteEvent"] = 80;
+					["RemoteFunction"] = 79;
+					["ReplicatedFirst"] = 72;
+					["ReplicatedStorage"] = 72;
+					["RightAngleRampPart"] = 1;
+					["RocketPropulsion"] = 14;
+					["RodConstraint"] = 89;
+					["RopeConstraint"] = 89;
+					["Rotate"] = 34;
+					["RotateP"] = 34;
+					["RotateV"] = 34;
+					["RunService"] = 66;
+					["ScreenGui"] = 47;
+					["Script"] = 6;
+					["ScrollingFrame"] = 48;
+					["Seat"] = 35;
+					["Selection"] = 55;
+					["SelectionBox"] = 54;
+					["SelectionPartLasso"] = 57;
+					["SelectionPointLasso"] = 57;
+					["SelectionSphere"] = 54;
+					["ServerScriptService"] = 0;
+					["ServerStorage"] = 74;
+					["Shirt"] = 43;
+					["ShirtGraphic"] = 40;
+					["SkateboardPlatform"] = 35;
+					["Sky"] = 28;
+					["SlidingBallConstraint"] = 89;
+					["Smoke"] = 59;
+					["Snap"] = 34;
+					["Sound"] = 11;
+					["SoundService"] = 31;
+					["Sparkles"] = 42;
+					["SpawnLocation"] = 25;
+					["SpecialMesh"] = 8;
+					["SphereHandleAdornment"] = 54;
+					["SpotLight"] = 13;
+					["SpringConstraint"] = 89;
+					["StarterCharacterScripts"] = 82;
+					["StarterGear"] = 20;
+					["StarterGui"] = 46;
+					["StarterPack"] = 20;
+					["StarterPlayer"] = 88;
+					["StarterPlayerScripts"] = 82;
+					["Status"] = 2;
+					["StringValue"] = 4;
+					["SunRaysEffect"] = 90;
+					["SurfaceGui"] = 64;
+					["SurfaceLight"] = 13;
+					["SurfaceSelection"] = 55;
+					["Team"] = 24;
+					["Teams"] = 23;
+					["TeleportService"] = 81;
+					["Terrain"] = 65;
+					["TerrainRegion"] = 65;
+					["TestService"] = 68;
+					["TextBox"] = 51;
+					["TextButton"] = 51;
+					["TextLabel"] = 50;
+					["Texture"] = 10;
+					["TextureTrail"] = 4;
+					["Tool"] = 17;
+					["TouchTransmitter"] = 37;
+					["TrussPart"] = 1;
+					["UnionOperation"] = 77;
+					["UserInputService"] = 84;
+					["Vector3Value"] = 4;
+					["VehicleSeat"] = 35;
+					["VelocityMotor"] = 34;
+					["WedgePart"] = 1;
+					["Weld"] = 34;
+					["Workspace"] = 19;
 
-local AssetCache = {}
-local AssetsEnabled =
-    (getcustomasset and getcustomasset or nil)
-    and (writefile and writefile or nil)
-    and (readfile and readfile or nil)
-    and (isfile and isfile or nil)
-    and (makefolder and makefolder or nil)
-    and (isfolder and isfolder or nil)
+				}
+			},
+			Vanilla3 = {
+				MapId = (114851699900089),
+				IconSize = 32,
+				Witdh = 25,
+				Height = 25,
+				Icons = {
+					Accessory = 1,
+					Accoutrement = 2,
+					Actor = 3,
+					AdGui = 4,
+					AdPortal = 5,
+					AdService = 6,
+					AdvancedDragger = 7,
+					AirController = 8,
+					AlignOrientation = 9,
+					AlignPosition = 10,
+					AnalysticsService = 11,
+					AnalysticsSettings = 12,
+					AnalyticsService = 13,
+					AngularVelocity = 14,
+					Animation = 15,
+					AnimationClip = 16,
+					AnimationClipProvider = 17,
+					AnimationController = 18,
+					AnimationFromVideoCreatorService = 19,
+					AnimationFromVideoCreatorStudioService = 20,
+					AnimationRigData = 21,
+					AnimationStreamTrack = 22,
+					AnimationTrack = 23,
+					Animator = 24,
+					AppStorageService = 25,
+					AppUpdateService = 26,
+					ArcHandles = 27,
+					AssetCounterService = 28,
+					AssetDeliveryProxy = 29,
+					AssetImportService = 30,
+					AssetImportSession = 31,
+					AssetManagerService = 32,
+					AssetService = 33,
+					AssetSoundEffect = 34,
+					Atmosphere = 35,
+					Attachment = 36,
+					AvatarEditorService = 37,
+					AvatarImportService = 38,
+					Backpack = 39,
+					BackpackItem = 40,
+					BadgeService = 41,
+					BallSocketConstraint = 42,
+					BasePart = 43,
+					BasePlayerGui = 44,
+					BaseScript = 45,
+					BaseWrap = 46,
+					Beam = 47,
+					BevelMesh = 48,
+					BillboardGui = 49,
+					BinaryStringValue = 50,
+					BindableEvent = 51,
+					BindableFunction = 52,
+					BlockMesh = 53,
+					BloomEffect = 54,
+					BlurEffect = 55,
+					BodyAngularVelocity = 56,
+					BodyColors = 57,
+					BodyForce = 58,
+					BodyGyro = 59,
+					BodyMover = 60,
+					BodyPosition = 61,
+					BodyThrust = 62,
+					BodyVelocity = 63,
+					Bone = 64,
+					BoolValue = 65,
+					BoxHandleAdornment = 66,
+					Breakpoint = 67,
+					BreakpointManager = 68,
+					BrickColorValue = 69,
+					BrowserService = 70,
+					BubbleChatConfiguration = 71,
+					BulkImportService = 72,
+					CacheableContentProvider = 73,
+					CalloutService = 74,
+					Camera = 75,
+					CanvasGroup = 76,
+					CatalogPages = 77,
+					CFrameValue = 78,
+					ChangeHistoryService = 79,
+					ChannelSelectorSoundEffect = 80,
+					CharacterAppearance = 81,
+					CharacterMesh = 82,
+					Chat = 83,
+					ChatInputBarConfiguration = 84,
+					ChatWindowConfiguration = 85,
+					ChorusSoundEffect = 86,
+					ClickDetector = 87,
+					ClientReplicator = 88,
+					ClimbController = 89,
+					Clothing = 90,
+					Clouds = 91,
+					ClusterPacketCache = 92,
+					CollectionService = 93,
+					Color3Value = 94,
+					ColorCorrectionEffect = 95,
+					CommandInstance = 96,
+					CommandService = 97,
+					CompressorSoundEffect = 98,
+					ConeHandleAdornment = 99,
+					Configuration = 100,
+					ConfigureServerService = 101,
+					Constraint = 102,
+					ContentProvider = 103,
+					ContextActionService = 104,
+					Controller = 105,
+					ControllerBase = 106,
+					ControllerManager = 107,
+					ControllerService = 108,
+					CookiesService = 109,
+					CoreGui = 110,
+					CorePackages = 111,
+					CoreScript = 112,
+					CoreScriptSyncService = 113,
+					CornerWedgePart = 114,
+					CrossDMScriptChangeListener = 115,
+					CSGDictionaryService = 116,
+					CurveAnimation = 117,
+					CustomEvent = 118,
+					CustomEventReceiver = 119,
+					CustomSoundEffect = 120,
+					CylinderHandleAdornment = 121,
+					CylinderMesh = 122,
+					CylindricalConstraint = 123,
+					DataModel = 124,
+					DataModelMesh = 125,
+					DataModelPatchService = 126,
+					DataModelSession = 127,
+					DataStore = 128,
+					DataStoreIncrementOptions = 129,
+					DataStoreInfo = 130,
+					DataStoreKey = 131,
+					DataStoreKeyInfo = 132,
+					DataStoreKeyPages = 133,
+					DataStoreListingPages = 134,
+					DataStoreObjectVersionInfo = 135,
+					DataStoreOptions = 136,
+					DataStorePages = 137,
+					DataStoreService = 138,
+					DataStoreSetOptions = 139,
+					DataStoreVersionPages = 140,
+					Debris = 141,
+					DebuggablePluginWatcher = 142,
+					DebuggerBreakpoint = 143,
+					DebuggerConnection = 144,
+					DebuggerConnectionManager = 145,
+					DebuggerLuaResponse = 146,
+					DebuggerManager = 147,
+					DebuggerUIService = 148,
+					DebuggerVariable = 149,
+					DebuggerWatch = 150,
+					DebugSettings = 151,
+					Decal = 152,
+					DepthOfFieldEffect = 153,
+					DeviceIdService = 154,
+					Dialog = 155,
+					DialogChoice = 156,
+					DistortionSoundEffect = 157,
+					DockWidgetPluginGui = 158,
+					DoubleConstrainedValue = 159,
+					DraftsService = 160,
+					Dragger = 161,
+					DraggerService = 162,
+					DynamicRotate = 163,
+					EchoSoundEffect = 164,
+					EmotesPages = 165,
+					EqualizerSoundEffect = 166,
+					EulerRotationCurve = 167,
+					EventIngestService = 168,
+					Explosion = 169,
+					FaceAnimatorService = 170,
+					FaceControls = 171,
+					FaceInstance = 172,
+					FacialAnimationRecordingService = 173,
+					FacialAnimationStreamingService = 174,
+					Feature = 175,
+					File = 176,
+					FileMesh = 177,
+					Fire = 178,
+					Flag = 179,
+					FlagStand = 180,
+					FlagStandService = 181,
+					FlangeSoundEffect = 182,
+					FloatCurve = 183,
+					FloorWire = 184,
+					FlyweightService = 185,
+					Folder = 186,
+					ForceField = 187,
+					FormFactorPart = 188,
+					Frame = 189,
+					FriendPages = 190,
+					FriendService = 191,
+					FunctionalTest = 192,
+					GamepadService = 193,
+					GamePassService = 194,
+					GameSettings = 195,
+					GenericSettings = 196,
+					Geometry = 197,
+					GetTextBoundsParams = 198,
+					GlobalDataStore = 199,
+					GlobalSettings = 200,
+					Glue = 201,
+					GoogleAnalyticsConfiguration = 202,
+					GroundController = 203,
+					GroupService = 204,
+					GuiBase = 205,
+					GuiBase2d = 206,
+					GuiBase3d = 207,
+					GuiButton = 208,
+					GuidRegistryService = 209,
+					GuiLabel = 210,
+					GuiMain = 211,
+					GuiObject = 212,
+					GuiService = 213,
+					HandleAdornment = 214,
+					Handles = 215,
+					HandlesBase = 216,
+					HapticService = 217,
+					Hat = 218,
+					HeightmapImporterService = 219,
+					HiddenSurfaceRemovalAsset = 220,
+					Highlight = 221,
+					HingeConstraint = 222,
+					Hint = 223,
+					Hole = 224,
+					Hopper = 225,
+					HopperBin = 226,
+					HSRDataContentProvider = 227,
+					HttpRbxApiService = 228,
+					HttpRequest = 229,
+					HttpService = 230,
+					Humanoid = 231,
+					HumanoidController = 232,
+					HumanoidDescription = 233,
+					IKControl = 234,
+					ILegacyStudioBridge = 235,
+					ImageButton = 236,
+					ImageHandleAdornment = 237,
+					ImageLabel = 238,
+					ImporterAnimationSettings = 239,
+					ImporterBaseSettings = 240,
+					ImporterFacsSettings = 241,
+					ImporterGroupSettings = 242,
+					ImporterJointSettings = 243,
+					ImporterMaterialSettings = 244,
+					ImporterMeshSettings = 245,
+					ImporterRootSettings = 246,
+					IncrementalPatchBuilder = 247,
+					InputObject = 248,
+					InsertService = 249,
+					Instance = 250,
+					InstanceAdornment = 251,
+					IntConstrainedValue = 252,
+					IntValue = 253,
+					InventoryPages = 254,
+					IXPService = 255,
+					JointInstance = 256,
+					JointsService = 257,
+					KeyboardService = 258,
+					Keyframe = 259,
+					KeyframeMarker = 260,
+					KeyframeSequence = 261,
+					KeyframeSequenceProvider = 262,
+					LanguageService = 263,
+					LayerCollector = 264,
+					LegacyStudioBridge = 265,
+					Light = 266,
+					Lighting = 267,
+					LinearVelocity = 268,
+					LineForce = 269,
+					LineHandleAdornment = 270,
+					LocalDebuggerConnection = 271,
+					LocalizationService = 272,
+					LocalizationTable = 273,
+					LocalScript = 274,
+					LocalStorageService = 275,
+					LodDataEntity = 276,
+					LodDataService = 277,
+					LoginService = 278,
+					LogService = 279,
+					LSPFileSyncService = 280,
+					LuaSettings = 281,
+					LuaSourceContainer = 282,
+					LuauScriptAnalyzerService = 283,
+					LuaWebService = 284,
+					ManualGlue = 285,
+					ManualSurfaceJointInstance = 286,
+					ManualWeld = 287,
+					MarkerCurve = 288,
+					MarketplaceService = 289,
+					MaterialService = 290,
+					MaterialVariant = 291,
+					MemoryStoreQueue = 292,
+					MemoryStoreService = 293,
+					MemoryStoreSortedMap = 294,
+					MemStorageConnection = 295,
+					MemStorageService = 296,
+					MeshContentProvider = 297,
+					MeshPart = 298,
+					Message = 299,
+					MessageBusConnection = 300,
+					MessageBusService = 301,
+					MessagingService = 302,
+					MetaBreakpoint = 303,
+					MetaBreakpointContext = 304,
+					MetaBreakpointManager = 305,
+					Model = 306,
+					ModuleScript = 307,
+					Motor = 308,
+					Motor6D = 309,
+					MotorFeature = 310,
+					Mouse = 311,
+					MouseService = 312,
+					MultipleDocumentInterfaceInstance = 313,
+					NegateOperation = 314,
+					NetworkClient = 315,
+					NetworkMarker = 316,
+					NetworkPeer = 317,
+					NetworkReplicator = 318,
+					NetworkServer = 319,
+					NetworkSettings = 320,
+					NoCollisionConstraint = 321,
+					NonReplicatedCSGDictionaryService = 322,
+					NotificationService = 323,
+					NumberPose = 324,
+					NumberValue = 325,
+					ObjectValue = 326,
+					OrderedDataStore = 327,
+					OutfitPages = 328,
+					PackageLink = 329,
+					PackageService = 330,
+					PackageUIService = 331,
+					Pages = 332,
+					Pants = 333,
+					ParabolaAdornment = 334,
+					Part = 335,
+					PartAdornment = 336,
+					ParticleEmitter = 337,
+					PartOperation = 338,
+					PartOperationAsset = 339,
+					PatchMapping = 340,
+					Path = 341,
+					PathfindingLink = 342,
+					PathfindingModifier = 343,
+					PathfindingService = 344,
+					PausedState = 345,
+					PausedStateBreakpoint = 346,
+					PausedStateException = 347,
+					PermissionsService = 348,
+					PhysicsService = 349,
+					PhysicsSettings = 350,
+					PitchShiftSoundEffect = 351,
+					Plane = 352,
+					PlaneConstraint = 353,
+					Platform = 354,
+					Player = 355,
+					PlayerEmulatorService = 356,
+					PlayerGui = 357,
+					PlayerMouse = 358,
+					Players = 359,
+					PlayerScripts = 360,
+					Plugin = 361,
+					PluginAction = 362,
+					PluginDebugService = 363,
+					PluginDragEvent = 364,
+					PluginGui = 365,
+					PluginGuiService = 366,
+					PluginManagementService = 367,
+					PluginManager = 368,
+					PluginManagerInterface = 369,
+					PluginMenu = 370,
+					PluginMouse = 371,
+					PluginPolicyService = 372,
+					PluginToolbar = 373,
+					PluginToolbarButton = 374,
+					PointLight = 375,
+					PointsService = 376,
+					PolicyService = 377,
+					Pose = 378,
+					PoseBase = 379,
+					PostEffect = 380,
+					PrismaticConstraint = 381,
+					ProcessInstancePhysicsService = 382,
+					ProximityPrompt = 383,
+					ProximityPromptService = 384,
+					PublishService = 385,
+					PVAdornment = 386,
+					PVInstance = 387,
+					QWidgetPluginGui = 388,
+					RayValue = 389,
+					RbxAnalyticsService = 390,
+					ReflectionMetadata = 391,
+					ReflectionMetadataCallbacks = 392,
+					ReflectionMetadataClass = 393,
+					ReflectionMetadataClasses = 394,
+					ReflectionMetadataEnum = 395,
+					ReflectionMetadataEnumItem = 396,
+					ReflectionMetadataEnums = 397,
+					ReflectionMetadataEvents = 398,
+					ReflectionMetadataFunctions = 399,
+					ReflectionMetadataItem = 400,
+					ReflectionMetadataMember = 401,
+					ReflectionMetadataProperties = 402,
+					ReflectionMetadataYieldFunctions = 403,
+					RemoteDebuggerServer = 404,
+					RemoteEvent = 405,
+					RemoteFunction = 406,
+					RenderingTest = 407,
+					RenderSettings = 408,
+					ReplicatedFirst = 409,
+					ReplicatedStorage = 410,
+					ReverbSoundEffect = 411,
+					RigidConstraint = 412,
+					RobloxPluginGuiService = 413,
+					RobloxReplicatedStorage = 414,
+					RocketPropulsion = 415,
+					RodConstraint = 416,
+					RopeConstraint = 417,
+					Rotate = 418,
+					RotateP = 419,
+					RotateV = 420,
+					RotationCurve = 421,
+					RtMessagingService = 422,
+					RunningAverageItemDouble = 423,
+					RunningAverageItemInt = 424,
+					RunningAverageTimeIntervalItem = 425,
+					RunService = 426,
+					RuntimeScriptService = 427,
+					ScreenGui = 428,
+					ScreenshotHud = 429,
+					Script = 430,
+					ScriptChangeService = 431,
+					ScriptCloneWatcher = 432,
+					ScriptCloneWatcherHelper = 433,
+					ScriptContext = 434,
+					ScriptDebugger = 435,
+					ScriptDocument = 436,
+					ScriptEditorService = 437,
+					ScriptRegistrationService = 438,
+					ScriptService = 439,
+					ScrollingFrame = 440,
+					Seat = 441,
+					Selection = 442,
+					SelectionBox = 443,
+					SelectionLasso = 444,
+					SelectionPartLasso = 445,
+					SelectionPointLasso = 446,
+					SelectionSphere = 447,
+					ServerReplicator = 448,
+					ServerScriptService = 449,
+					ServerStorage = 450,
+					ServiceProvider = 451,
+					SessionService = 452,
+					Shirt = 453,
+					ShirtGraphic = 454,
+					SkateboardController = 455,
+					SkateboardPlatform = 456,
+					Skin = 457,
+					Sky = 458,
+					SlidingBallConstraint = 459,
+					Smoke = 460,
+					Snap = 461,
+					SnippetService = 462,
+					SocialService = 463,
+					SolidModelContentProvider = 464,
+					Sound = 465,
+					SoundEffect = 466,
+					SoundGroup = 467,
+					SoundService = 468,
+					Sparkles = 469,
+					SpawnerService = 470,
+					SpawnLocation = 471,
+					Speaker = 472,
+					SpecialMesh = 473,
+					SphereHandleAdornment = 474,
+					SpotLight = 475,
+					SpringConstraint = 476,
+					StackFrame = 477,
+					StandalonePluginScripts = 478,
+					StandardPages = 479,
+					StarterCharacterScripts = 480,
+					StarterGear = 481,
+					StarterGui = 482,
+					StarterPack = 483,
+					StarterPlayer = 484,
+					StarterPlayerScripts = 485,
+					Stats = 486,
+					StatsItem = 487,
+					Status = 488,
+					StopWatchReporter = 489,
+					StringValue = 490,
+					Studio = 491,
+					StudioAssetService = 492,
+					StudioData = 493,
+					StudioDeviceEmulatorService = 494,
+					StudioHighDpiService = 495,
+					StudioPublishService = 496,
+					StudioScriptDebugEventListener = 497,
+					StudioService = 498,
+					StudioTheme = 499,
+					SunRaysEffect = 500,
+					SurfaceAppearance = 501,
+					SurfaceGui = 502,
+					SurfaceGuiBase = 503,
+					SurfaceLight = 504,
+					SurfaceSelection = 505,
+					SwimController = 506,
+					TaskScheduler = 507,
+					Team = 508,
+					TeamCreateService = 509,
+					Teams = 510,
+					TeleportAsyncResult = 511,
+					TeleportOptions = 512,
+					TeleportService = 513,
+					TemporaryCageMeshProvider = 514,
+					TemporaryScriptService = 515,
+					Terrain = 516,
+					TerrainDetail = 517,
+					TerrainRegion = 518,
+					TestService = 519,
+					TextBox = 520,
+					TextBoxService = 521,
+					TextButton = 522,
+					TextChannel = 523,
+					TextChatCommand = 524,
+					TextChatConfigurations = 525,
+					TextChatMessage = 526,
+					TextChatMessageProperties = 527,
+					TextChatService = 528,
+					TextFilterResult = 529,
+					TextLabel = 530,
+					TextService = 531,
+					TextSource = 532,
+					Texture = 533,
+					ThirdPartyUserService = 534,
+					ThreadState = 535,
+					TimerService = 536,
+					ToastNotificationService = 537,
+					Tool = 538,
+					ToolboxService = 539,
+					Torque = 540,
+					TorsionSpringConstraint = 541,
+					TotalCountTimeIntervalItem = 542,
+					TouchInputService = 543,
+					TouchTransmitter = 544,
+					TracerService = 545,
+					TrackerStreamAnimation = 546,
+					Trail = 547,
+					Translator = 548,
+					TremoloSoundEffect = 549,
+					TriangleMeshPart = 550,
+					TrussPart = 551,
+					Tween = 552,
+					TweenBase = 553,
+					TweenService = 554,
+					UGCValidationService = 555,
+					UIAspectRatioConstraint = 556,
+					UIBase = 557,
+					UIComponent = 558,
+					UIConstraint = 559,
+					UICorner = 560,
+					UIGradient = 561,
+					UIGridLayout = 562,
+					UIGridStyleLayout = 563,
+					UILayout = 564,
+					UIListLayout = 565,
+					UIPadding = 566,
+					UIPageLayout = 567,
+					UIScale = 568,
+					UISizeConstraint = 569,
+					UIStroke = 570,
+					UITableLayout = 571,
+					UITextSizeConstraint = 572,
+					UnionOperation = 573,
+					UniversalConstraint = 574,
+					UnvalidatedAssetService = 575,
+					UserGameSettings = 576,
+					UserInputService = 577,
+					UserService = 578,
+					UserSettings = 579,
+					UserStorageService = 580,
+					ValueBase = 581,
+					Vector3Curve = 582,
+					Vector3Value = 583,
+					VectorForce = 584,
+					VehicleController = 585,
+					VehicleSeat = 586,
+					VelocityMotor = 587,
+					VersionControlService = 588,
+					VideoCaptureService = 589,
+					VideoFrame = 590,
+					ViewportFrame = 591,
+					VirtualInputManager = 592,
+					VirtualUser = 593,
+					VisibilityService = 594,
+					Visit = 595,
+					VoiceChannel = 596,
+					VoiceChatInternal = 597,
+					VoiceChatService = 598,
+					VoiceSource = 599,
+					VRService = 600,
+					WedgePart = 601,
+					Weld = 602,
+					WeldConstraint = 603,
+					WireframeHandleAdornment = 604,
+					Workspace = 605,
+					WorldModel = 606,
+					WorldRoot = 607,
+					WrapLayer = 608,
+					WrapTarget = 609,
 
-local function EnsureAssetFolders()
-    if not AssetsEnabled then
-        return
+				}
+			},
+			NewDark = {
+				MapId = 135148380892747,
+				Icons = {
+					Accessory = 1,
+					Actor = 2,
+					AdGui = 3,
+					AdPortal = 4,
+					AirController = 5,
+					AlignOrientation = 6,
+					AlignPosition = 7,
+					AngularVelocity = 8,
+					Animation = 9,
+					AnimationConstraint = 10,
+					AnimationController = 11,
+					AnimationFromVideoCreatorService = 12,
+					Animator = 13,
+					ArcHandles = 14,
+					Atmosphere = 15,
+					Attachment = 16,
+					AudioAnalyzer = 17,
+					AudioChannelMixer = 18,
+					AudioChannelSplitter = 19,
+					AudioChorus = 20,
+					AudioCompressor = 21,
+					AudioDeviceInput = 22,
+					AudioDeviceOutput = 23,
+					AudioDistortion = 24,
+					AudioEcho = 25,
+					AudioEmitter = 26,
+					AudioEqualizer = 27,
+					AudioFader = 28,
+					AudioFilter = 29,
+					AudioFlanger = 30,
+					AudioGate = 31,
+					AudioLimiter = 32,
+					AudioListener = 33,
+					AudioPitchShifter = 34,
+					AudioPlayer = 35,
+					AudioRecorder = 36,
+					AudioReverb = 37,
+					AudioTextToSpeech = 38,
+					AuroraScript = 39,
+					AvatarEditorService = 40,
+					AvatarSettings = 41,
+					Backpack = 42,
+					BallSocketConstraint = 43,
+					BasePlate = 44,
+					Beam = 45,
+					BillboardGui = 46,
+					BindableEvent = 47,
+					BindableFunction = 48,
+					BlockMesh = 49,
+					BloomEffect = 50,
+					BlurEffect = 51,
+					BodyAngularVelocity = 52,
+					BodyColors = 53,
+					BodyForce = 54,
+					BodyGyro = 55,
+					BodyPosition = 56,
+					BodyThrust = 57,
+					BodyVelocity = 58,
+					Bone = 59,
+					BoolValue = 60,
+					BoxHandleAdornment = 61,
+					Breakpoint = 62,
+					BrickColorValue = 63,
+					BubbleChatConfiguration = 64,
+					Buggaroo = 65,
+					Camera = 66,
+					CanvasGroup = 67,
+					CFrameValue = 68,
+					ChannelTabsConfiguration = 69,
+					CharacterControllerManager = 70,
+					CharacterMesh = 71,
+					Chat = 72,
+					ChatInputBarConfiguration = 73,
+					ChatWindowConfiguration = 74,
+					ChorusSoundEffect = 75,
+					Class = 76,
+					Cleanup = 77,
+					ClickDetector = 78,
+					ClientReplicator = 79,
+					ClimbController = 80,
+					Clouds = 81,
+					Color = 82,
+					ColorCorrectionEffect = 83,
+					CompressorSoundEffect = 84,
+					ConeHandleAdornment = 85,
+					Configuration = 86,
+					Constant = 87,
+					Constructor = 88,
+					Controller = 89,
+					CoreGui = 90,
+					CornerWedgePart = 91,
+					CylinderHandleAdornment = 92,
+					CylindricalConstraint = 93,
+					Decal = 94,
+					DepthOfFieldEffect = 95,
+					Dialog = 96,
+					DialogChoice = 97,
+					DistortionSoundEffect = 98,
+					DragDetector = 99,
+					EchoSoundEffect = 100,
+					EditableImage = 101,
+					EditableMesh = 102,
+					Enum = 103,
+					EnumMember = 104,
+					EqualizerSoundEffect = 105,
+					Event = 106,
+					Explosion = 107,
+					FaceControls = 108,
+					Field = 109,
+					File = 110,
+					Fire = 111,
+					FlangeSoundEffect = 112,
+					Folder = 113,
+					ForceField = 114,
+					Frame = 115,
+					Function = 116,
+					GameSettings = 117,
+					GroundController = 118,
+					Handles = 119,
+					HapticEffect = 120,
+					HapticService = 121,
+					HeightmapImporterService = 122,
+					Highlight = 123,
+					HingeConstraint = 124,
+					Humanoid = 125,
+					HumanoidDescription = 126,
+					IKControl = 127,
+					ImageButton = 128,
+					ImageHandleAdornment = 129,
+					ImageLabel = 130,
+					InputAction = 131,
+					InputBinding = 132,
+					InputContext = 133,
+					Interface = 134,
+					IntersectOperation = 135,
+					Keyword = 136,
+					Lighting = 137,
+					LinearVelocity = 138,
+					LineForce = 139,
+					LineHandleAdornment = 140,
+					LocalFile = 141,
+					LocalizationService = 142,
+					LocalizationTable = 143,
+					LocalScript = 144,
+					MaterialService = 145,
+					MaterialVariant = 146,
+					MemoryStoreService = 147,
+					MeshPart = 148,
+					Meshparts = 149,
+					MessagingService = 150,
+					Method = 151,
+					Model = 152,
+					Modelgroups = 153,
+					Module = 154,
+					ModuleScript = 155,
+					Motor6D = 156,
+					NegateOperation = 157,
+					NetworkClient = 158,
+					NoCollisionConstraint = 159,
+					Operator = 160,
+					PackageLink = 161,
+					Pants = 162,
+					Part = 163,
+					ParticleEmitter = 164,
+					Path2D = 165,
+					PathfindingLink = 166,
+					PathfindingModifier = 167,
+					PathfindingService = 168,
+					PitchShiftSoundEffect = 169,
+					Place = 170,
+					Placeholder = 171,
+					Plane = 172,
+					PlaneConstraint = 173,
+					Player = 174,
+					Players = 175,
+					PluginGuiService = 176,
+					PointLight = 177,
+					PrismaticConstraint = 178,
+					Property = 179,
+					ProximityPrompt = 180,
+					PublishService = 181,
+					Reference = 182,
+					RemoteEvent = 183,
+					RemoteFunction = 184,
+					RenderingTest = 185,
+					ReplicatedFirst = 186,
+					ReplicatedScriptService = 187,
+					ReplicatedStorage = 188,
+					ReverbSoundEffect = 189,
+					RigidConstraint = 190,
+					RobloxPluginGuiService = 191,
+					RocketPropulsion = 192,
+					RodConstraint = 193,
+					RopeConstraint = 194,
+					Rotate = 195,
+					ScreenGui = 196,
+					Script = 197,
+					ScrollingFrame = 198,
+					Seat = 199,
+					Selected_Workspace = 200,
+					SelectionBox = 201,
+					SelectionSphere = 202,
+					ServerScriptService = 203,
+					ServerStorage = 204,
+					Service = 205,
+					Shirt = 206,
+					ShirtGraphic = 207,
+					SkinnedMeshPart = 208,
+					Sky = 209,
+					Smoke = 210,
+					Snap = 211,
+					Snippet = 212,
+					SocialService = 213,
+					Sound = 214,
+					SoundEffect = 215,
+					SoundGroup = 216,
+					SoundService = 217,
+					Sparkles = 218,
+					SpawnLocation = 219,
+					SpecialMesh = 220,
+					SphereHandleAdornment = 221,
+					SpotLight = 222,
+					SpringConstraint = 223,
+					StandalonePluginScripts = 224,
+					StarterCharacterScripts = 225,
+					StarterGui = 226,
+					StarterPack = 227,
+					StarterPlayer = 228,
+					StarterPlayerScripts = 229,
+					Struct = 230,
+					StyleDerive = 231,
+					StyleLink = 232,
+					StyleRule = 233,
+					StyleSheet = 234,
+					SunRaysEffect = 235,
+					SurfaceAppearance = 236,
+					SurfaceGui = 237,
+					SurfaceLight = 238,
+					SurfaceSelection = 239,
+					SwimController = 240,
+					TaskScheduler = 241,
+					Team = 242,
+					Teams = 243,
+					Terrain = 244,
+					TerrainDetail = 245,
+					TestService = 246,
+					TextBox = 247,
+					TextBoxService = 248,
+					TextButton = 249,
+					TextChannel = 250,
+					TextChatCommand = 251,
+					TextChatService = 252,
+					TextLabel = 253,
+					TextString = 254,
+					Texture = 255,
+					Tool = 256,
+					Torque = 257,
+					TorsionSpringConstraint = 258,
+					Trail = 259,
+					TremoloSoundEffect = 260,
+					TrussPart = 261,
+					TypeParameter = 262,
+					UGCValidationService = 263,
+					UIAspectRatioConstraint = 264,
+					UICorner = 265,
+					UIDragDetector = 266,
+					UIFlexItem = 267,
+					UIGradient = 268,
+					UIGridLayout = 269,
+					UIListLayout = 270,
+					UIPadding = 271,
+					UIPageLayout = 272,
+					UIScale = 273,
+					UISizeConstraint = 274,
+					UIStroke = 275,
+					UITableLayout = 276,
+					UITextSizeConstraint = 277,
+					UnionOperation = 278,
+					Unit = 279,
+					UniversalConstraint = 280,
+					UnreliableRemoteEvent = 281,
+					UpdateAvailable = 282,
+					UserService = 283,
+					Value = 284,
+					Variable = 285,
+					VectorForce = 286,
+					VehicleSeat = 287,
+					VideoDisplay = 288,
+					VideoFrame = 289,
+					VideoPlayer = 290,
+					ViewportFrame = 291,
+					VirtualUser = 292,
+					VoiceChannel = 293,
+					Voicechat = 294,
+					VoiceChatService = 295,
+					VRService = 296,
+					WedgePart = 297,
+					Weld = 298,
+					WeldConstraint = 299,
+					Wire = 300,
+					WireframeHandleAdornment = 301,
+					Workspace = 302,
+					WorldModel = 303,
+					WrapDeformer = 304,
+					WrapLayer = 305,
+					WrapTarget = 306,
+					
+					Color3Value = 284,
+					IntValue = 284,
+					NumberValue = 284,
+					ObjectValue = 284,
+					RayValue = 284,
+					StringValue = 284,
+					Vector3Value = 284,
+				},
+				IconSize = 32,
+				Witdh = 18,
+				Height = 18,
+			},
+			NewLight = {
+				MapId = "",
+				Icons = {
+					Class = "rbxasset://studio_svg_textures/Shared/InsertableObjects/Light/Standard/",
+				},
+				IconSize = 16,
+				Witdh = 18,
+				Height = 18,
+			}
+		}
+		funcs._ActiveTheme = "NewDark"
+
+		function funcs.SetExplorerTheme(themeName)
+			if not themeName or not IconList[themeName] then
+				themeName = "NewDark"
+			end
+			funcs._ActiveTheme = themeName
+			local data = IconList[themeName]
+			funcs.ExplorerIcons = {
+				MapId = data.MapId,
+				Icons = data.Icons,
+				IconSize = data.IconSize,
+				Witdh = data.Witdh,
+				Height = data.Height,
+			}
+		end
+
+		funcs.SetExplorerTheme("NewDark")
+		
+		
+
+		funcs.GetLabel = function(self)
+			local label = Instance.new("ImageLabel")
+			self:SetupLabel(label)
+			return label
+		end
+
+		funcs.SetupLabel = function(self,obj)
+			obj.BackgroundTransparency = 1
+			obj.ImageRectOffset = Vector2.new(0, 0)
+			obj.ImageRectSize = Vector2.new(self.IconSizeX, self.IconSizeY)
+			obj.ScaleType = Enum.ScaleType.Crop
+			obj.Size = UDim2.new(0, self.IconSizeX, 0, self.IconSizeY)
+		end
+
+		funcs.Display = function(self,obj,index)
+			obj.Image = self.MapId
+			obj.ImageRectSize = Vector2.new(self.IconSizeX, self.IconSizeY)
+			if not self.NumX then
+				obj.ImageRectOffset = Vector2.new(self.IconSizeX*index, 0)
+			else
+				obj.ImageRectOffset = Vector2.new(self.IconSizeX*(index % self.NumX), self.IconSizeY*math.floor(index / self.NumX))
+			end
+		end
+
+		funcs.DisplayByKey = function(self, obj, key)
+			if self.IndexDict[key] then
+				self:Display(obj, self.IndexDict[key])
+			end
+		end
+
+		funcs.IconDehash = function(self, _id)
+			return math.floor(_id / 14 % 14), math.floor(_id % 14)
+		end
+		
+		local ClassNameNoImage = {}
+		funcs.GetExplorerIcon = function(self, obj, index)
+			if funcs._ActiveTheme == "Vanilla3" then
+				obj.Size = UDim2.fromOffset(16, 16)
+
+				index = (self.ExplorerIcons.Icons[index] or 250) - 1
+				obj.ImageRectOffset = Vector2.new(funcs.ExplorerIcons.IconSize * (index % funcs.ExplorerIcons.Height), funcs.ExplorerIcons.IconSize * math.floor(index / funcs.ExplorerIcons.Height))
+				obj.ImageRectSize = Vector2.new(funcs.ExplorerIcons.IconSize, funcs.ExplorerIcons.IconSize)
+			elseif funcs._ActiveTheme == "Old" then
+				index = (self.ExplorerIcons.Icons[index] or 0)
+				local row, col = self:IconDehash(index)
+				local MapSize = Vector2.new(256, 256)
+				local pad, border = 2, 1
+
+				obj.Position = UDim2.new(-col - (pad * (col + 1) + border) / funcs.ExplorerIcons.IconSize, 0, -row - (pad * (row + 1) + border) / funcs.ExplorerIcons.IconSize, 0)
+				obj.Size = UDim2.new(MapSize.X / funcs.ExplorerIcons.IconSize, 0, MapSize.Y / funcs.ExplorerIcons.IconSize, 0)
+			elseif funcs._ActiveTheme == "NewLight" or funcs._ActiveTheme == "NewDark" then
+				local isService = string.find(index, "Service") and game:GetService(index)
+				
+				obj.Size = UDim2.fromOffset(16, 16)
+				index = (self.ExplorerIcons.Icons[index] or (isService and self.ExplorerIcons.Icons.Service) or self.ExplorerIcons.Icons.Placeholder) - 1
+				obj.ImageRectOffset = Vector2.new(funcs.ExplorerIcons.IconSize * (index % funcs.ExplorerIcons.Height), funcs.ExplorerIcons.IconSize * math.floor(index / funcs.ExplorerIcons.Height))
+				obj.ImageRectSize = Vector2.new(funcs.ExplorerIcons.IconSize, funcs.ExplorerIcons.IconSize)
+			else
+				index = (self.ExplorerIcons.Icons[index] or 0)
+				local row, col = self:IconDehash(index)
+				local MapSize = Vector2.new(256, 256)
+				local pad, border = 2, 1
+
+				obj.Position = UDim2.new(-col - (pad * (col + 1) + border) / funcs.ExplorerIcons.IconSize, 0, -row - (pad * (row + 1) + border) / funcs.ExplorerIcons.IconSize, 0)
+				obj.Size = UDim2.new(MapSize.X / funcs.ExplorerIcons.IconSize, 0, MapSize.Y / funcs.ExplorerIcons.IconSize, 0)
+			end
+			
+		end
+
+		funcs.DisplayExplorerIcons = function(self, Frame, index)
+			if Frame:FindFirstChild("IconMap") then
+				self:GetExplorerIcon(Frame.IconMap, index)
+			else
+				Frame.ClipsDescendants = true
+
+				local obj = Instance.new("ImageLabel", Frame)
+				obj.BackgroundTransparency = 1
+				obj.Image = ("http://www.roblox.com/asset/?id=" .. (self.ExplorerIcons.MapId))
+				obj.Name = "IconMap"
+				self:GetExplorerIcon(obj, index)
+			end
+		end
+
+		funcs.SetDict = function(self,dict)
+			self.IndexDict = dict
+		end
+
+		local mt = {}
+		mt.__index = funcs
+
+		local function new(mapId,mapSizeX,mapSizeY,iconSizeX,iconSizeY)
+			local obj = setmetatable({
+				MapId = mapId,
+				MapSizeX = mapSizeX,
+				MapSizeY = mapSizeY,
+				IconSizeX = iconSizeX,
+				IconSizeY = iconSizeY,
+				NumX = mapSizeX/iconSizeX,
+				IndexDict = {}
+			}, mt)
+			return obj
+		end
+
+		local function newLinear(mapId,iconSizeX,iconSizeY)
+			local obj = setmetatable({
+				MapId = mapId,
+				IconSizeX = iconSizeX,
+				IconSizeY = iconSizeY,
+				IndexDict = {}
+			},mt)
+			return obj
+		end
+		
+		local function getIconDataFromName(name)
+			return IconList[name] or error("Name not found")
+		end
+
+		return {new = new, newLinear = newLinear, getIconDataFromName = getIconDataFromName, SetExplorerTheme = funcs.SetExplorerTheme, IconList = IconList}
+	end)()
+
+
+local ClassIconThemes = {"NewDark", "Vanilla3", "Old"}
+
+local function CreateExplorerClassIcons(ClassIconTheme)
+    local theme = ClassIconTheme or "NewDark"
+    if not table.find(ClassIconThemes, theme) then
+        theme = "NewDark"
     end
 
-    if not isfolder(AssetFolder) then
-        makefolder(AssetFolder)
-    end
+    Lib.IconMap.SetExplorerTheme(theme)
 
-    if not isfolder(AssetsSubFolder) then
-        makefolder(AssetsSubFolder)
-    end
-end
+    local iconData = Lib.IconMap.getIconDataFromName(theme)
+    local atlasW = iconData.IconSize * iconData.Witdh
+    local atlasH = iconData.IconSize * iconData.Height
 
-local function DownloadAsset(AssetName)
-    if not AssetsEnabled then
-        return nil
-    end
+    local ClassIcons = Lib.IconMap.new(
+        "rbxassetid://" .. tostring(iconData.MapId),
+        atlasW,
+        atlasH,
+        iconData.IconSize,
+        iconData.IconSize
+    )
 
-    local Path = `{AssetsSubFolder}/{AssetName}.png`
-    if isfile(Path) then
-        return Path
-    end
+    ClassIcons.ExplorerIcons = {
+        MapId = iconData.MapId,
+        Icons = iconData.Icons,
+        IconSize = iconData.IconSize,
+        Witdh = iconData.Witdh,
+        Height = iconData.Height,
+    }
+    ClassIcons._ActiveTheme = theme
 
-    local Good, Result = pcall(function()
-        if request then
-            local Response = request({
-                Url = `{AssetBaseURL}/{AssetName}.png`;
-                Method = "GET";
-            })
-
-            if Response and Response.StatusCode == 200 and Response.Body then
-                return Response.Body
-            end
-
-            return nil
-        end
-
-        -- why does your exec not support request :rofl:
-    end)
-
-    if not Good
-        or #Result == 0
-    then
-        return nil
-    end
-
-    local WriteGood = pcall(writefile, Path, Result)
-    if not WriteGood then
-        return nil
-    end
-
-    return Path
-end
-
-local function GetClassAssetId(ClassName)
-    if not AssetsEnabled then
-        return nil
-    end
-
-    if type(ClassName) ~= "string" or ClassName == "" then
-        ClassName = "Instance"
-    end
-
-    if AssetCache[ClassName] ~= nil then
-        return AssetCache[ClassName] or nil
-    end
-
-    local AssetName = ClassToAsset[ClassName]
-    if not AssetName or not AvailableAssets[AssetName] then
-        AssetName = "Unspecified"
-    end
-
-    EnsureAssetFolders()
-
-    local Path = DownloadAsset(AssetName)
-    if not Path then
-        AssetCache[ClassName] = false
-        return nil
-    end
-
-    local Good, AssetId = pcall(getcustomasset, Path)
-    if Good and AssetId ~= "" then
-        AssetCache[ClassName] = AssetId
-        return AssetId
-    end
-
-    AssetCache[ClassName] = false
-    return nil
+    return ClassIcons
 end
 
 local function GetUIAssetId(AssetName)
@@ -995,20 +2153,11 @@ local function PrefetchAssets()
     task.spawn(function()
         EnsureAssetFolders()
 
-        local Seen = {}
-        for _, AssetName in ClassToAsset do
-            if not Seen[AssetName] and AvailableAssets[AssetName] then
-                Seen[AssetName] = true
-                pcall(DownloadAsset, AssetName)
-            end
-        end
-
         pcall(DownloadAsset, "CloseIcon")
         pcall(DownloadAsset, "FreezeIcon")
         pcall(DownloadAsset, "ConsoleIcon")
         pcall(DownloadAsset, "SearchIcon")
         pcall(DownloadAsset, "SettingsIcon")
-        pcall(DownloadAsset, "Unspecified")
     end)
 end
 
@@ -6502,27 +7651,13 @@ function VexUI:CreateWindow(Config)
 end
 
 function VexUI:CreateClassIcon(ClassName, Parent)
-    local AssetId = GetClassAssetId(ClassName)
-    if AssetId then
-        return self:CreateInstance("ImageLabel", {
-            Size = UDim2.new(0, 16, 0, 16);
-            BackgroundTransparency = 1;
-            Image = AssetId;
-            ScaleType = Enum.ScaleType.Fit;
-            ImageColor3 = Color3.fromRGB(255, 255, 255);
-            Parent = Parent;
-        })
-    end
-
-    return self:CreateInstance("TextLabel", {
+    local Icon = self:CreateInstance("ImageLabel", {
         Size = UDim2.new(0, 16, 0, 16);
         BackgroundTransparency = 1;
-        Font = Fonts.Mono;
-        Text = "?";
-        TextColor3 = Theme.TextDim;
-        TextSize = 11;
         Parent = Parent;
     })
+    VexUI:ApplyClassIcon(Icon, ClassName or "Instance")
+    return Icon
 end
 
 function VexUI:CreateTooltip(Parent, Text)
@@ -6569,14 +7704,24 @@ end
 function VexUI:ApplyClassIcon(ImageLabel, ClassName)
     if not ImageLabel then return end
 
-    local AssetId = ClassName and GetClassAssetId(ClassName)
-    if AssetId then
-        ImageLabel.Image = AssetId
-        ImageLabel.ImageTransparency = 0
-    else
+    if not ClassName then
+        ImageLabel.ClipsDescendants = false
         ImageLabel.Image = ""
         ImageLabel.ImageTransparency = 1
+        local Child = ImageLabel:FindFirstChild("IconMap")
+        if Child then
+            Child:Destroy()
+        end
+        return
     end
+
+    local ClassIcons = Explorer.ClassIcons
+    if not ClassIcons then return end
+
+    ImageLabel.Image = ""
+    ImageLabel.ImageTransparency = 0
+    ImageLabel.ClipsDescendants = true
+    ClassIcons:DisplayExplorerIcons(ImageLabel, ClassName)
 end
 
 local function IsLuaIdentifier(Name)
@@ -6838,6 +7983,8 @@ Explorer = setmetatable({
     MatchByProperty = false;
 
     FlatSearchResults = false;
+    ClassIcon = "NewDark";
+    ClassIcons = nil;
     _FlatResultsContainer = nil;
     _FlatResultsPool = nil;
     _FlatResultsItems = nil;
@@ -6849,6 +7996,7 @@ Explorer = setmetatable({
     _VTreeRowsByInstance = nil;
     _VTreeFilteredRows = nil;
     _VTreeFilterActive = false;
+    _VTreeFilteredExpanded = nil;
     _VTreeExpanded = nil;
     _VTreeContainer = nil;
     _VTreePool = nil;
@@ -6885,6 +8033,43 @@ local function RebindFont(OldEnum, NewEnum)
             end
         end
     end
+end
+
+function Explorer:InitClassIcons()
+    self.ClassIcons = CreateExplorerClassIcons(self.ClassIcon or "NewDark")
+end
+
+function Explorer:InvalidateAllClassIcons()
+    if self._VTreePool then
+        for _, Entry in self._VTreePool do
+            Entry.IconClassName = nil
+        end
+    end
+
+    if self._FlatResultsPool then
+        for _, Entry in self._FlatResultsPool do
+            if Entry.IconClassName ~= nil then
+                Entry.IconClassName = nil
+            end
+        end
+    end
+
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:SetClassIconTheme(ThemeName)
+    if not table.find(ClassIconThemes, ThemeName) then
+        ThemeName = "NewDark"
+    end
+
+    if self.ClassIcon == ThemeName and self.ClassIcons then
+        return
+    end
+
+    self.ClassIcon = ThemeName
+    self.ClassIcons = CreateExplorerClassIcons(ThemeName)
+    self:InvalidateAllClassIcons()
+    self:SaveConfig()
 end
 
 function Explorer:SpawnTask(TaskName, Callback)
@@ -7060,18 +8245,45 @@ function Explorer:GetInstancePath(Object)
     return Path
 end
 
+function Explorer:FullPathFor(Object)
+    if not Object or typeof(Object) ~= "Instance" then
+        return ""
+    end
+
+    local Path = self:GetInstancePath(Object)
+    if Path == "" then
+        return ""
+    end
+
+    return Path
+end
+
 function Explorer:FullPath()
     local Target = self.SelectedInstance
     if not Target then
         return
     end
 
-    local Path = self:GetInstancePath(Target)
-    if Path == "" then
+    return self:FullPathFor(Target)
+end
+
+function Explorer:CopySelectionField(Extractor, SingleLabel, MultiLabel)
+    local Selection = self:GetSelectionList()
+    if #Selection == 0 then
         return
     end
 
-    return Path
+    if #Selection == 1 then
+        pcall(setclipboard, Extractor(Selection[1]))
+        self:Notify(SingleLabel)
+    else
+        local Lines = {}
+        for _, Inst in Selection do
+            table.insert(Lines, Extractor(Inst))
+        end
+        pcall(setclipboard, table.concat(Lines, "\n"))
+        self:Notify(`{MultiLabel} ({#Selection})`)
+    end
 end
 
 function Explorer:FormatValue(Value)
@@ -8171,7 +9383,13 @@ function Explorer:_VTreeAllocateRow(Container)
     ArrowHit.MouseButton1Click:Connect(function()
         local RowData = PoolEntry.Bound
         if not RowData or not RowData.HasChildren then return end
-        if RowData.Expanded then
+        if self._VTreeFilterActive then
+            if RowData.Expanded then
+                self:_VTreeCollapseFiltered(RowData)
+            else
+                self:_VTreeExpandFiltered(RowData)
+            end
+        elseif RowData.Expanded then
             self:_VTreeCollapse(RowData)
         else
             self:_VTreeExpand(RowData)
@@ -8334,7 +9552,7 @@ function Explorer:_VTreeBindRow(PoolEntry, RowData, YPos)
 
     local IndentPx = RowData.Depth * self._VTreeIndent + 4
 
-    if RowData.HasChildren and not self._VTreeFilterActive then
+    if RowData.HasChildren then
         PoolEntry.Arrow.Visible = true
         PoolEntry.Arrow.Text = RowData.Expanded and "-" or "+"
         PoolEntry.Arrow.Position = UDim2.new(0, IndentPx, 0.5, -7)
@@ -8590,9 +9808,67 @@ function Explorer:_VTreeHookScroll()
     end)
 end
 
+function Explorer:_VTreeExpandFiltered(RowData)
+    if not RowData or RowData.Expanded then return end
+    if not RowData.HasChildren then return end
+
+    if RowData.IsNilContainer then
+        if not self._VTreeFilteredExpanded then
+            self._VTreeFilteredExpanded = {}
+        end
+        self._VTreeFilteredExpanded.__NilContainer = true
+        self:_VTreeBuildFiltered()
+        self:_VTreeUpdateCanvasSize()
+        self:_VTreeScheduleRebuild()
+        return
+    end
+
+    local Inst = RowData.Instance
+    if not Inst then return end
+
+    if not self._VTreeFilteredExpanded then
+        self._VTreeFilteredExpanded = {}
+    end
+    self._VTreeFilteredExpanded[Inst] = true
+    self:_VTreeBuildFiltered()
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeScheduleRebuild()
+end
+
+function Explorer:_VTreeCollapseFiltered(RowData)
+    if not RowData or not RowData.Expanded then return end
+
+    if RowData.IsNilContainer then
+        if not self._VTreeFilteredExpanded then
+            self._VTreeFilteredExpanded = {}
+        end
+        self._VTreeFilteredExpanded.__NilContainer = false
+        self:_VTreeBuildFiltered()
+        self:_VTreeUpdateCanvasSize()
+        self:_VTreeScheduleRebuild()
+        return
+    end
+
+    local Inst = RowData.Instance
+    if not Inst then return end
+
+    if not self._VTreeFilteredExpanded then
+        self._VTreeFilteredExpanded = {}
+    end
+    self._VTreeFilteredExpanded[Inst] = false
+    self:_VTreeBuildFiltered()
+    self:_VTreeUpdateCanvasSize()
+    self:_VTreeScheduleRebuild()
+end
+
 function Explorer:_VTreeExpand(RowData)
     if not RowData or RowData.Expanded then return end
     if not RowData.HasChildren then return end
+
+    if self._VTreeFilterActive then
+        self:_VTreeExpandFiltered(RowData)
+        return
+    end
 
     RowData.Expanded = true
 
@@ -8655,6 +9931,11 @@ end
 
 function Explorer:_VTreeCollapse(RowData)
     if not RowData or not RowData.Expanded then return end
+
+    if self._VTreeFilterActive then
+        self:_VTreeCollapseFiltered(RowData)
+        return
+    end
 
     RowData.Expanded = false
 
@@ -9399,16 +10680,35 @@ function Explorer:_VTreeBuildFiltered()
         end)
     end
 
+    if not self._VTreeFilteredExpanded then
+        self._VTreeFilteredExpanded = {}
+    end
+
+    for Inst in Include do
+        if self._VTreeFilteredExpanded[Inst] == nil then
+            self._VTreeFilteredExpanded[Inst] = true
+        end
+    end
+
+    local FilteredExpanded = self._VTreeFilteredExpanded
     local Filtered = self._VTreeFilteredRows
     local PageSize = self._VTreeFilteredPageSize or 150
 
-    local function MakeRow(Inst, Depth, HasKids)
+    local function IsFilteredExpanded(Inst)
+        local State = FilteredExpanded[Inst]
+        if State == nil then
+            return true
+        end
+        return State ~= false
+    end
+
+    local function MakeRow(Inst, Depth, HasKids, Expanded)
         local GoodN, N = pcall(function() return Inst.Name end)
         local GoodC, C = pcall(function() return Inst.ClassName end)
         return {
             Instance = Inst;
             Depth = Depth;
-            Expanded = true;
+            Expanded = Expanded;
             HasChildren = HasKids;
             IsNilContainer = false;
             RawName = (GoodN and N) or "?";
@@ -9424,7 +10724,8 @@ function Explorer:_VTreeBuildFiltered()
         Walk = function(Inst, Depth)
             local Kids = ChildrenByParent[Inst]
             local HasKids = Kids ~= nil and #Kids > 0
-            Filtered[#Filtered + 1] = MakeRow(Inst, Depth, HasKids)
+            local Expanded = IsFilteredExpanded(Inst)
+            Filtered[#Filtered + 1] = MakeRow(Inst, Depth, HasKids, Expanded)
             Emitted += 1
 
             if Emitted >= Threshold then
@@ -9432,7 +10733,7 @@ function Explorer:_VTreeBuildFiltered()
                 Threshold = Emitted + PageSize
             end
 
-            if Kids then
+            if HasKids and Expanded and Kids then
                 for _, Child in Kids do
                     Walk(Child, Depth + 1)
                 end
@@ -9444,10 +10745,17 @@ function Explorer:_VTreeBuildFiltered()
         end
 
         if #NilChildList > 0 then
+            local NilExpanded = FilteredExpanded.__NilContainer
+            if NilExpanded == nil then
+                NilExpanded = true
+            else
+                NilExpanded = NilExpanded ~= false
+            end
+
             Filtered[#Filtered + 1] = {
                 Instance = nil;
                 Depth = 0;
-                Expanded = true;
+                Expanded = NilExpanded;
                 HasChildren = true;
                 IsNilContainer = true;
                 RawName = `Nil Instances ({#NilChildList})`;
@@ -9459,8 +10767,10 @@ function Explorer:_VTreeBuildFiltered()
                 Threshold = Emitted + PageSize
             end
 
-            for _, Child in NilChildList do
-                Walk(Child, 1)
+            if NilExpanded then
+                for _, Child in NilChildList do
+                    Walk(Child, 1)
+                end
             end
         end
     end)
@@ -9501,6 +10811,7 @@ function Explorer:_VTreeApplyFilter()
 
     if PrevQuery ~= Query then
         self._VTreeHighlightCache = {}
+        self._VTreeFilteredExpanded = {}
     end
 
     if Query == "" then
@@ -12447,19 +13758,15 @@ function Explorer:OpenListModal(Title, Items, ItemTextFunction, OnPick, ShowSear
                 VexUI:AddPadding(Button, Multiline and 4 or 0, 8, Multiline and 4 or 0, LeftPad)
 
                 if IconAssetName then
-                    local IconAsset = GetClassAssetId(IconAssetName)
-                    if IconAsset then
-                        VexUI:CreateInstance("ImageLabel", {
-                            Size = UDim2.new(0, 14, 0, 14);
-                            Position = UDim2.new(0, 6 - LeftPad, 0.5, -7);
-                            BackgroundTransparency = 1;
-                            Image = IconAsset;
-                            ScaleType = Enum.ScaleType.Fit;
-                            Active = false;
-                            ZIndex = 204;
-                            Parent = Button;
-                        })
-                    end
+                    local IconHost = VexUI:CreateInstance("ImageLabel", {
+                        Size = UDim2.new(0, 14, 0, 14);
+                        Position = UDim2.new(0, 6 - LeftPad, 0.5, -7);
+                        BackgroundTransparency = 1;
+                        Active = false;
+                        ZIndex = 204;
+                        Parent = Button;
+                    })
+                    VexUI:ApplyClassIcon(IconHost, IconAssetName)
                 end
 
                 Button.MouseEnter:Connect(function()
@@ -16861,6 +18168,73 @@ function Explorer:OpenSettings()
         )
     end)
 
+    CreateHeader("Class Icons", 6.5)
+
+    local ClassIconRow = CreateRow(6.6)
+    VexUI:CreateInstance("TextLabel", {
+        Size = UDim2.new(0, 60, 1, 0);
+        BackgroundTransparency = 1;
+        Font = Fonts.Medium;
+        Text = "Theme";
+        TextColor3 = Theme.Text;
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = 203;
+        Parent = ClassIconRow;
+    })
+
+    local ClassIconButton = VexUI:CreateInstance("TextButton", {
+        Size = UDim2.new(1, -60, 0, 22);
+        Position = UDim2.new(0, 60, 0.5, -11);
+        BackgroundColor3 = Theme.Field;
+        BorderSizePixel = 0;
+        AutoButtonColor = false;
+        Font = Fonts.Mono;
+        Text = self.ClassIcon or "NewDark";
+        TextColor3 = Theme.Accent;
+        TextSize = 11;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = 203;
+        Parent = ClassIconRow;
+    })
+
+    self.ClassIconButton = ClassIconButton
+    VexUI:AddStroke(ClassIconButton, "Border", 1)
+    VexUI:AddPadding(ClassIconButton, 0, 8, 0, 8)
+
+    ClassIconButton.MouseButton1Click:Connect(function()
+        local Options = {}
+        for _, Name in ClassIconThemes do
+            table.insert(Options, {Name = Name})
+        end
+
+        self:OpenListModal("Class Icons", Options,
+            function(Item)
+                return Item.Name
+            end,
+            function(Item)
+                self:SetClassIconTheme(Item.Name)
+                self:CloseModal()
+                self:OpenSettings()
+
+                if self.ClassIconButton and self.ClassIconButton.Parent then
+                    self.ClassIconButton.Text = Item.Name
+                end
+
+                ClassIconButton.Text = Item.Name
+            end,
+            false,
+            nil,
+            nil,
+            {
+                Floating = true;
+                AnchorWindow = self.SettingsWindow;
+                Width = 280;
+                Height = 220;
+            }
+        )
+    end)
+
     CreateHeader("UI Transparency", 7)
 
     local function Percent(Value)
@@ -20005,32 +21379,48 @@ function Explorer:OpenContextMenu(AnchorX, AnchorY)
 
     MakeSeparator()
 
-    MakeItem("Copy Name", false, function()
-        if self.SelectedInstance then
-            pcall(setclipboard, self.SelectedInstance.Name)
-            self:Notify("Name copied")
-        end
+    local SelectionCount = #Selection
+    local NameLabel = SelectionCount > 1 and "Copy Names" or "Copy Name"
+    local PathLabel = SelectionCount > 1 and "Copy Paths" or "Copy Path"
+    local ClassLabel = SelectionCount > 1 and "Copy ClassNames" or "Copy ClassName"
+    local PropsLabel = SelectionCount > 1 and "Copy All Properties" or "Copy All Properties"
+
+    MakeItem(NameLabel, false, function()
+        self:CopySelectionField(
+            function(Inst) return Inst.Name end,
+            "Name copied",
+            "Names copied"
+        )
     end)
 
-    MakeItem("Copy Path", false, function()
-        if self.SelectedInstance then
-            pcall(setclipboard, self:FullPath(self.SelectedInstance))
-            self:Notify("Path copied")
-        end
+    MakeItem(PathLabel, false, function()
+        self:CopySelectionField(
+            function(Inst) return self:FullPathFor(Inst) end,
+            "Path copied",
+            "Paths copied"
+        )
     end)
 
-    MakeItem("Copy ClassName", false, function()
-        if self.SelectedInstance then
-            pcall(setclipboard, self.SelectedInstance.ClassName)
-            self:Notify("ClassName copied")
-        end
+    MakeItem(ClassLabel, false, function()
+        self:CopySelectionField(
+            function(Inst) return Inst.ClassName end,
+            "ClassName copied",
+            "ClassNames copied"
+        )
     end)
 
-    MakeItem("Copy All Properties", false, function()
-        if self.SelectedInstance then
-            local Code = SerializeInstance(self.SelectedInstance)
+    MakeItem(PropsLabel, false, function()
+        if SelectionCount == 1 then
+            local Code = SerializeInstance(Selection[1])
             pcall(setclipboard, Code)
             self:Notify("All properties copied")
+        else
+            local Blocks = {}
+            for _, Inst in Selection do
+                table.insert(Blocks, SerializeInstance(Inst))
+            end
+            pcall(setclipboard, table.concat(Blocks, "\n\n"))
+            self:Notify(`Properties copied ({SelectionCount})`)
         end
     end)
 
@@ -20424,6 +21814,7 @@ function Explorer:BuildConfigData()
         MatchByClassName = self.MatchByClassName == true;
         MatchByProperty = self.MatchByProperty == true;
         FlatSearchResults = self.FlatSearchResults == true;
+        ClassIcon = self.ClassIcon or "NewDark";
         PinnedPaths = self.PinnedPaths or {};
     }
 end
@@ -20502,6 +21893,10 @@ function Explorer:ApplyConfigData(Data)
 
     if typeof(Data.FlatSearchResults) == "boolean" then
         self.FlatSearchResults = Data.FlatSearchResults
+    end
+
+    if typeof(Data.ClassIcon) == "string" and table.find(ClassIconThemes, Data.ClassIcon) then
+        self.ClassIcon = Data.ClassIcon
     end
 
     if typeof(Data.MatchByProperty) == "boolean" then
@@ -20718,6 +22113,7 @@ end
 function ExplorerClass:Create()
     Handle(function()
         self:InitConfig()
+        self:InitClassIcons()
         self.ScreenGui = VexUI:CreateScreenGui()
 
         self.MatchSet = {}
