@@ -1,16 +1,25 @@
 # Donations
 LTC:
 ```
-ltc1q4jcpxu6j43fugujq8qtt4l0ertvfvlzwqr94en
+LMNkq24juXgzZw69fL22uj7JjWJndQ1h3W
 ```
 BTC:
 ```
-bc1qqtmn7mg5fr4h9ee7946hdugp6xy248jjz0ykal
+bc1qzrz5frulrrsndfzq0ug9dj52f08cer40etll26
 ```
 ETH:
 ```
-0x1b3A20B6fbcAD7a8dee9fd59c6241F02feD3966F
+0xCBA88318863e75Ec43b490b1d0AE21FA3c6a57E5
 ```
+SOL:
+```
+4EkBr9NqgKg1LxryYtG36kkg48YSbMa2jerN8eAq3Nh7
+```
+XRP:
+```
+rE2mY8mw7DP7Vuxt5fguGnpqxQGuTFRRHF
+```
+
 <img width="557" height="234" alt="image" src="https://github.com/user-attachments/assets/1b0df8f9-263c-46b6-b872-bf035da8209e" />
 
 **Discord**: https://discord.com/invite/6e7mm8xbbb
