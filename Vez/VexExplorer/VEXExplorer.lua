@@ -20359,7 +20359,7 @@ end
 
 function Explorer:Notify(Message)
     self:ShowNotification("VEX", Message, "success")
-    print("VEX", Message, "success")
+    --print(`VEX {Message} success`)
 end
 
 function Explorer:SerializeColor(Color)
