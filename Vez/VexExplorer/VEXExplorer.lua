@@ -18735,14 +18735,10 @@ function Explorer:_StartClickPartToSelect()
     self:_StopClickPartToSelect()
 
     self._ClickPartConnection = Track(Services.UserInputService.InputBegan:Connect(function(Input, GameProcessed)
-        if Input.UserInputType ~= Enum.UserInputType.MouseButton1 or Input.UserInputType ~= Enum.UserInputType.Touch then
+        if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.Touch then
             return
         end
-
-        if GameProcessed then
-            return
-        end
-
+        
         local Mouse = self.LocalPlayer:GetMouse()
         if self:IsPointOverVexUi(Mouse.X, Mouse.Y) then
             return
