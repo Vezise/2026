@@ -185,8 +185,6 @@ local Services = {
     GuiService = GetService("GuiService");
 }
 
-task.wait(0.2)
-
 do
     local Hosts = {}
     local Good, GuiHolder = pcall(gethui)
@@ -206,7 +204,7 @@ do
     end
 end
 
-local LocalPlayer = cloneref(Services.Players.LocalPlayer)
+local LocalPlayer = cloneref(Services.Players.LocalPlayer or Services.Players.PlayerAdded:Wait())
 local RawGetChildren = game.GetChildren
 local RawGetDescendants = game.GetDescendants
 
