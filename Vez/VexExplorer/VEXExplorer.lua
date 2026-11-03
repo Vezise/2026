@@ -688,7 +688,7 @@ end
 
 local CachedDecompile = decompile
 local last = 0
-getgenv().decompile = function(scr) -- lua.expert
+local function LuaExpertDecompile(scr) -- lua.expert
     local ok, bytecode = pcall(getscriptbytecode, scr)
     if not ok then
         return "-- failed to read script bytecode\n--[[\n" .. tostring(bytecode) .. "\n--]]"
@@ -15483,7 +15483,7 @@ function Explorer:OpenScriptViewer(ScriptObject, UseDefault)
     end
 
     local Source
-    local DecompileFunc = UseDefault and CachedDecompile or decompile
+    local DecompileFunc = UseDefault and CachedDecompile or LuaExpertDecompile
     if DecompileFunc then
         local Good, Result = pcall(DecompileFunc, ScriptObject)
         if Good and type(Result) == "string" and Result ~= "" then
